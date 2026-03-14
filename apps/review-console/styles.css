@@ -296,6 +296,30 @@ a {
   margin-bottom: 0.6rem;
 }
 
+.timeline-review-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
+.timeline-review-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.timeline-review-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.timeline-review-note {
+  font-size: 0.95rem;
+}
+
 .timeline-card p,
 .detail-hero p,
 .detail-copy,
@@ -537,7 +561,8 @@ a {
   .masthead,
   .panel-title-row,
   .detail-grid,
-  .detail-meta {
+  .detail-meta,
+  .timeline-review-header {
     display: grid;
   }
 

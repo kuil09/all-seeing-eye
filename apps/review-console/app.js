@@ -8,6 +8,10 @@ import {
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
 import {
+  buildReviewHistorySummary,
+  formatReviewActionCount
+} from "./review-history-summary.mjs";
+import {
   buildUrlSearch,
   createInitialUiState,
   DEMO_EMPTY,
@@ -321,6 +325,9 @@ function renderTimeline() {
   elements.emptyState.hidden = filteredTimeline.length !== 0;
 
   for (const item of filteredTimeline) {
+    const reviewHistorySummary = buildReviewHistorySummary(
+      state.data.details[item.eventId]?.reviewActions ?? []
+    );
     const card = document.createElement("button");
     card.type = "button";
     card.className = "timeline-card";
@@ -351,6 +358,7 @@ function renderTimeline() {
           .map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`)
           .join("")}
       </div>
+      ${reviewHistorySummary ? renderTimelineReviewSummary(reviewHistorySummary) : ""}
     `;
 
     card.addEventListener("click", () => {
@@ -362,6 +370,23 @@ function renderTimeline() {
 
     elements.timelineList.append(card);
   }
+}
+
+function renderTimelineReviewSummary(reviewHistorySummary) {
+  return `
+    <div class="timeline-review-summary">
+      <div class="timeline-review-header">
+        <span class="chip">${escapeHtml(
+          formatReviewActionCount(reviewHistorySummary.actionCount)
+        )}</span>
+        <span class="meta-copy">${formatDateTime(reviewHistorySummary.createdAt)}</span>
+      </div>
+      <p class="timeline-review-title">Latest ${escapeHtml(
+        reviewHistorySummary.actionLabel
+      )} by ${escapeHtml(reviewHistorySummary.actorLabel)}</p>
+      <p class="timeline-review-note">${escapeHtml(reviewHistorySummary.notePreview)}</p>
+    </div>
+  `;
 }
 
 function renderDetail() {
