@@ -17,6 +17,7 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
+import { buildTimelineEntitySummary } from "./timeline-entity-summary.mjs";
 import { matchesTimelineSearchQuery } from "./timeline-search.mjs";
 import {
   buildUrlSearch,
@@ -335,6 +336,9 @@ function renderTimeline() {
       detail?.event?.confidence ?? item.confidence,
       detail?.claims ?? []
     );
+    const entitySummary = buildTimelineEntitySummary(detail?.entities ?? [], {
+      primaryLocation: item.primaryLocation
+    });
     const reviewHistorySummary = buildReviewHistorySummary(detail?.reviewActions ?? []);
     const provenanceSummary = buildSourceProvenanceSummary(detail?.sources ?? [], item.eventTime);
     const card = document.createElement("button");
@@ -362,6 +366,7 @@ function renderTimeline() {
         <span class="metric-chip">${item.claimCount} claims</span>
         <span class="metric-chip">${item.entityCount} entities</span>
       </div>
+      ${entitySummary ? renderTimelineEntitySummary(entitySummary) : ""}
       ${confidenceSummary ? renderTimelineConfidenceSummary(confidenceSummary) : ""}
       ${provenanceSummary ? renderTimelineProvenanceSummary(provenanceSummary) : ""}
       <div class="tag-row">
@@ -381,6 +386,26 @@ function renderTimeline() {
 
     elements.timelineList.append(card);
   }
+}
+
+function renderTimelineEntitySummary(entitySummary) {
+  return `
+    <div class="timeline-entity-summary">
+      <p class="timeline-entity-title">Key participants</p>
+      <div class="chip-row">
+        ${entitySummary.visibleParticipants
+          .map((participant) => `<span class="chip">${escapeHtml(participant)}</span>`)
+          .join("")}
+        ${
+          entitySummary.remainingCount
+            ? `<span class="metric-chip">+${entitySummary.remainingCount} more participant${
+                entitySummary.remainingCount === 1 ? "" : "s"
+              }</span>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
 }
 
 function renderTimelineConfidenceSummary(confidenceSummary) {

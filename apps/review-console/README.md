@@ -48,6 +48,7 @@ recorded without notes for quick triage.
 ## Current behavior
 
 - Timeline-first analyst queue
+- Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
 - Search matches timeline copy plus claim text, entity names and roles, source titles and feed keys, and recorded analyst notes

@@ -304,6 +304,7 @@ a {
   border-top: 1px solid rgba(22, 37, 49, 0.08);
 }
 
+.timeline-entity-summary,
 .timeline-confidence-summary {
   display: grid;
   gap: 0.45rem;
@@ -332,6 +333,7 @@ a {
   font-weight: 600;
 }
 
+.timeline-entity-title,
 .timeline-confidence-title {
   color: var(--ink);
   font-weight: 600;
