@@ -9,6 +9,7 @@ import {
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
 import { buildFilterSummary } from "./filter-summary.mjs";
+import { buildQueueDistribution } from "./queue-distribution.mjs";
 import {
   buildReviewHistorySummary,
   formatReviewActionCount
@@ -144,6 +145,28 @@ function bindEvents() {
       return;
     }
 
+    const quickStatusButton = event.target.closest("[data-quick-status]");
+    if (quickStatusButton) {
+      const nextStatusFilter = quickStatusButton.getAttribute("data-quick-status");
+      if (nextStatusFilter && nextStatusFilter !== state.reviewStatusFilter) {
+        state.reviewStatusFilter = nextStatusFilter;
+        syncUrl();
+        render();
+      }
+      return;
+    }
+
+    const quickConfidenceButton = event.target.closest("[data-quick-confidence]");
+    if (quickConfidenceButton) {
+      const nextConfidenceFilter = quickConfidenceButton.getAttribute("data-quick-confidence");
+      if (nextConfidenceFilter && nextConfidenceFilter !== state.confidenceFilter) {
+        state.confidenceFilter = nextConfidenceFilter;
+        syncUrl();
+        render();
+      }
+      return;
+    }
+
     const resetDemoButton = event.target.closest("[data-reset-demo]");
     if (resetDemoButton) {
       resetDemoMode();
@@ -257,15 +280,39 @@ function getFilteredTimeline() {
     return [];
   }
 
+  return getTimelineSlice();
+}
+
+function getTimelineSlice({
+  includeSearchQuery = true,
+  includeReviewStatusFilter = true,
+  includeConfidenceFilter = true,
+  includeTagFilter = true
+} = {}) {
+  if (!state.data) {
+    return [];
+  }
+
+  if (state.demoMode === DEMO_EMPTY) {
+    return [];
+  }
+
   return state.data.timeline.filter((item) => {
     const detail = state.data.details[item.eventId];
-    const matchesQuery = matchesTimelineSearchQuery(state.searchQuery, item, detail);
-
+    const matchesQuery =
+      !includeSearchQuery || matchesTimelineSearchQuery(state.searchQuery, item, detail);
     const matchesStatus =
-      state.reviewStatusFilter === "all" || item.reviewStatus === state.reviewStatusFilter;
+      !includeReviewStatusFilter ||
+      state.reviewStatusFilter === "all" ||
+      item.reviewStatus === state.reviewStatusFilter;
     const matchesConfidence =
-      state.confidenceFilter === "all" || item.confidence.label === state.confidenceFilter;
-    const matchesTag = state.tagFilter === "all" || (item.tags ?? []).includes(state.tagFilter);
+      !includeConfidenceFilter ||
+      state.confidenceFilter === "all" ||
+      item.confidence.label === state.confidenceFilter;
+    const matchesTag =
+      !includeTagFilter ||
+      state.tagFilter === "all" ||
+      (item.tags ?? []).includes(state.tagFilter);
 
     return matchesQuery && matchesStatus && matchesConfidence && matchesTag;
   });
@@ -539,6 +586,16 @@ function renderFilterSummary(filteredTimeline) {
 
   const totalCount = state.data.timeline.length;
   const filterSummary = getCurrentFilterSummary();
+  const queueDistribution = buildQueueDistribution(
+    getTimelineSlice({
+      includeReviewStatusFilter: false,
+      includeConfidenceFilter: false
+    }),
+    {
+      reviewStatusFilter: state.reviewStatusFilter,
+      confidenceFilter: state.confidenceFilter
+    }
+  );
   const summaryCopy = buildVisibleCountCopy(filteredTimeline.length, totalCount, filterSummary);
   const summaryChips = renderFilterChips(filterSummary);
   const summaryActions = renderFilterActions(filterSummary);
@@ -553,6 +610,7 @@ function renderFilterSummary(filteredTimeline) {
         ? `<div class="chip-row filter-summary-chips">${summaryChips}</div>`
         : ""
     }
+    ${renderQueueDistribution(queueDistribution)}
   `;
 }
 
@@ -1127,6 +1185,62 @@ function renderFilterActions(filterSummary) {
   }
 
   return actions.join("");
+}
+
+function renderQueueDistribution(queueDistribution) {
+  if (queueDistribution.totalCount === 0) {
+    return "";
+  }
+
+  const scopeCopy =
+    state.searchQuery || state.tagFilter !== "all"
+      ? "Counts stay scoped to the current search and tag slice."
+      : "Counts stay scoped to the full queue.";
+
+  return `
+    <div class="queue-distribution">
+      <div class="queue-distribution-header">
+        <p class="section-kicker">Quick lanes</p>
+        <p class="meta-copy">${escapeHtml(scopeCopy)}</p>
+      </div>
+      ${renderQueueDistributionGroup(
+        "Review status",
+        queueDistribution.statusOptions,
+        "data-quick-status"
+      )}
+      ${renderQueueDistributionGroup(
+        "Confidence",
+        queueDistribution.confidenceOptions,
+        "data-quick-confidence"
+      )}
+    </div>
+  `;
+}
+
+function renderQueueDistributionGroup(label, options, attributeName) {
+  return `
+    <div class="queue-distribution-group">
+      <p class="queue-distribution-label">${escapeHtml(label)}</p>
+      <div class="queue-lane-row">
+        ${options
+          .map((option) => renderQueueDistributionButton(option, attributeName))
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderQueueDistributionButton(option, attributeName) {
+  return `
+    <button
+      type="button"
+      class="quick-lane${option.isActive ? " is-active" : ""}"
+      ${attributeName}="${escapeAttribute(option.value)}"
+    >
+      <span>${escapeHtml(option.label)}</span>
+      <strong>${option.count}</strong>
+    </button>
+  `;
 }
 
 function clearActiveFilters() {

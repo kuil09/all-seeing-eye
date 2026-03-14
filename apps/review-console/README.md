@@ -49,6 +49,7 @@ recorded without notes for quick triage.
 
 - Timeline-first analyst queue
 - Filter summary shows how many events remain in view and exposes one-click reset paths when search or review filters narrow the queue too far
+- Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
