@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveNextPendingEventId } from "./review-queue-navigation.mjs";
+import {
+  buildReviewQueueNavigation,
+  resolveNextPendingEventId
+} from "./review-queue-navigation.mjs";
 
 test("resolveNextPendingEventId prefers the next pending event after the current row", () => {
   const nextEventId = resolveNextPendingEventId(
@@ -52,4 +55,46 @@ test("resolveNextPendingEventId returns null when no other pending events remain
   );
 
   assert.equal(nextEventId, null);
+});
+
+test("buildReviewQueueNavigation exposes wrapped previous and next visible rows plus the next pending row", () => {
+  const navigation = buildReviewQueueNavigation(
+    [
+      { eventId: "evt_1", reviewStatus: "pending_review" },
+      { eventId: "evt_2", reviewStatus: "approved" },
+      { eventId: "evt_3", reviewStatus: "pending_review" }
+    ],
+    "evt_1"
+  );
+
+  assert.deepEqual(navigation, {
+    previousVisibleEventId: "evt_3",
+    nextVisibleEventId: "evt_2",
+    nextPendingEventId: "evt_3"
+  });
+});
+
+test("buildReviewQueueNavigation returns null navigation targets for a single visible row", () => {
+  const navigation = buildReviewQueueNavigation(
+    [{ eventId: "evt_1", reviewStatus: "pending_review" }],
+    "evt_1"
+  );
+
+  assert.deepEqual(navigation, {
+    previousVisibleEventId: null,
+    nextVisibleEventId: null,
+    nextPendingEventId: null
+  });
+});
+
+test("buildReviewQueueNavigation returns null when the selected row is not present", () => {
+  const navigation = buildReviewQueueNavigation(
+    [
+      { eventId: "evt_1", reviewStatus: "pending_review" },
+      { eventId: "evt_2", reviewStatus: "approved" }
+    ],
+    "evt_missing"
+  );
+
+  assert.equal(navigation, null);
 });

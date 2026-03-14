@@ -13,7 +13,10 @@ import {
   formatReviewActionCount
 } from "./review-history-summary.mjs";
 import { buildReviewQueueContext } from "./review-queue-context.mjs";
-import { resolveNextPendingEventId } from "./review-queue-navigation.mjs";
+import {
+  buildReviewQueueNavigation,
+  resolveNextPendingEventId
+} from "./review-queue-navigation.mjs";
 import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
@@ -458,7 +461,7 @@ function renderTimelineReviewSummary(reviewHistorySummary) {
   `;
 }
 
-function renderQueueContext(queueContext) {
+function renderQueueContext(queueContext, queueNavigation) {
   const pendingProgressLabel =
     queueContext.pendingPosition === null
       ? null
@@ -490,6 +493,21 @@ function renderQueueContext(queueContext) {
         }
       </div>
       <p class="detail-copy">${escapeHtml(remainingPendingLabel)}</p>
+      ${
+        queueNavigation
+          ? `
+            <div class="action-row">
+              ${renderQueueNavigationButton(
+                "Previous visible",
+                queueNavigation.previousVisibleEventId
+              )}
+              ${renderQueueNavigationButton("Next visible", queueNavigation.nextVisibleEventId)}
+              ${renderQueueNavigationButton("Next pending", queueNavigation.nextPendingEventId)}
+            </div>
+            <p class="meta-copy">Next pending skips reviewed rows inside the current filtered view.</p>
+          `
+          : ""
+      }
     </article>
   `;
 }
@@ -543,6 +561,7 @@ function renderDetail() {
     detail.event.eventTime
   );
   const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
+  const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -572,7 +591,7 @@ function renderDetail() {
           <p>${escapeHtml(detail.event.summary)}</p>
         </div>
         <div class="detail-grid">
-          ${queueContext ? renderQueueContext(queueContext) : ""}
+          ${queueContext ? renderQueueContext(queueContext, queueNavigation) : ""}
           <article class="detail-note">
             <h3>Confidence rationale</h3>
             <p class="detail-copy">${escapeHtml(detail.event.confidence.rationale)}</p>
@@ -646,6 +665,20 @@ function renderDetail() {
   const reviewNotes = document.querySelector("#review-notes");
   reviewNotes.addEventListener("input", (event) => {
     state.reviewDraft = event.target.value;
+  });
+
+  document.querySelectorAll("[data-queue-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetEventId = button.getAttribute("data-queue-target");
+      if (!targetEventId) {
+        return;
+      }
+
+      state.selectedEventId = targetEventId;
+      state.reviewDraft = "";
+      syncUrl();
+      render();
+    });
   });
 
   document.querySelectorAll("[data-review-action]").forEach((button) => {
@@ -895,6 +928,14 @@ function buildReviewActionMessage(reviewStatus, headline, nextHeadline) {
   }
 
   return `${statusLabel} recorded for ${headline}. Advanced to next pending event: ${nextHeadline}.`;
+}
+
+function renderQueueNavigationButton(label, targetEventId) {
+  const buttonAttributes = targetEventId
+    ? `data-queue-target="${escapeAttribute(targetEventId)}"`
+    : "disabled";
+
+  return `<button type="button" class="secondary-action" ${buttonAttributes}>${escapeHtml(label)}</button>`;
 }
 
 function renderFeedChips(provenanceSummary) {

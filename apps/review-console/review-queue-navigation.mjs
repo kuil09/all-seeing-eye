@@ -1,13 +1,7 @@
 const PENDING_REVIEW = "pending_review";
 
 export function resolveNextPendingEventId(timelineItems, currentEventId) {
-  if (!Array.isArray(timelineItems) || timelineItems.length === 0) {
-    return null;
-  }
-
-  const normalizedItems = timelineItems.filter(
-    (item) => item && typeof item.eventId === "string" && item.eventId
-  );
+  const normalizedItems = normalizeTimelineItems(timelineItems);
   if (normalizedItems.length === 0) {
     return null;
   }
@@ -25,4 +19,39 @@ export function resolveNextPendingEventId(timelineItems, currentEventId) {
   }
 
   return null;
+}
+
+export function buildReviewQueueNavigation(timelineItems, currentEventId) {
+  const normalizedItems = normalizeTimelineItems(timelineItems);
+  if (normalizedItems.length === 0) {
+    return null;
+  }
+
+  const currentIndex = normalizedItems.findIndex((item) => item.eventId === currentEventId);
+  if (currentIndex === -1) {
+    return null;
+  }
+
+  return {
+    previousVisibleEventId:
+      normalizedItems.length === 1
+        ? null
+        : normalizedItems[(currentIndex - 1 + normalizedItems.length) % normalizedItems.length]
+            .eventId,
+    nextVisibleEventId:
+      normalizedItems.length === 1
+        ? null
+        : normalizedItems[(currentIndex + 1) % normalizedItems.length].eventId,
+    nextPendingEventId: resolveNextPendingEventId(normalizedItems, currentEventId)
+  };
+}
+
+function normalizeTimelineItems(timelineItems) {
+  if (!Array.isArray(timelineItems) || timelineItems.length === 0) {
+    return [];
+  }
+
+  return timelineItems.filter(
+    (item) => item && typeof item.eventId === "string" && item.eventId
+  );
 }
