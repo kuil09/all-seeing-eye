@@ -4,7 +4,11 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getEventDetail, getTimelineResponse } from "../services/read-api/fixture-store.mjs";
+import {
+  getReadApiEventDetail,
+  getReadApiHealthPayload,
+  getReadApiTimelineResponse
+} from "../services/read-api/backend.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -56,18 +60,18 @@ const server = createServer(async (request, response) => {
 
   try {
     if (url.pathname === "/healthz") {
-      respondJson(response, 200, { status: "ok" });
+      respondJson(response, 200, getReadApiHealthPayload());
       return;
     }
 
     if (url.pathname === "/api/timeline") {
-      respondJson(response, 200, await getTimelineResponse(repoRoot));
+      respondJson(response, 200, await getReadApiTimelineResponse(repoRoot));
       return;
     }
 
     const detailMatch = url.pathname.match(/^\/api\/events\/([^/]+)$/);
     if (detailMatch) {
-      const eventDetail = await getEventDetail(repoRoot, detailMatch[1]);
+      const eventDetail = await getReadApiEventDetail(repoRoot, detailMatch[1]);
 
       if (!eventDetail) {
         respondJson(response, 404, { error: "Event not found" });

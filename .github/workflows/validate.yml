@@ -22,8 +22,14 @@ jobs:
       - name: Validate contract JSON
         run: ./scripts/validate_json.sh
 
+      - name: Smoke test pipeline seed plus SQLite read API
+        run: ./scripts/smoke_pipeline.sh
+
       - name: Smoke test fixture-backed read API
         run: ./scripts/smoke_read_api.sh
 
       - name: Smoke test integrated review console
         run: ./scripts/smoke_review_console.sh
+
+      - name: Smoke test SQLite-backed review console
+        run: ./scripts/smoke_review_console_sqlite.sh

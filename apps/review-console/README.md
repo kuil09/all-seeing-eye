@@ -18,10 +18,18 @@ npm run review-console:dev
 
 Then open `http://127.0.0.1:4173/apps/review-console/`.
 
+To make the same-origin `/api/*` routes read seeded SQLite data instead of
+fixtures, start the console with:
+
+```bash
+READ_API_DB_PATH=data/all-seeing-eye.sqlite npm run review-console:dev
+```
+
 Smoke test the integrated route surface:
 
 ```bash
 npm run review-console:smoke
+npm run review-console:smoke:sqlite
 ```
 
 ## Current behavior
