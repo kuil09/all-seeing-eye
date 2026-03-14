@@ -1261,6 +1261,8 @@ function renderKeyboardShortcutHint(shortcut) {
 }
 
 function renderRecentReviewActivityButton(entry) {
+  const notePreview = buildReviewDraftPreview(entry.notes);
+
   return `
     <button
       type="button"
@@ -1274,8 +1276,17 @@ function renderRecentReviewActivityButton(entry) {
         <span class="meta-copy">${escapeHtml(formatDateTime(entry.createdAt))}</span>
       </div>
       <strong>${escapeHtml(entry.headline)}</strong>
+      ${
+        notePreview
+          ? `<p class="recent-activity-note-preview">${escapeHtml(notePreview)}</p>`
+          : ""
+      }
       <p class="recent-activity-copy">
-        Reopen this event with status, history, and draft filters relaxed.
+        ${
+          notePreview
+            ? "Reopen this event with filters relaxed and the last analyst note restored into the draft editor."
+            : "Reopen this event with status, history, and draft filters relaxed."
+        }
       </p>
     </button>
   `;
@@ -1357,6 +1368,7 @@ function applyLocalReviewAction(action) {
   }
 
   const reviewDraft = getReviewDraft(state.reviewDrafts, currentEventId);
+  const sanitizedReviewDraft = sanitizeReviewNotes(reviewDraft);
   const shouldAdvanceQueue = detail.event.reviewStatus === "pending_review";
   const nextPendingEventId = shouldAdvanceQueue
     ? resolveNextPendingEventId(state.data.timeline, currentEventId)
@@ -1371,7 +1383,7 @@ function applyLocalReviewAction(action) {
       actorType: "analyst",
       actorName: "Local analyst",
       createdAt: new Date().toISOString(),
-      notes: sanitizeReviewNotes(reviewDraft)
+      notes: sanitizedReviewDraft
     },
     ...detail.reviewActions
   ];
@@ -1382,7 +1394,8 @@ function applyLocalReviewAction(action) {
     headline: detail.event.headline,
     action,
     reviewStatus: nextStatus,
-    createdAt: detail.reviewActions[0].createdAt
+    createdAt: detail.reviewActions[0].createdAt,
+    notes: sanitizedReviewDraft
   });
 
   if (nextPendingEventId) {
@@ -1411,6 +1424,7 @@ async function submitPersistedReviewAction(action) {
     const currentEventId = state.selectedEventId;
     const currentDetail = state.data.details[currentEventId];
     const reviewDraft = getReviewDraft(state.reviewDrafts, currentEventId);
+    const sanitizedReviewDraft = sanitizeReviewNotes(reviewDraft);
     const shouldAdvanceQueue = currentDetail?.event?.reviewStatus === "pending_review";
     const nextPendingEventId = shouldAdvanceQueue
       ? resolveNextPendingEventId(state.data.timeline, currentEventId)
@@ -1422,7 +1436,7 @@ async function submitPersistedReviewAction(action) {
       },
       body: JSON.stringify({
         action,
-        notes: sanitizeReviewNotes(reviewDraft)
+        notes: sanitizedReviewDraft
       })
     });
     const headline = currentDetail?.event?.headline ?? state.selectedEventId;
@@ -1433,7 +1447,8 @@ async function submitPersistedReviewAction(action) {
       headline,
       action,
       reviewStatus: response.reviewStatus ?? mapActionToStatus(action),
-      createdAt: response.reviewActions?.[0]?.createdAt ?? new Date().toISOString()
+      createdAt: response.reviewAction?.createdAt ?? new Date().toISOString(),
+      notes: response.reviewAction?.notes ?? sanitizedReviewDraft
     });
 
     state.lastActionMessage = buildReviewActionMessage(
@@ -1741,6 +1756,17 @@ function applyRecentReviewActivity(reviewActivityEntry) {
   state.draftFilter = reviewActivityEntry.reopenFilters.draftFilter;
   state.demoMode = DEMO_NORMAL;
   state.selectedEventId = reviewActivityEntry.eventId;
+  if (
+    reviewActivityEntry.notes &&
+    !hasReviewDraft(state.reviewDrafts, reviewActivityEntry.eventId)
+  ) {
+    state.reviewDrafts = setReviewDraft(
+      state.reviewDrafts,
+      reviewActivityEntry.eventId,
+      reviewActivityEntry.notes
+    );
+    persistReviewDrafts();
+  }
   syncControlsFromState();
   syncUrl();
   render();

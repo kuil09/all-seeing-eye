@@ -83,6 +83,7 @@ function normalizeRecentReviewActivityEntry(entry) {
     action,
     reviewStatus,
     createdAt,
+    notes: normalizeRecentReviewNotes(entry.notes),
     reopenFilters: normalizeReopenFilters(entry.reopenFilters)
   };
 }
@@ -124,4 +125,12 @@ function normalizeReopenFilters(reopenFilters) {
       String(reopenFilters.draftFilter ?? DEFAULT_REOPEN_FILTERS.draftFilter).trim() ||
       DEFAULT_REOPEN_FILTERS.draftFilter
   };
+}
+
+function normalizeRecentReviewNotes(notes) {
+  if (typeof notes !== "string") {
+    return "";
+  }
+
+  return notes.trim();
 }

@@ -16,6 +16,7 @@ function createActivityEntry(overrides = {}) {
     action: "approve",
     reviewStatus: "approved",
     createdAt: "2026-03-15T00:00:00.000Z",
+    notes: "",
     reopenFilters: {
       searchQuery: "harbor",
       reviewStatusFilter: "all",
@@ -96,6 +97,7 @@ test("readRecentReviewActivity tolerates malformed payloads and normalizes filte
     createActivityEntry({
       eventId: "evt_2",
       headline: "Second event",
+      notes: "  Re-check the trigger source timing before sharing.  ",
       reopenFilters: {
         searchQuery: " patrol ",
         historyFilter: "reviewed"
@@ -111,6 +113,7 @@ test("readRecentReviewActivity tolerates malformed payloads and normalizes filte
   const activity = readRecentReviewActivity(serialized);
 
   assert.equal(activity.length, 1);
+  assert.equal(activity[0].notes, "Re-check the trigger source timing before sharing.");
   assert.deepEqual(activity[0].reopenFilters, {
     searchQuery: "patrol",
     reviewStatusFilter: "all",
@@ -126,15 +129,18 @@ test("serializeRecentReviewActivity preserves the normalized ordering", () => {
     createActivityEntry({
       eventId: "evt_older",
       headline: "Older event",
-      createdAt: "2026-03-15T00:01:00.000Z"
+      createdAt: "2026-03-15T00:01:00.000Z",
+      notes: "Older note"
     }),
     createActivityEntry({
       eventId: "evt_newer",
       headline: "Newer event",
-      createdAt: "2026-03-15T00:02:00.000Z"
+      createdAt: "2026-03-15T00:02:00.000Z",
+      notes: "Newer note"
     })
   ]);
 
   const activity = JSON.parse(serialized);
   assert.deepEqual(activity.map((entry) => entry.eventId), ["evt_older", "evt_newer"]);
+  assert.deepEqual(activity.map((entry) => entry.notes), ["Older note", "Newer note"]);
 });

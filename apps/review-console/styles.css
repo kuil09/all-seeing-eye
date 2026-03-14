@@ -313,6 +313,15 @@ a {
   line-height: 1.35;
 }
 
+.recent-activity-note-preview {
+  margin: 0;
+  padding: 0.72rem 0.8rem;
+  border-radius: 14px;
+  background: rgba(22, 37, 49, 0.05);
+  color: var(--ink);
+  line-height: 1.45;
+}
+
 .recent-activity-copy {
   margin: 0;
   color: var(--muted);

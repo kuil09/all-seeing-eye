@@ -56,7 +56,7 @@ recorded without notes for quick triage.
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
 - Keyboard shortcuts now keep the detail workflow moving without leaving the keyboard: `/` focuses search, `J`/`K` move across visible rows, `N` jumps to the next pending item, and `A`/`E`/`X` trigger review actions when analysts are not typing in inputs
-- Recent activity keeps the last local review decisions visible in the controls panel and reopens those events with status, history, and draft filters relaxed, so auto-advance does not strand the last decision
+- Recent activity keeps the last local review decisions visible in the controls panel, previews the latest analyst note, and restores that note into the draft editor when the event is reopened, so auto-advance does not strand the last decision or its rationale
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
@@ -75,7 +75,7 @@ recorded without notes for quick triage.
 - Edit and reject actions require analyst notes before the console records them
 - Draft notes remain local to the browser until the corresponding review action is recorded
 - Saved views remain local to the browser and capture search, review-status, review-history, confidence, tag, and saved-draft filters
-- Recent activity remains local to the browser and captures the last reviewed event plus the relaxed reopen filters needed to inspect it again quickly
+- Recent activity remains local to the browser and captures the last reviewed event, the latest analyst note, and the relaxed reopen filters needed to inspect it again quickly
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

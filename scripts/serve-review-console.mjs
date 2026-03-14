@@ -5,6 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  getReadApiHealthPayload
+} from "../services/read-api/backend.mjs";
+import {
   routeReadApiRequest
 } from "../services/read-api/http-handler.mjs";
 
@@ -57,8 +60,7 @@ const server = createServer(async (request, response) => {
   }
 
   if (url.pathname === "/healthz") {
-    response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-    response.end("ok");
+    respondJson(response, 200, getReadApiHealthPayload());
     return;
   }
 
