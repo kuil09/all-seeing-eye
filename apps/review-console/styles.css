@@ -304,6 +304,14 @@ a {
   border-top: 1px solid rgba(22, 37, 49, 0.08);
 }
 
+.timeline-confidence-summary {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
 .timeline-provenance-summary {
   display: grid;
   gap: 0.45rem;
@@ -324,6 +332,11 @@ a {
   font-weight: 600;
 }
 
+.timeline-confidence-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .timeline-review-header {
   display: flex;
   gap: 0.75rem;
@@ -337,6 +350,10 @@ a {
 }
 
 .timeline-review-note {
+  font-size: 0.95rem;
+}
+
+.timeline-confidence-note {
   font-size: 0.95rem;
 }
 

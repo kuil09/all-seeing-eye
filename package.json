@@ -11,6 +11,7 @@
     "review-action:policy:test": "node --test ./packages/contracts/review-action-policy.test.mjs",
     "timeline-tags:test": "node --test ./packages/contracts/timeline-tags.test.mjs",
     "review-console:dev": "node ./scripts/serve-review-console.mjs",
+    "review-console:confidence:test": "node --test ./apps/review-console/confidence-summary.test.mjs",
     "review-console:detail:test": "node --test ./apps/review-console/detail-formatters.test.mjs",
     "review-console:history:test": "node --test ./apps/review-console/review-history-summary.test.mjs",
     "review-console:provenance:test": "node --test ./apps/review-console/source-provenance-summary.test.mjs",
