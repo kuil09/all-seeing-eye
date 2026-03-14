@@ -687,6 +687,40 @@ a {
   gap: 0.55rem;
 }
 
+.shortcut-guide {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.shortcut-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(22, 37, 49, 0.05);
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.shortcut-chip kbd {
+  min-width: 1.6rem;
+  padding: 0.15rem 0.42rem;
+  border: 1px solid rgba(22, 37, 49, 0.16);
+  border-radius: 0.55rem;
+  background: white;
+  box-shadow: inset 0 -1px 0 rgba(22, 37, 49, 0.08);
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
 .note-suggestion {
   background: rgba(22, 37, 49, 0.05);
 }

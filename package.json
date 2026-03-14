@@ -19,6 +19,7 @@
     "review-console:entities:test": "node --test ./apps/review-console/timeline-entity-summary.test.mjs",
     "review-console:filters:test": "node --test ./apps/review-console/filter-summary.test.mjs",
     "review-console:history:test": "node --test ./apps/review-console/review-history-summary.test.mjs",
+    "review-console:shortcuts:test": "node --test ./apps/review-console/keyboard-shortcuts.test.mjs",
     "review-console:queue-context:test": "node --test ./apps/review-console/review-queue-context.test.mjs",
     "review-console:navigation:test": "node --test ./apps/review-console/review-queue-navigation.test.mjs",
     "review-console:notes:test": "node --test ./apps/review-console/review-note-suggestions.test.mjs",

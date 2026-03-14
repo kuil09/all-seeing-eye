@@ -13,6 +13,10 @@ import {
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
 import { buildFilterSummary } from "./filter-summary.mjs";
+import {
+  REVIEW_CONSOLE_SHORTCUT_HINTS,
+  resolveKeyboardShortcut
+} from "./keyboard-shortcuts.mjs";
 import { buildQueueDistribution } from "./queue-distribution.mjs";
 import {
   buildReviewDraftPreview,
@@ -267,6 +271,10 @@ function bindEvents() {
     if (resetDemoButton) {
       resetDemoMode();
     }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    handleKeyboardShortcut(event);
   });
 }
 
@@ -999,6 +1007,7 @@ function renderDetail() {
           <button type="button" class="neutral-action" data-review-action="edit" ${disabledAttribute}>Mark edited</button>
           <button type="button" class="danger-action" data-review-action="reject" ${disabledAttribute}>Reject</button>
         </div>
+        ${renderKeyboardShortcutGuide()}
       </section>
     </div>
   `;
@@ -1184,6 +1193,78 @@ function renderReviewNoteSuggestionButton(suggestion, disabledAttribute) {
   `;
 }
 
+function renderKeyboardShortcutGuide() {
+  return `
+    <div class="shortcut-guide">
+      <div class="queue-distribution-header">
+        <p class="section-kicker">Keyboard shortcuts</p>
+        <p class="meta-copy">Paused while typing in search or notes.</p>
+      </div>
+      <div class="shortcut-row">
+        ${REVIEW_CONSOLE_SHORTCUT_HINTS.map(renderKeyboardShortcutHint).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderKeyboardShortcutHint(shortcut) {
+  return `
+    <span class="shortcut-chip">
+      <kbd>${escapeHtml(shortcut.key)}</kbd>
+      <span>${escapeHtml(shortcut.label)}</span>
+    </span>
+  `;
+}
+
+function handleKeyboardShortcut(event) {
+  const shortcut = resolveKeyboardShortcut(event);
+  if (!shortcut) {
+    return;
+  }
+
+  if (shortcut.command === "focus_search") {
+    event.preventDefault();
+    elements.searchInput.focus();
+    elements.searchInput.select();
+    return;
+  }
+
+  if (shortcut.command === "review_action") {
+    if (!canRunShortcutReviewAction()) {
+      return;
+    }
+
+    event.preventDefault();
+    void handleReviewAction(shortcut.action);
+    return;
+  }
+
+  const filteredTimeline = getFilteredTimeline();
+  if (!filteredTimeline.length) {
+    return;
+  }
+
+  const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
+  let targetEventId = null;
+
+  if (shortcut.command === "select_previous_visible") {
+    targetEventId = queueNavigation?.previousVisibleEventId ?? null;
+  } else if (shortcut.command === "select_next_visible") {
+    targetEventId = queueNavigation?.nextVisibleEventId ?? null;
+  } else if (shortcut.command === "select_next_pending") {
+    targetEventId = resolveNextPendingEventId(filteredTimeline, state.selectedEventId);
+  }
+
+  if (!targetEventId) {
+    return;
+  }
+
+  event.preventDefault();
+  state.selectedEventId = targetEventId;
+  syncUrl();
+  render();
+}
+
 async function handleReviewAction(action) {
   state.actionError = "";
   if (!validateReviewAction(action)) {
@@ -1312,6 +1393,14 @@ function buildReviewActionMessage(reviewStatus, headline, nextHeadline) {
   }
 
   return `${statusLabel} recorded for ${headline}. Advanced to next pending event: ${nextHeadline}.`;
+}
+
+function canRunShortcutReviewAction() {
+  if (!state.data || !state.selectedEventId || state.demoMode === DEMO_ERROR || state.loadError) {
+    return false;
+  }
+
+  return Boolean(state.data.details[state.selectedEventId]);
 }
 
 function renderQueueNavigationButton(label, targetEventId) {

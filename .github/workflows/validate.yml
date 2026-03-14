@@ -41,6 +41,7 @@ jobs:
             apps/review-console/confidence-summary.test.mjs \
             apps/review-console/detail-formatters.test.mjs \
             apps/review-console/filter-summary.test.mjs \
+            apps/review-console/keyboard-shortcuts.test.mjs \
             apps/review-console/queue-distribution.test.mjs \
             apps/review-console/review-draft-state.test.mjs \
             apps/review-console/review-history-summary.test.mjs \

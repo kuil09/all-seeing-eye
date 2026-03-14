@@ -55,6 +55,7 @@ recorded without notes for quick triage.
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
+- Keyboard shortcuts now keep the detail workflow moving without leaving the keyboard: `/` focuses search, `J`/`K` move across visible rows, `N` jumps to the next pending item, and `A`/`E`/`X` trigger review actions when analysts are not typing in inputs
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
