@@ -43,6 +43,7 @@ REVIEW_ACTIONS_FILE=/tmp/review-actions.json npm run review-console:dev
 
 - Timeline-first analyst queue
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
+- Relationship cards resolve canonical entity names and event roles instead of raw ids
 - Same-origin review actions persisted through a local overlay file in API mode
 - Fixture-mode review actions kept browser-local as a fallback
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes

@@ -1,5 +1,9 @@
 import { buildFixtureState } from "../../packages/contracts/bootstrap-fixtures.mjs";
 import {
+  createEntityLookup,
+  formatRelationshipDisplay
+} from "./detail-formatters.mjs";
+import {
   buildUrlSearch,
   createInitialUiState,
   DEMO_EMPTY,
@@ -397,6 +401,7 @@ function renderDetail() {
       ? "API mode persists review actions to a local overlay file so refreshed timeline and detail reads stay aligned."
       : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted local review state.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
+  const entityLookup = createEntityLookup(detail.entities);
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -443,7 +448,9 @@ function renderDetail() {
       <section class="list-grid">
         ${renderListCard("Claims", detail.claims, renderClaim)}
         ${renderListCard("Entities", detail.entities, renderEntity)}
-        ${renderListCard("Relationships", detail.relationships, renderRelationship)}
+        ${renderListCard("Relationships", detail.relationships, (relationship) =>
+          renderRelationship(relationship, entityLookup)
+        )}
         ${renderReviewHistory(detail.reviewActions)}
       </section>
 
@@ -530,16 +537,17 @@ function renderEntity(entity) {
   `;
 }
 
-function renderRelationship(relationship) {
+function renderRelationship(relationship, entityLookup) {
+  const display = formatRelationshipDisplay(relationship, entityLookup);
+
   return `
     <li>
       <div class="list-card-header">
-        <strong>${escapeHtml(relationship.relationshipType)}</strong>
+        <strong>${escapeHtml(display.relationshipTypeLabel)}</strong>
         <span class="chip">${escapeHtml(relationship.confidence)}</span>
       </div>
-      <p>
-        ${escapeHtml(relationship.sourceEntityId)} -> ${escapeHtml(relationship.targetEntityId)}
-      </p>
+      <p>${escapeHtml(display.participantLabel)}</p>
+      ${display.roleLabel ? `<p class="detail-copy">${escapeHtml(display.roleLabel)}</p>` : ""}
     </li>
   `;
 }
