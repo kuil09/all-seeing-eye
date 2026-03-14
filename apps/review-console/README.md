@@ -50,6 +50,7 @@ recorded without notes for quick triage.
 - Timeline-first analyst queue
 - Filter summary shows how many events remain in view and exposes one-click reset paths when search or review filters narrow the queue too far
 - Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
+- Filter summary now also surfaces one-click analyst attention lanes for saved local drafts and pending confidence slices, so unfinished notes and likely review buckets can be reopened without restacking filters
 - Review-note drafts stay attached to each event while analysts move around the queue, and timeline cards show when a local draft note is waiting
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened

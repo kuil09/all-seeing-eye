@@ -3,6 +3,10 @@ import {
   getReviewActionValidationError,
   sanitizeReviewNotes
 } from "../../packages/contracts/review-action-policy.mjs";
+import {
+  buildAttentionLanes,
+  resolveAttentionLane
+} from "./attention-lanes.mjs";
 import { buildConfidenceSummary } from "./confidence-summary.mjs";
 import {
   createEntityLookup,
@@ -39,6 +43,7 @@ import {
   DEMO_EMPTY,
   DEMO_ERROR,
   DEMO_NORMAL,
+  DRAFT_FILTER_ALL,
   reconcileSelectedEventId,
   SOURCE_API,
   SOURCE_FIXTURES
@@ -53,6 +58,7 @@ const state = {
   reviewStatusFilter: initialUiState.reviewStatusFilter,
   confidenceFilter: initialUiState.confidenceFilter,
   tagFilter: initialUiState.tagFilter,
+  draftFilter: initialUiState.draftFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
   reviewDrafts: {},
@@ -169,6 +175,22 @@ function bindEvents() {
       const nextConfidenceFilter = quickConfidenceButton.getAttribute("data-quick-confidence");
       if (nextConfidenceFilter && nextConfidenceFilter !== state.confidenceFilter) {
         state.confidenceFilter = nextConfidenceFilter;
+        syncUrl();
+        render();
+      }
+      return;
+    }
+
+    const attentionLaneButton = event.target.closest("[data-attention-lane]");
+    if (attentionLaneButton) {
+      const attentionLane = resolveAttentionLane(
+        attentionLaneButton.getAttribute("data-attention-lane")
+      );
+      if (attentionLane) {
+        state.reviewStatusFilter = attentionLane.reviewStatusFilter;
+        state.confidenceFilter = attentionLane.confidenceFilter;
+        state.draftFilter = attentionLane.draftFilter;
+        syncControlsFromState();
         syncUrl();
         render();
       }
@@ -298,7 +320,8 @@ function getTimelineSlice({
   includeSearchQuery = true,
   includeReviewStatusFilter = true,
   includeConfidenceFilter = true,
-  includeTagFilter = true
+  includeTagFilter = true,
+  includeDraftFilter = true
 } = {}) {
   if (!state.data) {
     return [];
@@ -324,8 +347,12 @@ function getTimelineSlice({
       !includeTagFilter ||
       state.tagFilter === "all" ||
       (item.tags ?? []).includes(state.tagFilter);
+    const matchesDraft =
+      !includeDraftFilter ||
+      state.draftFilter === DRAFT_FILTER_ALL ||
+      hasReviewDraft(state.reviewDrafts, item.eventId);
 
-    return matchesQuery && matchesStatus && matchesConfidence && matchesTag;
+    return matchesQuery && matchesStatus && matchesConfidence && matchesTag && matchesDraft;
   });
 }
 
@@ -612,16 +639,23 @@ function renderFilterSummary(filteredTimeline) {
 
   const totalCount = state.data.timeline.length;
   const filterSummary = getCurrentFilterSummary();
+  const laneScopeTimeline = getTimelineSlice({
+    includeReviewStatusFilter: false,
+    includeConfidenceFilter: false,
+    includeDraftFilter: false
+  });
   const queueDistribution = buildQueueDistribution(
-    getTimelineSlice({
-      includeReviewStatusFilter: false,
-      includeConfidenceFilter: false
-    }),
+    laneScopeTimeline,
     {
       reviewStatusFilter: state.reviewStatusFilter,
       confidenceFilter: state.confidenceFilter
     }
   );
+  const attentionLanes = buildAttentionLanes(laneScopeTimeline, state.reviewDrafts, {
+    reviewStatusFilter: state.reviewStatusFilter,
+    confidenceFilter: state.confidenceFilter,
+    draftFilter: state.draftFilter
+  });
   const summaryCopy = buildVisibleCountCopy(filteredTimeline.length, totalCount, filterSummary);
   const summaryChips = renderFilterChips(filterSummary);
   const summaryActions = renderFilterActions(filterSummary);
@@ -637,6 +671,7 @@ function renderFilterSummary(filteredTimeline) {
         : ""
     }
     ${renderQueueDistribution(queueDistribution)}
+    ${renderAttentionLanes(attentionLanes)}
   `;
 }
 
@@ -1140,6 +1175,7 @@ function getCurrentFilterSummary() {
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
     tagFilter: state.tagFilter,
+    draftFilter: state.draftFilter,
     demoMode: state.demoMode
   });
 }
@@ -1257,6 +1293,24 @@ function renderQueueDistribution(queueDistribution) {
   `;
 }
 
+function renderAttentionLanes(attentionLanes) {
+  if (!attentionLanes.length) {
+    return "";
+  }
+
+  return `
+    <div class="queue-distribution-group">
+      <div class="queue-distribution-header">
+        <p class="queue-distribution-label">Analyst attention</p>
+        <p class="meta-copy">One click reapplies common analyst slices.</p>
+      </div>
+      <div class="queue-lane-row">
+        ${attentionLanes.map((lane) => renderAttentionLaneButton(lane)).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderQueueDistributionGroup(label, options, attributeName) {
   return `
     <div class="queue-distribution-group">
@@ -1283,11 +1337,25 @@ function renderQueueDistributionButton(option, attributeName) {
   `;
 }
 
+function renderAttentionLaneButton(lane) {
+  return `
+    <button
+      type="button"
+      class="quick-lane${lane.isActive ? " is-active" : ""}"
+      data-attention-lane="${escapeAttribute(lane.id)}"
+    >
+      <span>${escapeHtml(lane.label)}</span>
+      <strong>${lane.count}</strong>
+    </button>
+  `;
+}
+
 function clearActiveFilters() {
   state.searchQuery = "";
   state.reviewStatusFilter = "all";
   state.confidenceFilter = "all";
   state.tagFilter = "all";
+  state.draftFilter = DRAFT_FILTER_ALL;
   syncControlsFromState();
   syncUrl();
   render();

@@ -11,7 +11,7 @@ import {
 
 test("createInitialUiState restores non-default URL state", () => {
   const state = createInitialUiState(
-    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&tag=ports&source=fixtures&demo=empty"
+    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&tag=ports&drafts=saved&source=fixtures&demo=empty"
   );
 
   assert.deepEqual(state, {
@@ -20,6 +20,7 @@ test("createInitialUiState restores non-default URL state", () => {
     reviewStatusFilter: "approved",
     confidenceFilter: "medium",
     tagFilter: "ports",
+    draftFilter: "saved",
     sourceMode: SOURCE_FIXTURES,
     demoMode: DEMO_EMPTY
   });
@@ -36,6 +37,7 @@ test("createInitialUiState falls back for invalid URL values", () => {
     reviewStatusFilter: "all",
     confidenceFilter: "all",
     tagFilter: "all",
+    draftFilter: "all",
     sourceMode: "api",
     demoMode: "normal"
   });
@@ -48,13 +50,14 @@ test("buildUrlSearch omits defaults and keeps explicit filters", () => {
     reviewStatusFilter: "edited",
     confidenceFilter: "low",
     tagFilter: "infrastructure",
+    draftFilter: "saved",
     sourceMode: SOURCE_FIXTURES,
     demoMode: DEMO_EMPTY
   });
 
   assert.equal(
     search,
-    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&tag=infrastructure&source=fixtures&demo=empty"
+    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&tag=infrastructure&drafts=saved&source=fixtures&demo=empty"
   );
 });
 

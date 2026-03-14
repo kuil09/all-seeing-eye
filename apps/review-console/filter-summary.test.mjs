@@ -41,3 +41,21 @@ test("buildFilterSummary keeps filter state empty when only demo override is act
     }
   );
 });
+
+test("buildFilterSummary includes saved draft filters when attention lanes narrow the queue", () => {
+  assert.deepEqual(
+    buildFilterSummary({
+      searchQuery: "",
+      reviewStatusFilter: "all",
+      confidenceFilter: "all",
+      tagFilter: "all",
+      draftFilter: "saved",
+      demoMode: "normal"
+    }),
+    {
+      activeFilters: ["Drafts: Saved notes"],
+      hasActiveFilters: true,
+      demoModeLabel: null
+    }
+  );
+});

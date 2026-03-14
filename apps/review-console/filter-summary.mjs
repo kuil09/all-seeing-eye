@@ -11,6 +11,10 @@ const CONFIDENCE_LABELS = {
   low: "Low confidence"
 };
 
+const DRAFT_FILTER_LABELS = {
+  saved: "Saved notes"
+};
+
 const DEMO_MODE_LABELS = {
   normal: "Normal demo",
   empty: "Empty demo",
@@ -22,6 +26,7 @@ export function buildFilterSummary({
   reviewStatusFilter = "all",
   confidenceFilter = "all",
   tagFilter = "all",
+  draftFilter = "all",
   demoMode = "normal"
 }) {
   const activeFilters = [];
@@ -40,6 +45,10 @@ export function buildFilterSummary({
 
   if (tagFilter !== "all") {
     activeFilters.push(`Tag: ${tagFilter}`);
+  }
+
+  if (draftFilter !== "all") {
+    activeFilters.push(`Drafts: ${DRAFT_FILTER_LABELS[draftFilter] ?? draftFilter}`);
   }
 
   return {

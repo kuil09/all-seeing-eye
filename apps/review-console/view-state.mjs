@@ -3,6 +3,8 @@ export const SOURCE_API = "api";
 export const DEMO_NORMAL = "normal";
 export const DEMO_EMPTY = "empty";
 export const DEMO_ERROR = "error";
+export const DRAFT_FILTER_ALL = "all";
+export const DRAFT_FILTER_SAVED = "saved";
 const PENDING_REVIEW = "pending_review";
 
 const SOURCE_MODES = new Set([SOURCE_FIXTURES, SOURCE_API]);
@@ -15,6 +17,7 @@ const REVIEW_STATUS_FILTERS = new Set([
   "rejected"
 ]);
 const CONFIDENCE_FILTERS = new Set(["all", "high", "medium", "low"]);
+const DRAFT_FILTERS = new Set([DRAFT_FILTER_ALL, DRAFT_FILTER_SAVED]);
 
 function readEnum(value, allowedValues, fallback) {
   return value && allowedValues.has(value) ? value : fallback;
@@ -47,6 +50,7 @@ export function createInitialUiState(search) {
       "all"
     ),
     tagFilter: readString(params.get("tag"), "all"),
+    draftFilter: readEnum(params.get("drafts"), DRAFT_FILTERS, DRAFT_FILTER_ALL),
     selectedEventId: readString(params.get("eventId"), null)
   };
 }
@@ -90,6 +94,10 @@ export function buildUrlSearch(state) {
 
   if (state.tagFilter !== "all") {
     params.set("tag", state.tagFilter);
+  }
+
+  if (state.draftFilter !== DRAFT_FILTER_ALL) {
+    params.set("drafts", state.draftFilter);
   }
 
   if (state.sourceMode !== SOURCE_API) {
