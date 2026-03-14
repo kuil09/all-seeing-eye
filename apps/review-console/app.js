@@ -8,6 +8,7 @@ import {
   createEntityLookup,
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
+import { buildFilterSummary } from "./filter-summary.mjs";
 import {
   buildReviewHistorySummary,
   formatReviewActionCount
@@ -53,6 +54,7 @@ const state = {
 };
 
 const elements = {
+  activeFilterSummary: document.querySelector("#active-filter-summary"),
   bannerMessage: document.querySelector("#banner-message"),
   confidenceFilter: document.querySelector("#confidence-filter"),
   dataSourceLabel: document.querySelector("#data-source-label"),
@@ -133,6 +135,19 @@ function bindEvents() {
     state.demoMode = DEMO_NORMAL;
     syncUrl();
     await refreshData();
+  });
+
+  document.addEventListener("click", (event) => {
+    const clearFiltersButton = event.target.closest("[data-clear-filters]");
+    if (clearFiltersButton) {
+      clearActiveFilters();
+      return;
+    }
+
+    const resetDemoButton = event.target.closest("[data-reset-demo]");
+    if (resetDemoButton) {
+      resetDemoMode();
+    }
   });
 }
 
@@ -310,6 +325,8 @@ function renderSummary() {
 
 function renderTimeline() {
   const filteredTimeline = getFilteredTimeline();
+  renderFilterSummary(filteredTimeline);
+
   const nextSelectedEventId = reconcileSelectedEventId(
     state.selectedEventId,
     filteredTimeline
@@ -319,9 +336,7 @@ function renderTimeline() {
     syncUrl();
   }
 
-  elements.timelineMeta.textContent = `${filteredTimeline.length} event${
-    filteredTimeline.length === 1 ? "" : "s"
-  }`;
+  elements.timelineMeta.textContent = buildTimelineMetaLabel(filteredTimeline.length);
   elements.timelineHeading.textContent =
     state.reviewStatusFilter === "all" ? "Review queue" : "Filtered review queue";
 
@@ -333,6 +348,10 @@ function renderTimeline() {
   }
 
   elements.emptyState.hidden = filteredTimeline.length !== 0;
+  if (filteredTimeline.length === 0) {
+    renderEmptyState();
+    return;
+  }
 
   for (const item of filteredTimeline) {
     const detail = state.data.details[item.eventId];
@@ -512,6 +531,54 @@ function renderQueueContext(queueContext, queueNavigation) {
   `;
 }
 
+function renderFilterSummary(filteredTimeline) {
+  if (!state.data) {
+    elements.activeFilterSummary.innerHTML = "";
+    return;
+  }
+
+  const totalCount = state.data.timeline.length;
+  const filterSummary = getCurrentFilterSummary();
+  const summaryCopy = buildVisibleCountCopy(filteredTimeline.length, totalCount, filterSummary);
+  const summaryChips = renderFilterChips(filterSummary);
+  const summaryActions = renderFilterActions(filterSummary);
+
+  elements.activeFilterSummary.innerHTML = `
+    <div class="filter-summary-header">
+      <p class="filter-summary-copy">${escapeHtml(summaryCopy)}</p>
+      ${summaryActions}
+    </div>
+    ${
+      summaryChips
+        ? `<div class="chip-row filter-summary-chips">${summaryChips}</div>`
+        : ""
+    }
+  `;
+}
+
+function renderEmptyState() {
+  if (!state.data) {
+    elements.emptyState.hidden = true;
+    return;
+  }
+
+  const filterSummary = getCurrentFilterSummary();
+  const emptyCopy = buildEmptyStateCopy(filterSummary, state.data.timeline.length);
+  const summaryChips = renderFilterChips(filterSummary);
+  const summaryActions = renderFilterActions(filterSummary);
+
+  elements.emptyState.innerHTML = `
+    <h3>No events match the current view</h3>
+    <p>${escapeHtml(emptyCopy)}</p>
+    ${
+      summaryChips
+        ? `<div class="chip-row state-chip-row">${summaryChips}</div>`
+        : ""
+    }
+    ${summaryActions ? `<div class="filter-summary-actions">${summaryActions}</div>` : ""}
+  `;
+}
+
 function renderDetail() {
   const shouldShowError = state.demoMode === DEMO_ERROR || Boolean(state.loadError);
   elements.errorState.hidden = !shouldShowError;
@@ -535,14 +602,28 @@ function renderDetail() {
 
   const detail = state.data.details[state.selectedEventId];
   if (!detail) {
+    const filterSummary = getCurrentFilterSummary();
+    const emptySelectionActions = renderFilterActions(filterSummary);
+    const emptySelectionChips = renderFilterChips(filterSummary);
+
     elements.detailPanel.innerHTML = `
       <div class="state-card detail-placeholder">
         <h2>${filteredTimeline.length === 0 ? "No event selected" : "Select an event"}</h2>
         <p>${
           filteredTimeline.length === 0
-            ? "Adjust filters or return to the normal demo state to repopulate the review queue."
+            ? escapeHtml(buildEmptyStateCopy(filterSummary, state.data.timeline.length))
             : "Choose a timeline row to inspect claims, sources, relationships, and review history."
         }</p>
+        ${
+          filteredTimeline.length === 0 && emptySelectionChips
+            ? `<div class="chip-row state-chip-row">${emptySelectionChips}</div>`
+            : ""
+        }
+        ${
+          filteredTimeline.length === 0 && emptySelectionActions
+            ? `<div class="filter-summary-actions">${emptySelectionActions}</div>`
+            : ""
+        }
       </div>
     `;
     return;
@@ -953,6 +1034,120 @@ function renderFeedChips(provenanceSummary) {
       : `+${provenanceSummary.remainingFeedCount} more feeds`;
 
   return `${feedChips}<span class="chip">${escapeHtml(moreLabel)}</span>`;
+}
+
+function getCurrentFilterSummary() {
+  return buildFilterSummary({
+    searchQuery: state.searchQuery,
+    reviewStatusFilter: state.reviewStatusFilter,
+    confidenceFilter: state.confidenceFilter,
+    tagFilter: state.tagFilter,
+    demoMode: state.demoMode
+  });
+}
+
+function buildTimelineMetaLabel(filteredCount) {
+  if (!state.data) {
+    return "0 events";
+  }
+
+  const totalCount = state.data.timeline.length;
+  const filterSummary = getCurrentFilterSummary();
+  if (
+    filteredCount === totalCount &&
+    !filterSummary.hasActiveFilters &&
+    !filterSummary.demoModeLabel
+  ) {
+    return `${totalCount} event${totalCount === 1 ? "" : "s"}`;
+  }
+
+  return `${filteredCount} of ${totalCount} event${totalCount === 1 ? "" : "s"}`;
+}
+
+function buildVisibleCountCopy(filteredCount, totalCount, filterSummary) {
+  if (totalCount === 0) {
+    return "No events are available from the current data source yet.";
+  }
+
+  if (
+    filteredCount === totalCount &&
+    !filterSummary.hasActiveFilters &&
+    !filterSummary.demoModeLabel
+  ) {
+    return `Showing all ${totalCount} event${totalCount === 1 ? "" : "s"} in the current queue.`;
+  }
+
+  return `Showing ${filteredCount} of ${totalCount} event${
+    totalCount === 1 ? "" : "s"
+  } in the current queue.`;
+}
+
+function buildEmptyStateCopy(filterSummary, totalCount) {
+  if (totalCount === 0) {
+    return "No events are available from the current data source yet.";
+  }
+
+  if (filterSummary.demoModeLabel && filterSummary.hasActiveFilters) {
+    return `${filterSummary.demoModeLabel} is active and the current filters are still applied. Clear filters or return to the normal demo to repopulate the queue.`;
+  }
+
+  if (filterSummary.demoModeLabel) {
+    return `${filterSummary.demoModeLabel} is forcing a no-results queue. Return to the normal demo to repopulate the review list.`;
+  }
+
+  if (filterSummary.hasActiveFilters) {
+    return "The current search and review filters removed every event from this queue.";
+  }
+
+  return "Adjust filters or return to the normal demo state to repopulate the review queue.";
+}
+
+function renderFilterChips(filterSummary) {
+  const labels = [...filterSummary.activeFilters];
+  if (filterSummary.demoModeLabel) {
+    labels.push(filterSummary.demoModeLabel);
+  }
+
+  return labels.map((label) => `<span class="chip">${escapeHtml(label)}</span>`).join("");
+}
+
+function renderFilterActions(filterSummary) {
+  const actions = [];
+
+  if (filterSummary.hasActiveFilters) {
+    actions.push(
+      '<button type="button" class="secondary-action" data-clear-filters>Clear filters</button>'
+    );
+  }
+
+  if (filterSummary.demoModeLabel) {
+    actions.push(
+      '<button type="button" class="secondary-action" data-reset-demo>Return to normal demo</button>'
+    );
+  }
+
+  return actions.join("");
+}
+
+function clearActiveFilters() {
+  state.searchQuery = "";
+  state.reviewStatusFilter = "all";
+  state.confidenceFilter = "all";
+  state.tagFilter = "all";
+  state.reviewDraft = "";
+  syncControlsFromState();
+  syncUrl();
+  render();
+}
+
+function resetDemoMode() {
+  if (state.demoMode === DEMO_NORMAL) {
+    return;
+  }
+
+  state.demoMode = DEMO_NORMAL;
+  syncUrl();
+  render();
 }
 
 function syncUrl() {

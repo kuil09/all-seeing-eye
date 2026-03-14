@@ -48,6 +48,7 @@ recorded without notes for quick triage.
 ## Current behavior
 
 - Timeline-first analyst queue
+- Filter summary shows how many events remain in view and exposes one-click reset paths when search or review filters narrow the queue too far
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened

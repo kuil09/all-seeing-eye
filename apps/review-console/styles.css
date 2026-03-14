@@ -210,6 +210,40 @@ a {
   margin-top: 1.15rem;
 }
 
+.filter-summary {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(22, 37, 49, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 251, 247, 0.7);
+}
+
+.filter-summary-header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-summary-copy {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.filter-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-summary-chips,
+.state-chip-row {
+  margin-top: 0.1rem;
+}
+
 .toggle-row {
   display: inline-flex;
   gap: 0.35rem;
@@ -608,6 +642,7 @@ a {
 
   .masthead,
   .panel-title-row,
+  .filter-summary-header,
   .detail-grid,
   .detail-meta,
   .timeline-review-header,
