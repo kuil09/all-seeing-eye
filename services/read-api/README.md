@@ -1,8 +1,25 @@
 # read API bootstrap
 
-Recommended first endpoints:
+The first slice keeps this service read-only and fixture-backed until the
+pipeline starts writing live SQLite data.
 
+## Available endpoints
+
+- `GET /healthz`
 - `GET /api/timeline`
 - `GET /api/events/:eventId`
 
-The first slice should stay read-only from this service. Review actions can be stubbed behind local handlers until the write path is finalized.
+## Local run
+
+```bash
+./scripts/serve_read_api.sh
+```
+
+Optional environment variables:
+
+- `PORT` defaults to `4310`
+- `HOST` defaults to `127.0.0.1`
+
+The current implementation serves timeline and event-detail payloads derived from
+`fixtures/bootstrap-dataset.json` so product work can switch from static
+contract files to stable HTTP routes without waiting for pipeline persistence.

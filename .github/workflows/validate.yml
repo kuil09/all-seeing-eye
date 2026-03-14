@@ -21,3 +21,6 @@ jobs:
 
       - name: Validate contract JSON
         run: ./scripts/validate_json.sh
+
+      - name: Smoke test fixture-backed read API
+        run: ./scripts/smoke_read_api.sh
