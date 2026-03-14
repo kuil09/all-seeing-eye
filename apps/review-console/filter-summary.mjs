@@ -11,6 +11,11 @@ const CONFIDENCE_LABELS = {
   low: "Low confidence"
 };
 
+const HISTORY_FILTER_LABELS = {
+  reviewed: "Reviewed before",
+  unreviewed: "No review history"
+};
+
 const DRAFT_FILTER_LABELS = {
   saved: "Saved notes"
 };
@@ -26,6 +31,7 @@ export function buildFilterSummary({
   searchQuery = "",
   reviewStatusFilter = "all",
   confidenceFilter = "all",
+  historyFilter = "all",
   tagFilter = "all",
   draftFilter = "all",
   demoMode = "normal"
@@ -46,6 +52,10 @@ export function buildFilterSummary({
 
   if (confidenceFilter !== "all") {
     activeFilters.push(`Confidence: ${CONFIDENCE_LABELS[confidenceFilter] ?? confidenceFilter}`);
+  }
+
+  if (historyFilter !== "all") {
+    activeFilters.push(`History: ${HISTORY_FILTER_LABELS[historyFilter] ?? historyFilter}`);
   }
 
   if (tagFilter !== "all") {

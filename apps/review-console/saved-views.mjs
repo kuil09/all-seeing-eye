@@ -1,4 +1,10 @@
-import { DRAFT_FILTER_ALL, DRAFT_FILTER_SAVED } from "./view-state.mjs";
+import {
+  DRAFT_FILTER_ALL,
+  DRAFT_FILTER_SAVED,
+  HISTORY_FILTER_ALL,
+  HISTORY_FILTER_REVIEWED,
+  HISTORY_FILTER_UNREVIEWED
+} from "./view-state.mjs";
 
 const MAX_SAVED_VIEWS = 8;
 const MAX_LABEL_LENGTH = 40;
@@ -11,6 +17,11 @@ const REVIEW_STATUS_FILTERS = new Set([
 ]);
 const CONFIDENCE_FILTERS = new Set(["all", "high", "medium", "low"]);
 const DRAFT_FILTERS = new Set([DRAFT_FILTER_ALL, DRAFT_FILTER_SAVED]);
+const HISTORY_FILTERS = new Set([
+  HISTORY_FILTER_ALL,
+  HISTORY_FILTER_REVIEWED,
+  HISTORY_FILTER_UNREVIEWED
+]);
 
 function normalizeWhitespace(value) {
   if (typeof value !== "string") {
@@ -37,6 +48,7 @@ export function createSavedViewFilters(filters = {}) {
     searchQuery: normalizeWhitespace(filters.searchQuery).toLowerCase(),
     reviewStatusFilter: readEnum(filters.reviewStatusFilter, REVIEW_STATUS_FILTERS, "all"),
     confidenceFilter: readEnum(filters.confidenceFilter, CONFIDENCE_FILTERS, "all"),
+    historyFilter: readEnum(filters.historyFilter, HISTORY_FILTERS, HISTORY_FILTER_ALL),
     tagFilter: normalizeWhitespace(filters.tagFilter) || "all",
     draftFilter: readEnum(filters.draftFilter, DRAFT_FILTERS, DRAFT_FILTER_ALL)
   };
@@ -124,6 +136,7 @@ function areSavedViewFiltersEqual(left, right) {
     left.searchQuery === right.searchQuery &&
     left.reviewStatusFilter === right.reviewStatusFilter &&
     left.confidenceFilter === right.confidenceFilter &&
+    left.historyFilter === right.historyFilter &&
     left.tagFilter === right.tagFilter &&
     left.draftFilter === right.draftFilter
   );

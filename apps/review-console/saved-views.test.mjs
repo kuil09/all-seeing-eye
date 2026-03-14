@@ -22,6 +22,7 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       searchQuery: " Harbor ",
       reviewStatusFilter: "pending_review",
       confidenceFilter: "high",
+      historyFilter: "reviewed",
       tagFilter: "ports",
       draftFilter: "saved"
     }),
@@ -30,6 +31,7 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       searchQuery: "inspections",
       reviewStatusFilter: "approved",
       confidenceFilter: "medium",
+      historyFilter: "unreviewed",
       tagFilter: "infrastructure",
       draftFilter: "all"
     }
@@ -43,6 +45,7 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
         searchQuery: "inspections",
         reviewStatusFilter: "approved",
         confidenceFilter: "medium",
+        historyFilter: "unreviewed",
         tagFilter: "infrastructure",
         draftFilter: "all"
       }
@@ -59,6 +62,7 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
         searchQuery: "",
         reviewStatusFilter: "all",
         confidenceFilter: "all",
+        historyFilter: "reviewed",
         tagFilter: "all",
         draftFilter: "saved"
       })
@@ -70,6 +74,7 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       searchQuery: "",
       reviewStatusFilter: "all",
       confidenceFilter: "all",
+      historyFilter: "reviewed",
       tagFilter: "all",
       draftFilter: "saved"
     }),
@@ -80,6 +85,7 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       searchQuery: "",
       reviewStatusFilter: "pending_review",
       confidenceFilter: "all",
+      historyFilter: "reviewed",
       tagFilter: "all",
       draftFilter: "saved"
     }),
@@ -109,6 +115,7 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           searchQuery: " docks ",
           reviewStatusFilter: "pending_review",
           confidenceFilter: "low",
+          historyFilter: "reviewed",
           tagFilter: "ports",
           draftFilter: "all"
         }
@@ -129,6 +136,7 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
         searchQuery: "docks",
         reviewStatusFilter: "pending_review",
         confidenceFilter: "low",
+        historyFilter: "reviewed",
         tagFilter: "ports",
         draftFilter: "all"
       }
@@ -145,6 +153,7 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           searchQuery: "docks",
           reviewStatusFilter: "pending_review",
           confidenceFilter: "low",
+          historyFilter: "reviewed",
           tagFilter: "ports",
           draftFilter: "all"
         }

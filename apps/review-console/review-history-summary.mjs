@@ -1,11 +1,15 @@
 const MAX_NOTE_PREVIEW_LENGTH = 96;
 
+export function hasReviewHistory(reviewActions) {
+  return Array.isArray(reviewActions) && reviewActions.length > 0;
+}
+
 export function buildReviewHistorySummary(reviewActions) {
-  const latestReviewAction = reviewActions?.[0];
-  if (!latestReviewAction) {
+  if (!hasReviewHistory(reviewActions)) {
     return null;
   }
 
+  const latestReviewAction = reviewActions[0];
   return {
     actionCount: reviewActions.length,
     actionLabel: String(latestReviewAction.action ?? "").replaceAll("_", " "),

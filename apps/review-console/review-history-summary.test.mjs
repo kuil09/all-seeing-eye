@@ -3,8 +3,15 @@ import test from "node:test";
 
 import {
   buildReviewHistorySummary,
-  formatReviewActionCount
+  formatReviewActionCount,
+  hasReviewHistory
 } from "./review-history-summary.mjs";
+
+test("hasReviewHistory reports whether review actions exist", () => {
+  assert.equal(hasReviewHistory(undefined), false);
+  assert.equal(hasReviewHistory([]), false);
+  assert.equal(hasReviewHistory([{ action: "approve" }]), true);
+});
 
 test("buildReviewHistorySummary returns null when no review actions exist", () => {
   assert.equal(buildReviewHistorySummary([]), null);

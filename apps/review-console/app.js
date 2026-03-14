@@ -38,7 +38,8 @@ import {
 } from "./saved-views.mjs";
 import {
   buildReviewHistorySummary,
-  formatReviewActionCount
+  formatReviewActionCount,
+  hasReviewHistory
 } from "./review-history-summary.mjs";
 import { buildReviewQueueContext } from "./review-queue-context.mjs";
 import {
@@ -58,6 +59,8 @@ import {
   DEMO_ERROR,
   DEMO_NORMAL,
   DRAFT_FILTER_ALL,
+  HISTORY_FILTER_ALL,
+  HISTORY_FILTER_REVIEWED,
   reconcileSelectedEventId,
   SOURCE_API,
   SOURCE_FIXTURES
@@ -73,6 +76,7 @@ const state = {
   searchQuery: initialUiState.searchQuery,
   reviewStatusFilter: initialUiState.reviewStatusFilter,
   confidenceFilter: initialUiState.confidenceFilter,
+  historyFilter: initialUiState.historyFilter,
   tagFilter: initialUiState.tagFilter,
   draftFilter: initialUiState.draftFilter,
   data: null,
@@ -99,6 +103,7 @@ const elements = {
   errorState: document.querySelector("#error-state"),
   fallbackButton: document.querySelector("#fallback-button"),
   generatedAt: document.querySelector("#generated-at"),
+  historyFilter: document.querySelector("#history-filter"),
   pendingCount: document.querySelector("#pending-count"),
   saveCurrentView: document.querySelector("#save-current-view"),
   savedViewList: document.querySelector("#saved-view-list"),
@@ -131,6 +136,12 @@ function bindEvents() {
 
   elements.confidenceFilter.addEventListener("change", (event) => {
     state.confidenceFilter = event.target.value;
+    syncUrl();
+    render();
+  });
+
+  elements.historyFilter.addEventListener("change", (event) => {
+    state.historyFilter = event.target.value;
     syncUrl();
     render();
   });
@@ -244,6 +255,7 @@ function bindEvents() {
         state.reviewStatusFilter = attentionLane.reviewStatusFilter;
         state.confidenceFilter = attentionLane.confidenceFilter;
         state.draftFilter = attentionLane.draftFilter;
+        state.historyFilter = attentionLane.historyFilter;
         syncControlsFromState();
         syncUrl();
         render();
@@ -375,6 +387,7 @@ function getTimelineSlice({
   includeSearchQuery = true,
   includeReviewStatusFilter = true,
   includeConfidenceFilter = true,
+  includeHistoryFilter = true,
   includeTagFilter = true,
   includeDraftFilter = true
 } = {}, filters = getCurrentFilterState()) {
@@ -398,6 +411,13 @@ function getTimelineSlice({
       !includeConfidenceFilter ||
       filters.confidenceFilter === "all" ||
       item.confidence.label === filters.confidenceFilter;
+    const reviewHistoryExists = hasReviewHistory(detail?.reviewActions);
+    const matchesHistory =
+      !includeHistoryFilter ||
+      filters.historyFilter === HISTORY_FILTER_ALL ||
+      (filters.historyFilter === HISTORY_FILTER_REVIEWED
+        ? reviewHistoryExists
+        : !reviewHistoryExists);
     const matchesTag =
       !includeTagFilter ||
       filters.tagFilter === "all" ||
@@ -407,7 +427,14 @@ function getTimelineSlice({
       filters.draftFilter === DRAFT_FILTER_ALL ||
       hasReviewDraft(state.reviewDrafts, item.eventId);
 
-    return matchesQuery && matchesStatus && matchesConfidence && matchesTag && matchesDraft;
+    return (
+      matchesQuery &&
+      matchesStatus &&
+      matchesConfidence &&
+      matchesHistory &&
+      matchesTag &&
+      matchesDraft
+    );
   });
 }
 
@@ -479,7 +506,7 @@ function renderTimeline() {
 
   elements.timelineMeta.textContent = buildTimelineMetaLabel(filteredTimeline.length);
   elements.timelineHeading.textContent =
-    state.reviewStatusFilter === "all" ? "Review queue" : "Filtered review queue";
+    getCurrentFilterSummary().hasActiveFilters ? "Filtered review queue" : "Review queue";
 
   elements.timelineList.innerHTML = "";
 
@@ -698,6 +725,7 @@ function renderFilterSummary(filteredTimeline) {
   const laneScopeTimeline = getTimelineSlice({
     includeReviewStatusFilter: false,
     includeConfidenceFilter: false,
+    includeHistoryFilter: false,
     includeDraftFilter: false
   });
   const queueDistribution = buildQueueDistribution(
@@ -708,9 +736,11 @@ function renderFilterSummary(filteredTimeline) {
     }
   );
   const attentionLanes = buildAttentionLanes(laneScopeTimeline, state.reviewDrafts, {
+    detailsByEventId: state.data.details,
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
-    draftFilter: state.draftFilter
+    draftFilter: state.draftFilter,
+    historyFilter: state.historyFilter
   });
   const summaryCopy = buildVisibleCountCopy(filteredTimeline.length, totalCount, filterSummary);
   const summaryChips = renderFilterChips(filterSummary);
@@ -1317,6 +1347,7 @@ function getCurrentFilterSummary() {
     searchQuery: state.searchQuery,
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
+    historyFilter: state.historyFilter,
     tagFilter: state.tagFilter,
     draftFilter: state.draftFilter,
     demoMode: state.demoMode
@@ -1328,6 +1359,7 @@ function getCurrentFilterState() {
     searchQuery: state.searchQuery,
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
+    historyFilter: state.historyFilter,
     tagFilter: state.tagFilter,
     draftFilter: state.draftFilter
   };
@@ -1520,6 +1552,7 @@ function clearActiveFilters() {
   state.searchQuery = "";
   state.reviewStatusFilter = "all";
   state.confidenceFilter = "all";
+  state.historyFilter = HISTORY_FILTER_ALL;
   state.tagFilter = "all";
   state.draftFilter = DRAFT_FILTER_ALL;
   syncControlsFromState();
@@ -1562,6 +1595,7 @@ function applySavedView(savedView) {
   state.searchQuery = savedView.filters.searchQuery;
   state.reviewStatusFilter = savedView.filters.reviewStatusFilter;
   state.confidenceFilter = savedView.filters.confidenceFilter;
+  state.historyFilter = savedView.filters.historyFilter;
   state.tagFilter = savedView.filters.tagFilter;
   state.draftFilter = savedView.filters.draftFilter;
   state.savedViewName = savedView.label;
@@ -1605,6 +1639,7 @@ function syncControlsFromState() {
   elements.searchInput.value = state.searchQuery;
   elements.statusFilter.value = state.reviewStatusFilter;
   elements.confidenceFilter.value = state.confidenceFilter;
+  elements.historyFilter.value = state.historyFilter;
   elements.savedViewName.value = state.savedViewName;
 
   if ([...elements.tagFilter.options].some((option) => option.value === state.tagFilter)) {

@@ -17,9 +17,16 @@ test("buildAttentionLanes counts saved drafts and pending-confidence presets", (
       "evt-4": "Already cleared."
     },
     {
+      detailsByEventId: {
+        "evt-1": { reviewActions: [] },
+        "evt-2": { reviewActions: [{ action: "edit" }] },
+        "evt-3": { reviewActions: [] },
+        "evt-4": { reviewActions: [{ action: "approve" }] }
+      },
       reviewStatusFilter: "all",
       confidenceFilter: "all",
-      draftFilter: DRAFT_FILTER_SAVED
+      draftFilter: DRAFT_FILTER_SAVED,
+      historyFilter: "all"
     }
   );
 
@@ -31,7 +38,28 @@ test("buildAttentionLanes counts saved drafts and pending-confidence presets", (
       reviewStatusFilter: "all",
       confidenceFilter: "all",
       draftFilter: "saved",
+      historyFilter: "all",
       isActive: true
+    },
+    {
+      id: "pending_revisits",
+      label: "Pending revisits",
+      count: 1,
+      reviewStatusFilter: "pending_review",
+      confidenceFilter: "all",
+      draftFilter: "all",
+      historyFilter: "reviewed",
+      isActive: false
+    },
+    {
+      id: "reviewed_before",
+      label: "Reviewed before",
+      count: 2,
+      reviewStatusFilter: "all",
+      confidenceFilter: "all",
+      draftFilter: "all",
+      historyFilter: "reviewed",
+      isActive: false
     },
     {
       id: "pending_high",
@@ -40,6 +68,7 @@ test("buildAttentionLanes counts saved drafts and pending-confidence presets", (
       reviewStatusFilter: "pending_review",
       confidenceFilter: "high",
       draftFilter: "all",
+      historyFilter: "all",
       isActive: false
     },
     {
@@ -49,6 +78,7 @@ test("buildAttentionLanes counts saved drafts and pending-confidence presets", (
       reviewStatusFilter: "pending_review",
       confidenceFilter: "medium",
       draftFilter: "all",
+      historyFilter: "all",
       isActive: false
     },
     {
@@ -58,6 +88,7 @@ test("buildAttentionLanes counts saved drafts and pending-confidence presets", (
       reviewStatusFilter: "pending_review",
       confidenceFilter: "low",
       draftFilter: "all",
+      historyFilter: "all",
       isActive: false
     }
   ]);
@@ -71,6 +102,7 @@ test("resolveAttentionLane returns the configured preset for click handlers", ()
   assert.equal(preset?.reviewStatusFilter, "pending_review");
   assert.equal(preset?.confidenceFilter, "medium");
   assert.equal(preset?.draftFilter, "all");
+  assert.equal(preset?.historyFilter, "all");
   assert.equal(typeof preset?.matches, "function");
 
   assert.equal(resolveAttentionLane("missing"), null);

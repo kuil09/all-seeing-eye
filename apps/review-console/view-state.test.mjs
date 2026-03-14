@@ -11,7 +11,7 @@ import {
 
 test("createInitialUiState restores non-default URL state", () => {
   const state = createInitialUiState(
-    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&tag=ports&drafts=saved&source=fixtures&demo=empty"
+    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&history=reviewed&tag=ports&drafts=saved&source=fixtures&demo=empty"
   );
 
   assert.deepEqual(state, {
@@ -19,6 +19,7 @@ test("createInitialUiState restores non-default URL state", () => {
     searchQuery: "harbor",
     reviewStatusFilter: "approved",
     confidenceFilter: "medium",
+    historyFilter: "reviewed",
     tagFilter: "ports",
     draftFilter: "saved",
     sourceMode: SOURCE_FIXTURES,
@@ -28,7 +29,7 @@ test("createInitialUiState restores non-default URL state", () => {
 
 test("createInitialUiState falls back for invalid URL values", () => {
   const state = createInitialUiState(
-    "?eventId=%20%20&q=%20%20&status=unknown&confidence=bad&source=remote&demo=broken"
+    "?eventId=%20%20&q=%20%20&status=unknown&confidence=bad&history=missing&source=remote&demo=broken"
   );
 
   assert.deepEqual(state, {
@@ -36,6 +37,7 @@ test("createInitialUiState falls back for invalid URL values", () => {
     searchQuery: "",
     reviewStatusFilter: "all",
     confidenceFilter: "all",
+    historyFilter: "all",
     tagFilter: "all",
     draftFilter: "all",
     sourceMode: "api",
@@ -49,6 +51,7 @@ test("buildUrlSearch omits defaults and keeps explicit filters", () => {
     searchQuery: "shipyard",
     reviewStatusFilter: "edited",
     confidenceFilter: "low",
+    historyFilter: "reviewed",
     tagFilter: "infrastructure",
     draftFilter: "saved",
     sourceMode: SOURCE_FIXTURES,
@@ -57,7 +60,7 @@ test("buildUrlSearch omits defaults and keeps explicit filters", () => {
 
   assert.equal(
     search,
-    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&tag=infrastructure&drafts=saved&source=fixtures&demo=empty"
+    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&history=reviewed&tag=infrastructure&drafts=saved&source=fixtures&demo=empty"
   );
 });
 

@@ -5,6 +5,9 @@ export const DEMO_EMPTY = "empty";
 export const DEMO_ERROR = "error";
 export const DRAFT_FILTER_ALL = "all";
 export const DRAFT_FILTER_SAVED = "saved";
+export const HISTORY_FILTER_ALL = "all";
+export const HISTORY_FILTER_REVIEWED = "reviewed";
+export const HISTORY_FILTER_UNREVIEWED = "unreviewed";
 const PENDING_REVIEW = "pending_review";
 
 const SOURCE_MODES = new Set([SOURCE_FIXTURES, SOURCE_API]);
@@ -18,6 +21,11 @@ const REVIEW_STATUS_FILTERS = new Set([
 ]);
 const CONFIDENCE_FILTERS = new Set(["all", "high", "medium", "low"]);
 const DRAFT_FILTERS = new Set([DRAFT_FILTER_ALL, DRAFT_FILTER_SAVED]);
+const HISTORY_FILTERS = new Set([
+  HISTORY_FILTER_ALL,
+  HISTORY_FILTER_REVIEWED,
+  HISTORY_FILTER_UNREVIEWED
+]);
 
 function readEnum(value, allowedValues, fallback) {
   return value && allowedValues.has(value) ? value : fallback;
@@ -49,6 +57,7 @@ export function createInitialUiState(search) {
       CONFIDENCE_FILTERS,
       "all"
     ),
+    historyFilter: readEnum(params.get("history"), HISTORY_FILTERS, HISTORY_FILTER_ALL),
     tagFilter: readString(params.get("tag"), "all"),
     draftFilter: readEnum(params.get("drafts"), DRAFT_FILTERS, DRAFT_FILTER_ALL),
     selectedEventId: readString(params.get("eventId"), null)
@@ -90,6 +99,10 @@ export function buildUrlSearch(state) {
 
   if (state.confidenceFilter !== "all") {
     params.set("confidence", state.confidenceFilter);
+  }
+
+  if (state.historyFilter !== HISTORY_FILTER_ALL) {
+    params.set("history", state.historyFilter);
   }
 
   if (state.tagFilter !== "all") {
