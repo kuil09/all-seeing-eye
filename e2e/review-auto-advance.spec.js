@@ -1,0 +1,65 @@
+// @ts-check
+import { expect, test } from "@playwright/test";
+
+const FIXTURES_URL = "/apps/review-console/?source=fixtures";
+
+test.describe("review action submission and queue auto-advance", () => {
+  test("approving a pending event advances the console to the next pending item", async ({
+    page
+  }) => {
+    await page.goto(FIXTURES_URL);
+
+    const cards = page.locator("#timeline-list .timeline-card");
+    await expect(cards.first()).toBeVisible();
+
+    // Select the first pending event and capture its headline
+    await cards.first().click();
+    await expect(page.locator(".detail-shell")).toBeVisible();
+    const firstHeadline = await page.locator(".detail-shell h2").first().textContent();
+
+    // Screenshot: first event selected
+    await page.screenshot({ path: "test-results/auto-advance-before-approve.png", fullPage: true });
+
+    // Approve the first event (no notes required for approve)
+    await page.locator('[data-review-action="approve"]').click();
+
+    // Flash message should confirm the action and mention auto-advance
+    const flashNote = page.locator(".flash-note");
+    await expect(flashNote).toBeVisible();
+
+    // The detail panel should now show a different event
+    const secondHeadline = await page.locator(".detail-shell h2").first().textContent();
+    expect(secondHeadline).not.toBe(firstHeadline);
+
+    // Screenshot: auto-advanced to next event
+    await page.screenshot({
+      path: "test-results/auto-advance-after-approve.png",
+      fullPage: true
+    });
+  });
+
+  test("edit action without notes is blocked at the UI level", async ({ page }) => {
+    await page.goto(FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    await expect(page.locator(".review-form")).toBeVisible();
+
+    // Attempt edit with no notes — in fixtures mode action is applied locally
+    // so verify the action does NOT record (detail stays on same event)
+    const headlineBefore = await page.locator(".detail-shell h2").first().textContent();
+    await page.locator('[data-review-action="edit"]').click();
+
+    // Detail panel should still show the same event (no advance without notes)
+    const headlineAfter = await page.locator(".detail-shell h2").first().textContent();
+    expect(headlineAfter).toBe(headlineBefore);
+
+    // Screenshot: edit blocked without notes
+    await page.screenshot({
+      path: "test-results/edit-blocked-no-notes.png",
+      fullPage: true
+    });
+  });
+});

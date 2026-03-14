@@ -11,3 +11,5 @@ coverage/
 dist/
 node_modules/
 data/review-actions.json
+playwright-report/
+test-results/
