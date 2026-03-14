@@ -12,6 +12,10 @@ import {
   formatReviewActionCount
 } from "./review-history-summary.mjs";
 import {
+  buildSourceProvenanceSummary,
+  formatSourceRelativeTiming
+} from "./source-provenance-summary.mjs";
+import {
   buildUrlSearch,
   createInitialUiState,
   DEMO_EMPTY,
@@ -328,6 +332,10 @@ function renderTimeline() {
     const reviewHistorySummary = buildReviewHistorySummary(
       state.data.details[item.eventId]?.reviewActions ?? []
     );
+    const provenanceSummary = buildSourceProvenanceSummary(
+      state.data.details[item.eventId]?.sources ?? [],
+      item.eventTime
+    );
     const card = document.createElement("button");
     card.type = "button";
     card.className = "timeline-card";
@@ -353,6 +361,7 @@ function renderTimeline() {
         <span class="metric-chip">${item.claimCount} claims</span>
         <span class="metric-chip">${item.entityCount} entities</span>
       </div>
+      ${provenanceSummary ? renderTimelineProvenanceSummary(provenanceSummary) : ""}
       <div class="tag-row">
         ${(item.tags ?? [])
           .map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`)
@@ -370,6 +379,24 @@ function renderTimeline() {
 
     elements.timelineList.append(card);
   }
+}
+
+function renderTimelineProvenanceSummary(provenanceSummary) {
+  return `
+    <div class="timeline-provenance-summary">
+      <div class="timeline-provenance-header">
+        <p class="timeline-provenance-title">${escapeHtml(provenanceSummary.postureLabel)}</p>
+        ${
+          provenanceSummary.timingLabel
+            ? `<span class="chip">${escapeHtml(provenanceSummary.timingLabel)}</span>`
+            : ""
+        }
+      </div>
+      <div class="chip-row">
+        ${renderFeedChips(provenanceSummary)}
+      </div>
+    </div>
+  `;
 }
 
 function renderTimelineReviewSummary(reviewHistorySummary) {
@@ -433,6 +460,10 @@ function renderDetail() {
     "Edit and reject actions require analyst notes so later reviewers can understand the decision.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
   const entityLookup = createEntityLookup(detail.entities);
+  const provenanceSummary = buildSourceProvenanceSummary(
+    detail.sources,
+    detail.event.eventTime
+  );
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -493,7 +524,27 @@ function renderDetail() {
           </div>
           <p class="meta-copy">${detail.sources.length} records</p>
         </div>
-        ${detail.sources.map(renderSourceCard).join("")}
+        ${
+          provenanceSummary
+            ? `
+              <article class="detail-note provenance-summary-card">
+                <div class="list-card-header">
+                  <h3>Source posture</h3>
+                  ${
+                    provenanceSummary.timingLabel
+                      ? `<span class="chip">${escapeHtml(provenanceSummary.timingLabel)}</span>`
+                      : ""
+                  }
+                </div>
+                <p class="detail-copy">${escapeHtml(provenanceSummary.postureLabel)}</p>
+                <div class="chip-row">
+                  ${renderFeedChips(provenanceSummary)}
+                </div>
+              </article>
+            `
+            : ""
+        }
+        ${detail.sources.map((source) => renderSourceCard(source, detail.event.eventTime)).join("")}
       </section>
 
       <section class="review-form">
@@ -618,12 +669,21 @@ function renderReviewAction(reviewAction) {
   `;
 }
 
-function renderSourceCard(source) {
+function renderSourceCard(source, eventTime) {
+  const relativeTiming = formatSourceRelativeTiming(source.publishedAt, eventTime);
+
   return `
     <article class="source-card">
       <div class="list-card-header">
         <strong>${escapeHtml(source.title)}</strong>
-        <span class="chip">${escapeHtml(source.feedKey)}</span>
+        <div class="chip-row source-chip-row">
+          <span class="chip">${escapeHtml(source.feedKey)}</span>
+          ${
+            relativeTiming
+              ? `<span class="chip">${escapeHtml(relativeTiming)}</span>`
+              : ""
+          }
+        </div>
       </div>
       <p>${escapeHtml(source.excerpt)}</p>
       <div class="list-card-header">
@@ -724,6 +784,23 @@ function mapActionToStatus(action) {
     return "edited";
   }
   return "rejected";
+}
+
+function renderFeedChips(provenanceSummary) {
+  const feedChips = provenanceSummary.visibleFeedLabels
+    .map((feedLabel) => `<span class="chip">${escapeHtml(feedLabel)}</span>`)
+    .join("");
+
+  if (!provenanceSummary.remainingFeedCount) {
+    return feedChips;
+  }
+
+  const moreLabel =
+    provenanceSummary.remainingFeedCount === 1
+      ? "+1 more feed"
+      : `+${provenanceSummary.remainingFeedCount} more feeds`;
+
+  return `${feedChips}<span class="chip">${escapeHtml(moreLabel)}</span>`;
 }
 
 function syncUrl() {

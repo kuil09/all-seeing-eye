@@ -45,7 +45,9 @@ recorded without notes for quick triage.
 ## Current behavior
 
 - Timeline-first analyst queue
+- Timeline cards surface source posture and timing windows before detail is opened
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
+- Supporting source cards show event-relative publish timing for faster provenance inspection
 - Timeline cards surface the latest review-history summary so analysts can triage prior edits without opening detail first
 - Relationship cards resolve canonical entity names and event roles instead of raw ids
 - Same-origin review actions persisted through a local overlay file in API mode

@@ -12,6 +12,7 @@
     "review-console:dev": "node ./scripts/serve-review-console.mjs",
     "review-console:detail:test": "node --test ./apps/review-console/detail-formatters.test.mjs",
     "review-console:history:test": "node --test ./apps/review-console/review-history-summary.test.mjs",
+    "review-console:provenance:test": "node --test ./apps/review-console/source-provenance-summary.test.mjs",
     "review-console:state:test": "node --test ./apps/review-console/view-state.test.mjs",
     "review-console:smoke": "./scripts/smoke_review_console.sh",
     "review-console:smoke:sqlite": "./scripts/smoke_review_console_sqlite.sh"

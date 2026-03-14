@@ -304,6 +304,26 @@ a {
   border-top: 1px solid rgba(22, 37, 49, 0.08);
 }
 
+.timeline-provenance-summary {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
+.timeline-provenance-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.timeline-provenance-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .timeline-review-header {
   display: flex;
   gap: 0.75rem;
@@ -473,6 +493,15 @@ a {
   gap: 0.55rem;
 }
 
+.source-chip-row {
+  justify-content: flex-end;
+}
+
+.provenance-summary-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .source-card a {
   color: var(--accent);
   text-decoration-thickness: 0.08em;
@@ -562,7 +591,8 @@ a {
   .panel-title-row,
   .detail-grid,
   .detail-meta,
-  .timeline-review-header {
+  .timeline-review-header,
+  .timeline-provenance-header {
     display: grid;
   }
 
