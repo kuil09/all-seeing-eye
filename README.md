@@ -55,6 +55,8 @@ Run the bootstrap checks locally:
 ```bash
 ./scripts/validate_sql.sh
 ./scripts/validate_json.sh
+./scripts/smoke_read_api.sh
+./scripts/smoke_review_console.sh
 ```
 
 ## Next Integration Dates

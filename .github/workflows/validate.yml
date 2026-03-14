@@ -24,3 +24,6 @@ jobs:
 
       - name: Smoke test fixture-backed read API
         run: ./scripts/smoke_read_api.sh
+
+      - name: Smoke test integrated review console
+        run: ./scripts/smoke_review_console.sh

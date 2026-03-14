@@ -1,0 +1,10 @@
+{
+  "name": "all-seeing-eye",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "read-api:dev": "./scripts/serve_read_api.sh",
+    "review-console:dev": "node ./scripts/serve-review-console.mjs",
+    "review-console:smoke": "./scripts/smoke_review_console.sh"
+  }
+}
