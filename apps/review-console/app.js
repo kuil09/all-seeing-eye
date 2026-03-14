@@ -1,20 +1,26 @@
 import { buildFixtureState } from "../../packages/contracts/bootstrap-fixtures.mjs";
+import {
+  buildUrlSearch,
+  createInitialUiState,
+  DEMO_EMPTY,
+  DEMO_ERROR,
+  DEMO_NORMAL,
+  reconcileSelectedEventId,
+  SOURCE_API,
+  SOURCE_FIXTURES
+} from "./view-state.mjs";
 
-const SOURCE_FIXTURES = "fixtures";
-const SOURCE_API = "api";
-const DEMO_NORMAL = "normal";
-const DEMO_EMPTY = "empty";
-const DEMO_ERROR = "error";
+const initialUiState = createInitialUiState(window.location.search);
 
 const state = {
-  sourceMode: SOURCE_API,
-  demoMode: DEMO_NORMAL,
-  searchQuery: "",
-  reviewStatusFilter: "all",
-  confidenceFilter: "all",
-  tagFilter: "all",
+  sourceMode: initialUiState.sourceMode,
+  demoMode: initialUiState.demoMode,
+  searchQuery: initialUiState.searchQuery,
+  reviewStatusFilter: initialUiState.reviewStatusFilter,
+  confidenceFilter: initialUiState.confidenceFilter,
+  tagFilter: initialUiState.tagFilter,
   data: null,
-  selectedEventId: null,
+  selectedEventId: initialUiState.selectedEventId,
   reviewDraft: "",
   loadError: "",
   actionError: "",
@@ -43,27 +49,32 @@ const elements = {
   timelineMeta: document.querySelector("#timeline-meta")
 };
 
+syncControlsFromState();
 bindEvents();
 void refreshData();
 
 function bindEvents() {
   elements.searchInput.addEventListener("input", (event) => {
     state.searchQuery = event.target.value.trim().toLowerCase();
+    syncUrl();
     render();
   });
 
   elements.statusFilter.addEventListener("change", (event) => {
     state.reviewStatusFilter = event.target.value;
+    syncUrl();
     render();
   });
 
   elements.confidenceFilter.addEventListener("change", (event) => {
     state.confidenceFilter = event.target.value;
+    syncUrl();
     render();
   });
 
   elements.tagFilter.addEventListener("change", (event) => {
     state.tagFilter = event.target.value;
+    syncUrl();
     render();
   });
 
@@ -75,6 +86,7 @@ function bindEvents() {
       }
 
       state.sourceMode = nextSourceMode;
+      syncUrl();
       await refreshData();
     });
   }
@@ -87,6 +99,7 @@ function bindEvents() {
       }
 
       state.demoMode = nextDemoMode;
+      syncUrl();
       render();
     });
   }
@@ -94,6 +107,7 @@ function bindEvents() {
   elements.fallbackButton.addEventListener("click", async () => {
     state.sourceMode = SOURCE_FIXTURES;
     state.demoMode = DEMO_NORMAL;
+    syncUrl();
     await refreshData();
   });
 }
@@ -120,6 +134,8 @@ async function refreshData(options = {}) {
     state.loadError = error instanceof Error ? error.message : "Unknown loading error.";
   }
 
+  syncControlsFromState();
+  syncUrl();
   render();
 }
 
@@ -164,13 +180,7 @@ async function fetchJson(url, options) {
 }
 
 function resolveSelectedEventId(timelineItems) {
-  const params = new URLSearchParams(window.location.search);
-  const requestedEventId = params.get("eventId");
-  if (requestedEventId && timelineItems.some((item) => item.eventId === requestedEventId)) {
-    return requestedEventId;
-  }
-
-  return timelineItems[0]?.eventId ?? null;
+  return reconcileSelectedEventId(state.selectedEventId, timelineItems);
 }
 
 function syncTagFilter(timelineItems) {
@@ -278,9 +288,13 @@ function renderSummary() {
 
 function renderTimeline() {
   const filteredTimeline = getFilteredTimeline();
-  const selectedEventVisible = filteredTimeline.some((item) => item.eventId === state.selectedEventId);
-  if (!selectedEventVisible) {
-    state.selectedEventId = filteredTimeline[0]?.eventId ?? state.selectedEventId;
+  const nextSelectedEventId = reconcileSelectedEventId(
+    state.selectedEventId,
+    filteredTimeline
+  );
+  if (nextSelectedEventId !== state.selectedEventId) {
+    state.selectedEventId = nextSelectedEventId;
+    syncUrl();
   }
 
   elements.timelineMeta.textContent = `${filteredTimeline.length} event${
@@ -345,6 +359,7 @@ function renderTimeline() {
 function renderDetail() {
   const shouldShowError = state.demoMode === DEMO_ERROR || Boolean(state.loadError);
   elements.errorState.hidden = !shouldShowError;
+  const filteredTimeline = getFilteredTimeline();
 
   if (shouldShowError) {
     elements.errorMessage.textContent =
@@ -366,8 +381,12 @@ function renderDetail() {
   if (!detail) {
     elements.detailPanel.innerHTML = `
       <div class="state-card detail-placeholder">
-        <h2>Select an event</h2>
-        <p>Choose a timeline row to inspect claims, sources, relationships, and review history.</p>
+        <h2>${filteredTimeline.length === 0 ? "No event selected" : "Select an event"}</h2>
+        <p>${
+          filteredTimeline.length === 0
+            ? "Adjust filters or return to the normal demo state to repopulate the review queue."
+            : "Choose a timeline row to inspect claims, sources, relationships, and review history."
+        }</p>
       </div>
     `;
     return;
@@ -666,10 +685,22 @@ function mapActionToStatus(action) {
 
 function syncUrl() {
   const url = new URL(window.location.href);
-  if (state.selectedEventId) {
-    url.searchParams.set("eventId", state.selectedEventId);
+  const nextSearch = buildUrlSearch(state);
+  if (url.search === nextSearch) {
+    return;
   }
+  url.search = nextSearch;
   window.history.replaceState({}, "", url);
+}
+
+function syncControlsFromState() {
+  elements.searchInput.value = state.searchQuery;
+  elements.statusFilter.value = state.reviewStatusFilter;
+  elements.confidenceFilter.value = state.confidenceFilter;
+
+  if ([...elements.tagFilter.options].some((option) => option.value === state.tagFilter)) {
+    elements.tagFilter.value = state.tagFilter;
+  }
 }
 
 function formatReviewStatus(reviewStatus) {

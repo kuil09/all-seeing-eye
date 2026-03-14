@@ -9,6 +9,7 @@
     "read-api:dev": "./scripts/serve_read_api.sh",
     "read-api:smoke": "./scripts/smoke_read_api.sh",
     "review-console:dev": "node ./scripts/serve-review-console.mjs",
+    "review-console:state:test": "node --test ./apps/review-console/view-state.test.mjs",
     "review-console:smoke": "./scripts/smoke_review_console.sh",
     "review-console:smoke:sqlite": "./scripts/smoke_review_console_sqlite.sh"
   }

@@ -45,5 +45,6 @@ REVIEW_ACTIONS_FILE=/tmp/review-actions.json npm run review-console:dev
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
 - Same-origin review actions persisted through a local overlay file in API mode
 - Fixture-mode review actions kept browser-local as a fallback
+- URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback
