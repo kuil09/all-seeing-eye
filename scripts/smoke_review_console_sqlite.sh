@@ -109,6 +109,14 @@ assert health == {"status": "ok", "backend": "sqlite"}
 assert len(timeline["items"]) == 2
 assert timeline["items"][0]["eventId"] == "evt_20260314_substation_outage"
 assert timeline["items"][0]["sourceCount"] == 2
+assert next(
+    item for item in timeline["items"]
+    if item["eventId"] == "evt_20260314_substation_outage"
+)["tags"] == ["infrastructure", "weather", "outage"]
+assert next(
+    item for item in timeline["items"]
+    if item["eventId"] == "evt_20260314_harbor_north_inspections"
+)["tags"] == ["logistics", "inspection"]
 assert detail["event"]["id"] == "evt_20260314_harbor_north_inspections"
 assert detail["event"]["reviewStatus"] == "pending_review"
 assert len(detail["sources"]) == 2

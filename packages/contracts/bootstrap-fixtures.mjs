@@ -1,3 +1,5 @@
+import { deriveTimelineTags } from "./timeline-tags.mjs";
+
 const detailFixtureMap = {
   evt_20260314_harbor_north_inspections: {
     entityRoles: {
@@ -21,9 +23,14 @@ const detailFixtureMap = {
 };
 
 export function buildFixtureState(timelineResponse, exampleDetailResponse, bootstrapDataset) {
-  const sortedTimeline = [...timelineResponse.items].sort((left, right) =>
-    right.eventTime.localeCompare(left.eventTime)
-  );
+  const sortedTimeline = [...timelineResponse.items]
+    .sort((left, right) => right.eventTime.localeCompare(left.eventTime))
+    .map((item) => ({
+      ...item,
+      tags: deriveTimelineTags({
+        existingTags: item.tags
+      })
+    }));
   const eventById = new Map(bootstrapDataset.events.map((event) => [event.id, event]));
   const claimsByEventId = groupBy(bootstrapDataset.claims, "eventId");
   const entityById = new Map(bootstrapDataset.entities.map((entity) => [entity.id, entity]));

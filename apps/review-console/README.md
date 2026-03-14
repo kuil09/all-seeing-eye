@@ -49,6 +49,7 @@ recorded without notes for quick triage.
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
 - Supporting source cards show event-relative publish timing for faster provenance inspection
 - Timeline cards surface the latest review-history summary so analysts can triage prior edits without opening detail first
+- API and SQLite-backed timeline responses keep tag chips derived from feed categories and event types so tag filtering remains usable outside fixture mode
 - Relationship cards resolve canonical entity names and event roles instead of raw ids
 - Same-origin review actions persisted through a local overlay file in API mode
 - Fixture-mode review actions kept browser-local as a fallback

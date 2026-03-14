@@ -7,6 +7,7 @@ import {
   mapStoragePolarityToContract,
   mapStorageReviewStatusToContract
 } from "../../packages/contracts/storage-mappings.mjs";
+import { deriveTimelineTags } from "../../packages/contracts/timeline-tags.mjs";
 
 export function shouldUseSqliteBackend() {
   return Boolean(process.env.READ_API_DB_PATH);
@@ -14,6 +15,22 @@ export function shouldUseSqliteBackend() {
 
 export async function getTimelineResponse(repoRoot) {
   return withDatabase(repoRoot, (database) => {
+    const eventSourcePayloadsStatement = database.prepare(
+      `
+        SELECT
+          s.raw_payload AS rawPayload
+        FROM event_source_records es
+        JOIN source_records s ON s.id = es.source_record_id
+        WHERE es.event_id = :event_id
+        ORDER BY
+          CASE es.role
+            WHEN 'trigger' THEN 0
+            WHEN 'supporting' THEN 1
+            ELSE 2
+          END,
+          s.published_at ASC
+      `
+    );
     const rows = database
       .prepare(
         `
@@ -21,6 +38,7 @@ export async function getTimelineResponse(repoRoot) {
             e.id AS eventId,
             e.title AS headline,
             e.summary_text AS summary,
+            e.event_type AS eventType,
             COALESCE(e.start_at, e.created_at) AS eventTime,
             e.review_status AS reviewStatus,
             (
@@ -67,21 +85,31 @@ export async function getTimelineResponse(repoRoot) {
     return {
       generatedAt: new Date().toISOString(),
       nextCursor: null,
-      items: rows.map((row) => ({
-        eventId: row.eventId,
-        headline: row.headline,
-        summary: row.summary,
-        eventTime: row.eventTime,
-        reviewStatus: mapStorageReviewStatusToContract(row.reviewStatus),
-        confidence: {
-          label: deriveConfidenceLabel(row.confidenceScore ?? 0.5),
-          score: row.confidenceScore ?? 0.5
-        },
-        sourceCount: row.sourceCount,
-        claimCount: row.claimCount,
-        entityCount: row.entityCount,
-        primaryLocation: row.primaryLocation ?? null
-      }))
+      items: rows.map((row) => {
+        const feedCategories = extractFeedCategories(
+          eventSourcePayloadsStatement.all({ event_id: row.eventId })
+        );
+
+        return {
+          eventId: row.eventId,
+          headline: row.headline,
+          summary: row.summary,
+          eventTime: row.eventTime,
+          reviewStatus: mapStorageReviewStatusToContract(row.reviewStatus),
+          confidence: {
+            label: deriveConfidenceLabel(row.confidenceScore ?? 0.5),
+            score: row.confidenceScore ?? 0.5
+          },
+          sourceCount: row.sourceCount,
+          claimCount: row.claimCount,
+          entityCount: row.entityCount,
+          primaryLocation: row.primaryLocation ?? null,
+          tags: deriveTimelineTags({
+            feedCategories,
+            eventType: row.eventType
+          })
+        };
+      })
     };
   });
 }
@@ -269,6 +297,28 @@ function withDatabase(repoRoot, callback) {
   } finally {
     database.close();
   }
+}
+
+function extractFeedCategories(sourceRows) {
+  const categories = [];
+
+  for (const row of sourceRows) {
+    if (typeof row.rawPayload !== "string" || !row.rawPayload.trim()) {
+      continue;
+    }
+
+    try {
+      const payload = JSON.parse(row.rawPayload);
+      const category = payload?.feed?.category;
+      if (typeof category === "string" && category.trim()) {
+        categories.push(category);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return categories;
 }
 
 function resolveDatabasePath(repoRoot) {

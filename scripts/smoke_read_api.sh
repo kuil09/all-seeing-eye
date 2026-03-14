@@ -104,6 +104,10 @@ invalid = json.load(open(sys.argv[7], "r", encoding="utf-8"))
 assert timeline["nextCursor"] is None
 assert len(timeline["items"]) >= 2
 assert timeline["items"][0]["eventId"] == "evt_20260314_substation_outage"
+assert next(
+    item for item in timeline["items"]
+    if item["eventId"] == "evt_20260314_harbor_north_inspections"
+)["tags"] == ["logistics", "inspection"]
 assert detail["event"]["id"] == "evt_20260314_harbor_north_inspections"
 assert len(detail["sources"]) == 2
 assert post_response["eventId"] == "evt_20260314_harbor_north_inspections"

@@ -34,6 +34,10 @@ READ_API_DB_PATH=data/all-seeing-eye.sqlite ./scripts/serve_read_api.sh
 
 Without `READ_API_DB_PATH`, the service stays on the fixture backend.
 
+When SQLite mode is enabled, timeline responses derive tag chips from source
+feed categories plus the stored event type so the review-console tag filter
+stays useful against live local reads.
+
 `POST /api/events/:eventId/review-actions` remains local-only. It writes analyst
 review state into the overlay file so refreshed `GET /api/timeline` and
 `GET /api/events/:eventId` responses reflect approve, edit, and reject actions
