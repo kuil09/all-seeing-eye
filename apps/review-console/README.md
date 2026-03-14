@@ -51,6 +51,8 @@ recorded without notes for quick triage.
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
+- When URL state is stale or missing, the detail view re-centers on the first pending event instead of an already-reviewed row
+- Detail view surfaces queue context so analysts can see visible position plus remaining pending work under the current filters
 - Search matches timeline copy plus claim text, entity names and roles, source titles and feed keys, and recorded analyst notes
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
 - Supporting source cards show event-relative publish timing for faster provenance inspection

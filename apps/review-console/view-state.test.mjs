@@ -68,3 +68,13 @@ test("reconcileSelectedEventId keeps current row or falls back to the first visi
   assert.equal(reconcileSelectedEventId("evt_2", timelineItems), "evt_2");
   assert.equal(reconcileSelectedEventId("evt_missing", timelineItems), "evt_1");
 });
+
+test("reconcileSelectedEventId prefers the first pending row when selection is missing", () => {
+  const timelineItems = [
+    { eventId: "evt_1", reviewStatus: "approved" },
+    { eventId: "evt_2", reviewStatus: "pending_review" },
+    { eventId: "evt_3", reviewStatus: "edited" }
+  ];
+
+  assert.equal(reconcileSelectedEventId("evt_missing", timelineItems), "evt_2");
+});

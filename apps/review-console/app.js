@@ -12,6 +12,7 @@ import {
   buildReviewHistorySummary,
   formatReviewActionCount
 } from "./review-history-summary.mjs";
+import { buildReviewQueueContext } from "./review-queue-context.mjs";
 import { resolveNextPendingEventId } from "./review-queue-navigation.mjs";
 import {
   buildSourceProvenanceSummary,
@@ -457,6 +458,42 @@ function renderTimelineReviewSummary(reviewHistorySummary) {
   `;
 }
 
+function renderQueueContext(queueContext) {
+  const pendingProgressLabel =
+    queueContext.pendingPosition === null
+      ? null
+      : `Pending ${queueContext.pendingPosition} of ${queueContext.pendingCount}`;
+  const remainingPendingLabel =
+    queueContext.pendingPosition === null
+      ? queueContext.pendingCount === 0
+        ? "No pending events remain in this view."
+        : `${queueContext.pendingCount} pending event${
+            queueContext.pendingCount === 1 ? "" : "s"
+          } remain elsewhere in this view.`
+      : queueContext.remainingPendingAfterSelection === 0
+        ? queueContext.pendingCount === 1
+          ? "This is the only pending event in this view."
+          : "No later pending events remain in this view."
+        : `${queueContext.remainingPendingAfterSelection} pending event${
+            queueContext.remainingPendingAfterSelection === 1 ? "" : "s"
+          } remain after this selection.`;
+
+  return `
+    <article class="detail-note">
+      <h3>Queue context</h3>
+      <div class="chip-row">
+        <span class="chip">Visible ${queueContext.visiblePosition} of ${queueContext.visibleCount}</span>
+        ${
+          pendingProgressLabel
+            ? `<span class="chip">${escapeHtml(pendingProgressLabel)}</span>`
+            : ""
+        }
+      </div>
+      <p class="detail-copy">${escapeHtml(remainingPendingLabel)}</p>
+    </article>
+  `;
+}
+
 function renderDetail() {
   const shouldShowError = state.demoMode === DEMO_ERROR || Boolean(state.loadError);
   elements.errorState.hidden = !shouldShowError;
@@ -505,6 +542,7 @@ function renderDetail() {
     detail.sources,
     detail.event.eventTime
   );
+  const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -534,6 +572,7 @@ function renderDetail() {
           <p>${escapeHtml(detail.event.summary)}</p>
         </div>
         <div class="detail-grid">
+          ${queueContext ? renderQueueContext(queueContext) : ""}
           <article class="detail-note">
             <h3>Confidence rationale</h3>
             <p class="detail-copy">${escapeHtml(detail.event.confidence.rationale)}</p>

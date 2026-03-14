@@ -3,6 +3,7 @@ export const SOURCE_API = "api";
 export const DEMO_NORMAL = "normal";
 export const DEMO_EMPTY = "empty";
 export const DEMO_ERROR = "error";
+const PENDING_REVIEW = "pending_review";
 
 const SOURCE_MODES = new Set([SOURCE_FIXTURES, SOURCE_API]);
 const DEMO_MODES = new Set([DEMO_NORMAL, DEMO_EMPTY, DEMO_ERROR]);
@@ -62,7 +63,10 @@ export function reconcileSelectedEventId(selectedEventId, timelineItems) {
     return selectedEventId;
   }
 
-  return timelineItems[0].eventId;
+  return (
+    timelineItems.find((item) => item.reviewStatus === PENDING_REVIEW)?.eventId ??
+    timelineItems[0].eventId
+  );
 }
 
 export function buildUrlSearch(state) {

@@ -15,6 +15,7 @@
     "review-console:detail:test": "node --test ./apps/review-console/detail-formatters.test.mjs",
     "review-console:entities:test": "node --test ./apps/review-console/timeline-entity-summary.test.mjs",
     "review-console:history:test": "node --test ./apps/review-console/review-history-summary.test.mjs",
+    "review-console:queue-context:test": "node --test ./apps/review-console/review-queue-context.test.mjs",
     "review-console:navigation:test": "node --test ./apps/review-console/review-queue-navigation.test.mjs",
     "review-console:provenance:test": "node --test ./apps/review-console/source-provenance-summary.test.mjs",
     "review-console:search:test": "node --test ./apps/review-console/timeline-search.test.mjs",
