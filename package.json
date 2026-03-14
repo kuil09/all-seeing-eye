@@ -8,6 +8,7 @@
     "pipeline:smoke": "./scripts/smoke_pipeline.sh",
     "read-api:dev": "./scripts/serve_read_api.sh",
     "read-api:smoke": "./scripts/smoke_read_api.sh",
+    "review-action:policy:test": "node --test ./packages/contracts/review-action-policy.test.mjs",
     "review-console:dev": "node ./scripts/serve-review-console.mjs",
     "review-console:detail:test": "node --test ./apps/review-console/detail-formatters.test.mjs",
     "review-console:state:test": "node --test ./apps/review-console/view-state.test.mjs",

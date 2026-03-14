@@ -45,6 +45,7 @@ updated_timeline_file="$(mktemp)"
 updated_detail_file="$(mktemp)"
 post_response_file="$(mktemp)"
 review_action_file="$(mktemp)"
+invalid_file="$(mktemp)"
 log_file="$(mktemp)"
 server_pid=""
 
@@ -53,7 +54,7 @@ cleanup() {
     kill "$server_pid" >/dev/null 2>&1 || true
     wait "$server_pid" 2>/dev/null || true
   fi
-  rm -f "$html_file" "$timeline_file" "$detail_file" "$updated_timeline_file" "$updated_detail_file" "$post_response_file" "$review_action_file" "$log_file"
+  rm -f "$html_file" "$timeline_file" "$detail_file" "$updated_timeline_file" "$updated_detail_file" "$post_response_file" "$review_action_file" "$invalid_file" "$log_file"
 }
 
 trap cleanup EXIT
@@ -74,10 +75,19 @@ curl -fsS -X POST \
 curl -fsS "http://127.0.0.1:$port/api/timeline" >"$updated_timeline_file"
 curl -fsS "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections" >"$updated_detail_file"
 
+invalid_status="$(curl -sS -o "$invalid_file" -w "%{http_code}" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"action":"edit","notes":"   "}' \
+  "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections/review-actions")"
+if [[ "$invalid_status" != "400" ]]; then
+  echo "Expected 400 for edit without notes but got $invalid_status" >&2
+  exit 1
+fi
+
 grep -q "Analyst Review Console" "$html_file"
 grep -q "./app.js" "$html_file"
 
-python3 - "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" <<'PY'
+python3 - "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$invalid_file" <<'PY'
 import json
 import sys
 
@@ -86,6 +96,7 @@ detail = json.load(open(sys.argv[2], "r", encoding="utf-8"))
 post_response = json.load(open(sys.argv[3], "r", encoding="utf-8"))
 updated_timeline = json.load(open(sys.argv[4], "r", encoding="utf-8"))
 updated_detail = json.load(open(sys.argv[5], "r", encoding="utf-8"))
+invalid = json.load(open(sys.argv[6], "r", encoding="utf-8"))
 
 assert len(timeline["items"]) >= 2
 assert timeline["items"][0]["eventId"] == "evt_20260314_substation_outage"
@@ -98,6 +109,7 @@ assert next(
     item for item in updated_timeline["items"]
     if item["eventId"] == "evt_20260314_harbor_north_inspections"
 )["reviewStatus"] == "approved"
+assert invalid["error"] == "Analyst notes are required when marking an event as edited."
 PY
 
 echo "Review console smoke test passed."

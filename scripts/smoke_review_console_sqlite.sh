@@ -13,6 +13,7 @@ updated_timeline_file="$tmp_dir/updated-timeline.json"
 updated_detail_file="$tmp_dir/updated-detail.json"
 post_response_file="$tmp_dir/post-response.json"
 review_action_file="$tmp_dir/review-actions.json"
+invalid_file="$tmp_dir/invalid-response.json"
 log_file="$tmp_dir/review-console.log"
 server_pid=""
 
@@ -80,10 +81,19 @@ curl -fsS -X POST \
 curl -fsS "http://127.0.0.1:$port/api/timeline" >"$updated_timeline_file"
 curl -fsS "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections" >"$updated_detail_file"
 
+invalid_status="$(curl -sS -o "$invalid_file" -w "%{http_code}" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"action":"reject","notes":"   "}' \
+  "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections/review-actions")"
+if [[ "$invalid_status" != "400" ]]; then
+  echo "Expected 400 for reject without notes but got $invalid_status" >&2
+  exit 1
+fi
+
 grep -q "Analyst Review Console" "$html_file"
 grep -q "./app.js" "$html_file"
 
-python3 - "$health_file" "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" <<'PY'
+python3 - "$health_file" "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$invalid_file" <<'PY'
 import json
 import sys
 
@@ -93,6 +103,7 @@ detail = json.load(open(sys.argv[3], "r", encoding="utf-8"))
 post_response = json.load(open(sys.argv[4], "r", encoding="utf-8"))
 updated_timeline = json.load(open(sys.argv[5], "r", encoding="utf-8"))
 updated_detail = json.load(open(sys.argv[6], "r", encoding="utf-8"))
+invalid = json.load(open(sys.argv[7], "r", encoding="utf-8"))
 
 assert health == {"status": "ok", "backend": "sqlite"}
 assert len(timeline["items"]) == 2
@@ -109,6 +120,7 @@ assert next(
     item for item in updated_timeline["items"]
     if item["eventId"] == "evt_20260314_harbor_north_inspections"
 )["reviewStatus"] == "edited"
+assert invalid["error"] == "Analyst notes are required when marking an event as rejected."
 PY
 
 echo "SQLite-backed review console smoke test passed."

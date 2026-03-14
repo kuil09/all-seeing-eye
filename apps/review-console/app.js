@@ -1,5 +1,9 @@
 import { buildFixtureState } from "../../packages/contracts/bootstrap-fixtures.mjs";
 import {
+  getReviewActionValidationError,
+  sanitizeReviewNotes
+} from "../../packages/contracts/review-action-policy.mjs";
+import {
   createEntityLookup,
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
@@ -400,6 +404,8 @@ function renderDetail() {
     state.sourceMode === SOURCE_API
       ? "API mode persists review actions to a local overlay file so refreshed timeline and detail reads stay aligned."
       : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted local review state.";
+  const reviewActionRequirementText =
+    "Edit and reject actions require analyst notes so later reviewers can understand the decision.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
   const entityLookup = createEntityLookup(detail.entities);
 
@@ -468,6 +474,7 @@ function renderDetail() {
       <section class="review-form">
         <h3>Local review action</h3>
         <p class="detail-copy">${escapeHtml(reviewActionHelpText)}</p>
+        <p class="meta-copy">${escapeHtml(reviewActionRequirementText)}</p>
         <textarea id="review-notes" placeholder="Document why this event was approved, edited, or rejected." ${disabledAttribute}>${escapeHtml(
           state.reviewDraft
         )}</textarea>
@@ -604,6 +611,9 @@ function renderSourceCard(source) {
 
 async function handleReviewAction(action) {
   state.actionError = "";
+  if (!validateReviewAction(action)) {
+    return;
+  }
 
   if (state.sourceMode === SOURCE_API && state.demoMode === DEMO_NORMAL) {
     await submitPersistedReviewAction(action);
@@ -634,7 +644,7 @@ function applyLocalReviewAction(action) {
       actorType: "analyst",
       actorName: "Local analyst",
       createdAt: new Date().toISOString(),
-      notes: state.reviewDraft.trim() || null
+      notes: sanitizeReviewNotes(state.reviewDraft)
     },
     ...detail.reviewActions
   ];
@@ -664,7 +674,7 @@ async function submitPersistedReviewAction(action) {
       },
       body: JSON.stringify({
         action,
-        notes: state.reviewDraft
+        notes: sanitizeReviewNotes(state.reviewDraft)
       })
     });
     const headline = state.data.details[state.selectedEventId]?.event.headline ?? state.selectedEventId;
@@ -699,6 +709,17 @@ function syncUrl() {
   }
   url.search = nextSearch;
   window.history.replaceState({}, "", url);
+}
+
+function validateReviewAction(action) {
+  const validationError = getReviewActionValidationError(action, state.reviewDraft);
+  if (!validationError) {
+    return true;
+  }
+
+  state.actionError = validationError;
+  render();
+  return false;
 }
 
 function syncControlsFromState() {

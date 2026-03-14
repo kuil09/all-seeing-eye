@@ -46,6 +46,7 @@ updated_detail_file="$(mktemp)"
 review_action_file="$(mktemp)"
 post_response_file="$(mktemp)"
 missing_file="$(mktemp)"
+invalid_file="$(mktemp)"
 server_pid=""
 
 cleanup() {
@@ -53,7 +54,7 @@ cleanup() {
     kill "$server_pid" >/dev/null 2>&1 || true
     wait "$server_pid" 2>/dev/null || true
   fi
-  rm -f "$log_file" "$timeline_file" "$detail_file" "$updated_timeline_file" "$updated_detail_file" "$review_action_file" "$post_response_file" "$missing_file"
+  rm -f "$log_file" "$timeline_file" "$detail_file" "$updated_timeline_file" "$updated_detail_file" "$review_action_file" "$post_response_file" "$missing_file" "$invalid_file"
 }
 
 trap cleanup EXIT
@@ -79,7 +80,16 @@ if [[ "$missing_status" != "404" ]]; then
   exit 1
 fi
 
-python3 - "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$missing_file" <<'PY'
+invalid_status="$(curl -sS -o "$invalid_file" -w "%{http_code}" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"action":"reject","notes":"   "}' \
+  "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections/review-actions")"
+if [[ "$invalid_status" != "400" ]]; then
+  echo "Expected 400 for reject without notes but got $invalid_status" >&2
+  exit 1
+fi
+
+python3 - "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$missing_file" "$invalid_file" <<'PY'
 import json
 import sys
 
@@ -89,6 +99,7 @@ post_response = json.load(open(sys.argv[3], "r", encoding="utf-8"))
 updated_timeline = json.load(open(sys.argv[4], "r", encoding="utf-8"))
 updated_detail = json.load(open(sys.argv[5], "r", encoding="utf-8"))
 missing = json.load(open(sys.argv[6], "r", encoding="utf-8"))
+invalid = json.load(open(sys.argv[7], "r", encoding="utf-8"))
 
 assert timeline["nextCursor"] is None
 assert len(timeline["items"]) >= 2
@@ -105,6 +116,7 @@ assert next(
     if item["eventId"] == "evt_20260314_harbor_north_inspections"
 )["reviewStatus"] == "approved"
 assert missing["error"] == "Event not found"
+assert invalid["error"] == "Analyst notes are required when marking an event as rejected."
 PY
 
 echo "Read API smoke test passed."

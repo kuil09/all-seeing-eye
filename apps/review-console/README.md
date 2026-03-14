@@ -39,6 +39,9 @@ that local overlay somewhere else during testing, set:
 REVIEW_ACTIONS_FILE=/tmp/review-actions.json npm run review-console:dev
 ```
 
+`edit` and `reject` actions require analyst notes. `approve` can still be
+recorded without notes for quick triage.
+
 ## Current behavior
 
 - Timeline-first analyst queue
@@ -46,6 +49,7 @@ REVIEW_ACTIONS_FILE=/tmp/review-actions.json npm run review-console:dev
 - Relationship cards resolve canonical entity names and event roles instead of raw ids
 - Same-origin review actions persisted through a local overlay file in API mode
 - Fixture-mode review actions kept browser-local as a fallback
+- Edit and reject actions require analyst notes before the console records them
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

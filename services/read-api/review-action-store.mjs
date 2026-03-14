@@ -1,7 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const VALID_REVIEW_ACTIONS = new Set(["approve", "edit", "reject"]);
+import {
+  getReviewActionValidationError,
+  sanitizeReviewNotes
+} from "../../packages/contracts/review-action-policy.mjs";
 
 function createStoreError(message) {
   const error = new Error(message);
@@ -28,10 +31,6 @@ function normalizeReviewActionStore(store) {
         ? store.events
         : {}
   };
-}
-
-function sanitizeNotes(notes) {
-  return typeof notes === "string" && notes.trim() ? notes.trim() : null;
 }
 
 function sanitizeActorName(actorName) {
@@ -142,8 +141,10 @@ export function applyPersistedReviewStateToEventDetail(eventDetail, reviewEventS
 
 export async function recordReviewAction(repoRoot, eventId, input) {
   const action = input?.action;
-  if (!VALID_REVIEW_ACTIONS.has(action)) {
-    throw createStoreError("Review action must be one of approve, edit, or reject.");
+  const notes = sanitizeReviewNotes(input?.notes);
+  const validationError = getReviewActionValidationError(action, notes);
+  if (validationError) {
+    throw createStoreError(validationError);
   }
 
   const store = await readReviewActionStore(repoRoot);
@@ -153,7 +154,7 @@ export async function recordReviewAction(repoRoot, eventId, input) {
     actorType: sanitizeActorType(input?.actorType),
     actorName: sanitizeActorName(input?.actorName),
     createdAt: new Date().toISOString(),
-    notes: sanitizeNotes(input?.notes)
+    notes
   };
   const previousEventState = store.events[eventId] ?? {
     reviewStatus: "pending_review",

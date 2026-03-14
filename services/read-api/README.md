@@ -38,3 +38,6 @@ Without `READ_API_DB_PATH`, the service stays on the fixture backend.
 review state into the overlay file so refreshed `GET /api/timeline` and
 `GET /api/events/:eventId` responses reflect approve, edit, and reject actions
 without changing the shared storage contract.
+
+`approve` accepts optional notes. `edit` and `reject` require analyst notes so
+the persisted review history keeps an explicit rationale.
