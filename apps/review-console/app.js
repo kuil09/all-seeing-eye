@@ -11,6 +11,14 @@ import {
 import { buildFilterSummary } from "./filter-summary.mjs";
 import { buildQueueDistribution } from "./queue-distribution.mjs";
 import {
+  buildReviewDraftPreview,
+  clearReviewDraft,
+  getReviewDraft,
+  hasReviewDraft,
+  pruneReviewDrafts,
+  setReviewDraft
+} from "./review-draft-state.mjs";
+import {
   buildReviewHistorySummary,
   formatReviewActionCount
 } from "./review-history-summary.mjs";
@@ -47,7 +55,7 @@ const state = {
   tagFilter: initialUiState.tagFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
-  reviewDraft: "",
+  reviewDrafts: {},
   loadError: "",
   actionError: "",
   lastActionMessage: "",
@@ -188,8 +196,11 @@ async function refreshData(options = {}) {
   try {
     state.data =
       state.sourceMode === SOURCE_API ? await loadApiData() : await loadFixtureData();
+    state.reviewDrafts = pruneReviewDrafts(
+      state.reviewDrafts,
+      state.data.timeline.map((item) => item.eventId)
+    );
     state.selectedEventId = resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
-    state.reviewDraft = "";
     syncTagFilter(state.data.timeline);
   } catch (error) {
     state.data = null;
@@ -411,6 +422,9 @@ function renderTimeline() {
     });
     const reviewHistorySummary = buildReviewHistorySummary(detail?.reviewActions ?? []);
     const provenanceSummary = buildSourceProvenanceSummary(detail?.sources ?? [], item.eventTime);
+    const reviewDraftPreview = buildReviewDraftPreview(
+      getReviewDraft(state.reviewDrafts, item.eventId)
+    );
     const card = document.createElement("button");
     card.type = "button";
     card.className = "timeline-card";
@@ -444,12 +458,12 @@ function renderTimeline() {
           .map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`)
           .join("")}
       </div>
+      ${reviewDraftPreview ? renderTimelineDraftSummary(reviewDraftPreview) : ""}
       ${reviewHistorySummary ? renderTimelineReviewSummary(reviewHistorySummary) : ""}
     `;
 
     card.addEventListener("click", () => {
       state.selectedEventId = item.eventId;
-      state.reviewDraft = "";
       syncUrl();
       render();
     });
@@ -506,6 +520,18 @@ function renderTimelineProvenanceSummary(provenanceSummary) {
       <div class="chip-row">
         ${renderFeedChips(provenanceSummary)}
       </div>
+    </div>
+  `;
+}
+
+function renderTimelineDraftSummary(reviewDraftPreview) {
+  return `
+    <div class="timeline-review-summary timeline-draft-summary">
+      <div class="timeline-review-header">
+        <span class="chip">Draft note saved</span>
+        <span class="meta-copy">Local only</span>
+      </div>
+      <p class="timeline-review-note">${escapeHtml(reviewDraftPreview)}</p>
     </div>
   `;
 }
@@ -693,6 +719,10 @@ function renderDetail() {
       : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted review state.";
   const reviewActionRequirementText =
     "Edit and reject actions require analyst notes so later reviewers can understand the decision.";
+  const reviewDraftStatusText =
+    hasReviewDraft(state.reviewDrafts, state.selectedEventId)
+      ? "Draft notes stay attached to this event while you move around the queue."
+      : "Draft notes stay attached to each event until you record the review action.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
   const entityLookup = createEntityLookup(detail.entities);
   const provenanceSummary = buildSourceProvenanceSummary(
@@ -789,8 +819,9 @@ function renderDetail() {
         <h3>Local review action</h3>
         <p class="detail-copy">${escapeHtml(reviewActionHelpText)}</p>
         <p class="meta-copy">${escapeHtml(reviewActionRequirementText)}</p>
+        <p class="meta-copy">${escapeHtml(reviewDraftStatusText)}</p>
         <textarea id="review-notes" placeholder="Document why this event was approved, edited, or rejected." ${disabledAttribute}>${escapeHtml(
-          state.reviewDraft
+          getSelectedReviewDraft()
         )}</textarea>
         <div class="action-row">
           <button type="button" class="primary-action" data-review-action="approve" ${disabledAttribute}>Approve</button>
@@ -803,7 +834,12 @@ function renderDetail() {
 
   const reviewNotes = document.querySelector("#review-notes");
   reviewNotes.addEventListener("input", (event) => {
-    state.reviewDraft = event.target.value;
+    state.reviewDrafts = setReviewDraft(
+      state.reviewDrafts,
+      state.selectedEventId,
+      event.target.value
+    );
+    renderTimelineDraftState();
   });
 
   document.querySelectorAll("[data-queue-target]").forEach((button) => {
@@ -814,7 +850,6 @@ function renderDetail() {
       }
 
       state.selectedEventId = targetEventId;
-      state.reviewDraft = "";
       syncUrl();
       render();
     });
@@ -965,15 +1000,17 @@ function applyLocalReviewAction(action) {
     return;
   }
 
-  const detail = state.data.details[state.selectedEventId];
-  const timelineItem = state.data.timeline.find((item) => item.eventId === state.selectedEventId);
+  const currentEventId = state.selectedEventId;
+  const detail = state.data.details[currentEventId];
+  const timelineItem = state.data.timeline.find((item) => item.eventId === currentEventId);
   if (!detail || !timelineItem) {
     return;
   }
 
+  const reviewDraft = getReviewDraft(state.reviewDrafts, currentEventId);
   const shouldAdvanceQueue = detail.event.reviewStatus === "pending_review";
   const nextPendingEventId = shouldAdvanceQueue
-    ? resolveNextPendingEventId(state.data.timeline, state.selectedEventId)
+    ? resolveNextPendingEventId(state.data.timeline, currentEventId)
     : null;
   const nextStatus = mapActionToStatus(action);
   detail.event.reviewStatus = nextStatus;
@@ -985,10 +1022,11 @@ function applyLocalReviewAction(action) {
       actorType: "analyst",
       actorName: "Local analyst",
       createdAt: new Date().toISOString(),
-      notes: sanitizeReviewNotes(state.reviewDraft)
+      notes: sanitizeReviewNotes(reviewDraft)
     },
     ...detail.reviewActions
   ];
+  state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
 
   if (nextPendingEventId) {
     state.selectedEventId = nextPendingEventId;
@@ -999,7 +1037,6 @@ function applyLocalReviewAction(action) {
     detail.event.headline,
     nextPendingEventId ? state.data.details[nextPendingEventId]?.event?.headline : null
   );
-  state.reviewDraft = "";
   render();
 }
 
@@ -1014,10 +1051,12 @@ async function submitPersistedReviewAction(action) {
   render();
 
   try {
-    const currentDetail = state.data.details[state.selectedEventId];
+    const currentEventId = state.selectedEventId;
+    const currentDetail = state.data.details[currentEventId];
+    const reviewDraft = getReviewDraft(state.reviewDrafts, currentEventId);
     const shouldAdvanceQueue = currentDetail?.event?.reviewStatus === "pending_review";
     const nextPendingEventId = shouldAdvanceQueue
-      ? resolveNextPendingEventId(state.data.timeline, state.selectedEventId)
+      ? resolveNextPendingEventId(state.data.timeline, currentEventId)
       : null;
     const response = await fetchJson(`/api/events/${state.selectedEventId}/review-actions`, {
       method: "POST",
@@ -1026,10 +1065,11 @@ async function submitPersistedReviewAction(action) {
       },
       body: JSON.stringify({
         action,
-        notes: sanitizeReviewNotes(state.reviewDraft)
+        notes: sanitizeReviewNotes(reviewDraft)
       })
     });
     const headline = currentDetail?.event?.headline ?? state.selectedEventId;
+    state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
 
     state.lastActionMessage = buildReviewActionMessage(
       response.reviewStatus,
@@ -1248,7 +1288,6 @@ function clearActiveFilters() {
   state.reviewStatusFilter = "all";
   state.confidenceFilter = "all";
   state.tagFilter = "all";
-  state.reviewDraft = "";
   syncControlsFromState();
   syncUrl();
   render();
@@ -1275,7 +1314,7 @@ function syncUrl() {
 }
 
 function validateReviewAction(action) {
-  const validationError = getReviewActionValidationError(action, state.reviewDraft);
+  const validationError = getReviewActionValidationError(action, getSelectedReviewDraft());
   if (!validationError) {
     return true;
   }
@@ -1293,6 +1332,20 @@ function syncControlsFromState() {
   if ([...elements.tagFilter.options].some((option) => option.value === state.tagFilter)) {
     elements.tagFilter.value = state.tagFilter;
   }
+}
+
+function getSelectedReviewDraft() {
+  return getReviewDraft(state.reviewDrafts, state.selectedEventId);
+}
+
+function renderTimelineDraftState() {
+  if (!state.data) {
+    return;
+  }
+
+  const currentScrollTop = elements.timelineList.scrollTop;
+  renderTimeline();
+  elements.timelineList.scrollTop = currentScrollTop;
 }
 
 function formatReviewStatus(reviewStatus) {

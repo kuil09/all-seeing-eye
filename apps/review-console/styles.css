@@ -395,6 +395,13 @@ a {
   border-top: 1px solid rgba(22, 37, 49, 0.08);
 }
 
+.timeline-draft-summary {
+  background: rgba(191, 90, 43, 0.06);
+  border-radius: 16px;
+  padding: 0.85rem;
+  border-top: 0;
+}
+
 .timeline-entity-summary,
 .timeline-confidence-summary {
   display: grid;
