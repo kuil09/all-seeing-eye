@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://all-seeing-eye.local/contracts/timeline-response.schema.json",
+  "title": "TimelineResponse",
+  "type": "object",
+  "required": [
+    "generatedAt",
+    "items",
+    "nextCursor"
+  ],
+  "properties": {
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nextCursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "eventId",
+          "headline",
+          "summary",
+          "eventTime",
+          "reviewStatus",
+          "confidence",
+          "sourceCount",
+          "claimCount",
+          "entityCount"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "pending_review",
+              "approved",
+              "edited",
+              "rejected"
+            ]
+          },
+          "confidence": {
+            "type": "object",
+            "required": [
+              "label",
+              "score"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "sourceCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "claimCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "entityCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "primaryLocation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

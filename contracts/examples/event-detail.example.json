@@ -1,0 +1,99 @@
+{
+  "event": {
+    "id": "evt_20260314_harbor_north_inspections",
+    "headline": "Inspection surge reported at Harbor North cargo terminal",
+    "summary": "Harbor North appears to have increased outbound cargo inspections after a security directive, with container delays reported by both a port bulletin and a shipping association update.",
+    "eventTime": "2026-03-14T03:30:00Z",
+    "reviewStatus": "pending_review",
+    "confidence": {
+      "label": "high",
+      "score": 0.88,
+      "rationale": "Two independent curated sources report matching inspection activity and delay symptoms."
+    },
+    "primaryLocation": "Harbor North cargo terminal"
+  },
+  "claims": [
+    {
+      "id": "clm_harbor_001",
+      "claimType": "activity_change",
+      "claimText": "Outbound cargo inspections increased after a security directive.",
+      "polarity": "asserted"
+    },
+    {
+      "id": "clm_harbor_002",
+      "claimType": "operational_impact",
+      "claimText": "Container processing delays reached three to five hours.",
+      "polarity": "asserted"
+    },
+    {
+      "id": "clm_harbor_003",
+      "claimType": "cause",
+      "claimText": "The port authority linked the delays to a short-term security review.",
+      "polarity": "uncertain"
+    }
+  ],
+  "entities": [
+    {
+      "id": "ent_harbor_north",
+      "canonicalName": "Harbor North cargo terminal",
+      "entityType": "facility",
+      "role": "location"
+    },
+    {
+      "id": "ent_port_authority",
+      "canonicalName": "Harbor North Port Authority",
+      "entityType": "organization",
+      "role": "operator"
+    },
+    {
+      "id": "ent_shipping_association",
+      "canonicalName": "Coastal Shipping Association",
+      "entityType": "organization",
+      "role": "observer"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_harbor_operator",
+      "sourceEntityId": "ent_port_authority",
+      "targetEntityId": "ent_harbor_north",
+      "relationshipType": "operates",
+      "confidence": "high"
+    },
+    {
+      "id": "rel_shipping_observer",
+      "sourceEntityId": "ent_shipping_association",
+      "targetEntityId": "ent_harbor_north",
+      "relationshipType": "monitors",
+      "confidence": "medium"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_20260314_001",
+      "feedKey": "regional-port-bulletin",
+      "title": "Harbor North security review extends outbound inspections",
+      "sourceUrl": "https://example.org/feeds/harbor-north/security-review",
+      "publishedAt": "2026-03-14T02:55:00Z",
+      "excerpt": "Outbound containers are subject to enhanced screening through the morning shift."
+    },
+    {
+      "id": "src_20260314_002",
+      "feedKey": "coastal-shipping-association",
+      "title": "Members report cargo delays at Harbor North terminal",
+      "sourceUrl": "https://example.org/feeds/csa/harbor-north-delays",
+      "publishedAt": "2026-03-14T03:40:00Z",
+      "excerpt": "Shippers reported three to five hour processing delays tied to elevated inspection activity."
+    }
+  ],
+  "reviewActions": [
+    {
+      "id": "rev_evt_harbor_001",
+      "action": "edit",
+      "actorType": "system",
+      "actorName": "bootstrap-fixture",
+      "createdAt": "2026-03-18T09:05:00Z",
+      "notes": "Initial synthesized headline shortened for timeline readability."
+    }
+  ]
+}

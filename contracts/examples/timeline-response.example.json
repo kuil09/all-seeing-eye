@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-03-18T09:00:00Z",
+  "nextCursor": null,
+  "items": [
+    {
+      "eventId": "evt_20260314_harbor_north_inspections",
+      "headline": "Inspection surge reported at Harbor North cargo terminal",
+      "summary": "Two curated sources indicate that Harbor North increased outbound cargo inspections after a security directive, causing shipment delays.",
+      "eventTime": "2026-03-14T03:30:00Z",
+      "reviewStatus": "pending_review",
+      "confidence": {
+        "label": "high",
+        "score": 0.88
+      },
+      "sourceCount": 2,
+      "claimCount": 3,
+      "entityCount": 3,
+      "primaryLocation": "Harbor North cargo terminal",
+      "tags": [
+        "logistics",
+        "inspection"
+      ]
+    },
+    {
+      "eventId": "evt_20260314_substation_outage",
+      "headline": "Storm-related outage affects East Grid substation 7",
+      "summary": "A local utility bulletin and a weather operations feed both point to a temporary outage at East Grid substation 7 with restoration underway.",
+      "eventTime": "2026-03-14T06:10:00Z",
+      "reviewStatus": "pending_review",
+      "confidence": {
+        "label": "medium",
+        "score": 0.73
+      },
+      "sourceCount": 2,
+      "claimCount": 2,
+      "entityCount": 2,
+      "primaryLocation": "East Grid substation 7",
+      "tags": [
+        "infrastructure",
+        "weather"
+      ]
+    }
+  ]
+}

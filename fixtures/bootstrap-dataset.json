@@ -1,0 +1,176 @@
+{
+  "feeds": [
+    {
+      "feedKey": "regional-port-bulletin",
+      "url": "https://example.org/feeds/harbor-north.xml",
+      "category": "logistics"
+    },
+    {
+      "feedKey": "coastal-shipping-association",
+      "url": "https://example.org/feeds/shipping-alerts.xml",
+      "category": "logistics"
+    },
+    {
+      "feedKey": "east-grid-operations",
+      "url": "https://example.org/feeds/east-grid.xml",
+      "category": "infrastructure"
+    },
+    {
+      "feedKey": "regional-weather-ops",
+      "url": "https://example.org/feeds/weather-ops.xml",
+      "category": "weather"
+    }
+  ],
+  "sourceRecords": [
+    {
+      "id": "src_20260314_001",
+      "feedKey": "regional-port-bulletin",
+      "sourceUrl": "https://example.org/feeds/harbor-north/security-review",
+      "title": "Harbor North security review extends outbound inspections",
+      "publishedAt": "2026-03-14T02:55:00Z",
+      "canonicalHash": "0d8bc1e31c1f9d79c4b8f7f4f1f6c414",
+      "normalizedText": "Harbor North reported enhanced outbound container screening through the morning shift because of a short-term security review."
+    },
+    {
+      "id": "src_20260314_002",
+      "feedKey": "coastal-shipping-association",
+      "sourceUrl": "https://example.org/feeds/csa/harbor-north-delays",
+      "title": "Members report cargo delays at Harbor North terminal",
+      "publishedAt": "2026-03-14T03:40:00Z",
+      "canonicalHash": "2c5c923eb21d8b50fb7402d0eb86459b",
+      "normalizedText": "Association members reported three to five hour outbound processing delays at Harbor North while inspections remained elevated."
+    },
+    {
+      "id": "src_20260314_003",
+      "feedKey": "east-grid-operations",
+      "sourceUrl": "https://example.org/feeds/east-grid/substation-7-outage",
+      "title": "East Grid confirms outage at substation 7",
+      "publishedAt": "2026-03-14T06:05:00Z",
+      "canonicalHash": "6a12b8a1307c9f4629201170fd1bcc6c",
+      "normalizedText": "East Grid reported a storm-related outage at substation 7 and said restoration crews were on site."
+    },
+    {
+      "id": "src_20260314_004",
+      "feedKey": "regional-weather-ops",
+      "sourceUrl": "https://example.org/feeds/weather-ops/east-grid-storm",
+      "title": "Storm cell crosses East Grid industrial corridor",
+      "publishedAt": "2026-03-14T06:12:00Z",
+      "canonicalHash": "1f6a79d0a9e55bd5f45ce9235586f87a",
+      "normalizedText": "A severe storm cell crossed the East Grid industrial corridor shortly before the substation 7 outage notice."
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_20260314_harbor_north_inspections",
+      "headline": "Inspection surge reported at Harbor North cargo terminal",
+      "summary": "Two curated sources point to increased cargo inspections at Harbor North after a security directive, with measurable shipment delays.",
+      "eventTime": "2026-03-14T03:30:00Z",
+      "reviewStatus": "pending_review"
+    },
+    {
+      "id": "evt_20260314_substation_outage",
+      "headline": "Storm-related outage affects East Grid substation 7",
+      "summary": "A utility bulletin and weather operations feed both indicate a temporary outage at East Grid substation 7.",
+      "eventTime": "2026-03-14T06:10:00Z",
+      "reviewStatus": "pending_review"
+    }
+  ],
+  "claims": [
+    {
+      "id": "clm_harbor_001",
+      "eventId": "evt_20260314_harbor_north_inspections",
+      "claimType": "activity_change",
+      "claimText": "Outbound cargo inspections increased after a security directive.",
+      "polarity": "asserted"
+    },
+    {
+      "id": "clm_harbor_002",
+      "eventId": "evt_20260314_harbor_north_inspections",
+      "claimType": "operational_impact",
+      "claimText": "Container processing delays reached three to five hours.",
+      "polarity": "asserted"
+    },
+    {
+      "id": "clm_grid_001",
+      "eventId": "evt_20260314_substation_outage",
+      "claimType": "service_impact",
+      "claimText": "Substation 7 experienced a temporary outage during a storm passage.",
+      "polarity": "asserted"
+    },
+    {
+      "id": "clm_grid_002",
+      "eventId": "evt_20260314_substation_outage",
+      "claimType": "response",
+      "claimText": "Restoration crews were already on site when the outage bulletin was published.",
+      "polarity": "asserted"
+    }
+  ],
+  "entities": [
+    {
+      "id": "ent_harbor_north",
+      "canonicalName": "Harbor North cargo terminal",
+      "entityType": "facility"
+    },
+    {
+      "id": "ent_port_authority",
+      "canonicalName": "Harbor North Port Authority",
+      "entityType": "organization"
+    },
+    {
+      "id": "ent_shipping_association",
+      "canonicalName": "Coastal Shipping Association",
+      "entityType": "organization"
+    },
+    {
+      "id": "ent_substation_7",
+      "canonicalName": "East Grid substation 7",
+      "entityType": "facility"
+    },
+    {
+      "id": "ent_east_grid",
+      "canonicalName": "East Grid",
+      "entityType": "organization"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_harbor_operator",
+      "sourceEntityId": "ent_port_authority",
+      "targetEntityId": "ent_harbor_north",
+      "relationshipType": "operates",
+      "confidence": "high"
+    },
+    {
+      "id": "rel_shipping_observer",
+      "sourceEntityId": "ent_shipping_association",
+      "targetEntityId": "ent_harbor_north",
+      "relationshipType": "monitors",
+      "confidence": "medium"
+    },
+    {
+      "id": "rel_grid_operator",
+      "sourceEntityId": "ent_east_grid",
+      "targetEntityId": "ent_substation_7",
+      "relationshipType": "operates",
+      "confidence": "high"
+    }
+  ],
+  "confidenceAssessments": [
+    {
+      "id": "conf_evt_harbor_001",
+      "subjectType": "event",
+      "subjectId": "evt_20260314_harbor_north_inspections",
+      "score": 0.88,
+      "label": "high",
+      "rationale": "Two curated logistics feeds independently reported the same operational change."
+    },
+    {
+      "id": "conf_evt_grid_001",
+      "subjectType": "event",
+      "subjectId": "evt_20260314_substation_outage",
+      "score": 0.73,
+      "label": "medium",
+      "rationale": "The utility bulletin is direct, but the causal storm link is still inferred from adjacent reporting."
+    }
+  ]
+}

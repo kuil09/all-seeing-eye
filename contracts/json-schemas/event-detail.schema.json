@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://all-seeing-eye.local/contracts/event-detail.schema.json",
+  "title": "EventDetailResponse",
+  "type": "object",
+  "required": [
+    "event",
+    "claims",
+    "entities",
+    "relationships",
+    "sources",
+    "reviewActions"
+  ],
+  "properties": {
+    "event": {
+      "type": "object",
+      "required": [
+        "id",
+        "headline",
+        "summary",
+        "eventTime",
+        "reviewStatus",
+        "confidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "headline": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "eventTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reviewStatus": {
+          "type": "string",
+          "enum": [
+            "pending_review",
+            "approved",
+            "edited",
+            "rejected"
+          ]
+        },
+        "confidence": {
+          "type": "object",
+          "required": [
+            "label",
+            "score",
+            "rationale"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "primaryLocation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "claimType",
+          "claimText",
+          "polarity"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "claimType": {
+            "type": "string"
+          },
+          "claimText": {
+            "type": "string"
+          },
+          "polarity": {
+            "type": "string",
+            "enum": [
+              "asserted",
+              "disputed",
+              "uncertain"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "canonicalName",
+          "entityType",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "canonicalName": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sourceEntityId",
+          "targetEntityId",
+          "relationshipType",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
+          "targetEntityId": {
+            "type": "string"
+          },
+          "relationshipType": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "feedKey",
+          "title",
+          "sourceUrl",
+          "publishedAt",
+          "excerpt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "feedKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "excerpt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reviewActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "actorType",
+          "actorName",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "edit",
+              "reject"
+            ]
+          },
+          "actorType": {
+            "type": "string",
+            "enum": [
+              "analyst",
+              "system"
+            ]
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
