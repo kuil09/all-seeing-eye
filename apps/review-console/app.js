@@ -33,6 +33,12 @@ import {
   buildReviewNoteSuggestions
 } from "./review-note-suggestions.mjs";
 import {
+  appendRecentReviewActivity,
+  pruneRecentReviewActivity,
+  readRecentReviewActivity,
+  serializeRecentReviewActivity
+} from "./recent-review-activity.mjs";
+import {
   deleteSavedView,
   findMatchingSavedView,
   normalizeSavedViewLabel,
@@ -73,6 +79,7 @@ import {
 const initialUiState = createInitialUiState(window.location.search);
 const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
 const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
+const REVIEW_ACTIVITY_STORAGE_KEY = "all-seeing-eye.review-console.recent-activity.v1";
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -86,6 +93,7 @@ const state = {
   data: null,
   selectedEventId: initialUiState.selectedEventId,
   reviewDrafts: loadReviewDrafts(),
+  recentReviewActivity: loadRecentReviewActivity(),
   savedViews: loadSavedViews(),
   savedViewName: "",
   loadError: "",
@@ -109,6 +117,7 @@ const elements = {
   generatedAt: document.querySelector("#generated-at"),
   historyFilter: document.querySelector("#history-filter"),
   pendingCount: document.querySelector("#pending-count"),
+  recentReviewActivity: document.querySelector("#recent-review-activity"),
   saveCurrentView: document.querySelector("#save-current-view"),
   savedViewList: document.querySelector("#saved-view-list"),
   savedViewName: document.querySelector("#saved-view-name"),
@@ -228,6 +237,18 @@ function bindEvents() {
       return;
     }
 
+    const reviewActivityButton = event.target.closest("[data-review-activity-event-id]");
+    if (reviewActivityButton) {
+      const eventId = reviewActivityButton.getAttribute("data-review-activity-event-id");
+      const reviewActivityEntry = state.recentReviewActivity.find(
+        (entry) => entry.eventId === eventId
+      );
+      if (reviewActivityEntry) {
+        applyRecentReviewActivity(reviewActivityEntry);
+      }
+      return;
+    }
+
     const quickStatusButton = event.target.closest("[data-quick-status]");
     if (quickStatusButton) {
       const nextStatusFilter = quickStatusButton.getAttribute("data-quick-status");
@@ -296,7 +317,12 @@ async function refreshData(options = {}) {
       state.reviewDrafts,
       state.data.timeline.map((item) => item.eventId)
     );
+    state.recentReviewActivity = pruneRecentReviewActivity(
+      state.recentReviewActivity,
+      state.data.timeline.map((item) => item.eventId)
+    );
     persistReviewDrafts();
+    persistRecentReviewActivity();
     state.selectedEventId = resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
     syncTagFilter(state.data.timeline);
   } catch (error) {
@@ -450,6 +476,7 @@ function render() {
   renderToggles();
   renderSummary();
   renderSavedViews();
+  renderRecentReviewActivity();
   renderTimeline();
   renderDetail();
 }
@@ -800,6 +827,23 @@ function renderSavedViews() {
   if (activeSavedView) {
     elements.deleteActiveView.textContent = `Delete ${activeSavedView.label}`;
   }
+}
+
+function renderRecentReviewActivity() {
+  if (!state.recentReviewActivity.length) {
+    elements.recentReviewActivity.innerHTML =
+      '<p class="saved-view-empty">No local review actions yet. Record one to pin a quick reopen path here.</p>';
+    return;
+  }
+
+  elements.recentReviewActivity.innerHTML = state.recentReviewActivity
+    .map((entry) =>
+      renderRecentReviewActivityButton({
+        ...entry,
+        isActive: entry.eventId === state.selectedEventId
+      })
+    )
+    .join("");
 }
 
 function renderEmptyState() {
@@ -1216,6 +1260,27 @@ function renderKeyboardShortcutHint(shortcut) {
   `;
 }
 
+function renderRecentReviewActivityButton(entry) {
+  return `
+    <button
+      type="button"
+      class="recent-activity-card${entry.isActive ? " is-active" : ""}"
+      data-review-activity-event-id="${escapeAttribute(entry.eventId)}"
+    >
+      <div class="recent-activity-header">
+        <span class="pill" data-status="${escapeAttribute(entry.reviewStatus)}">${escapeHtml(
+          formatReviewStatus(entry.reviewStatus)
+        )}</span>
+        <span class="meta-copy">${escapeHtml(formatDateTime(entry.createdAt))}</span>
+      </div>
+      <strong>${escapeHtml(entry.headline)}</strong>
+      <p class="recent-activity-copy">
+        Reopen this event with status, history, and draft filters relaxed.
+      </p>
+    </button>
+  `;
+}
+
 function handleKeyboardShortcut(event) {
   const shortcut = resolveKeyboardShortcut(event);
   if (!shortcut) {
@@ -1312,6 +1377,13 @@ function applyLocalReviewAction(action) {
   ];
   state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
   persistReviewDrafts();
+  recordRecentReviewActivity({
+    eventId: currentEventId,
+    headline: detail.event.headline,
+    action,
+    reviewStatus: nextStatus,
+    createdAt: detail.reviewActions[0].createdAt
+  });
 
   if (nextPendingEventId) {
     state.selectedEventId = nextPendingEventId;
@@ -1356,6 +1428,13 @@ async function submitPersistedReviewAction(action) {
     const headline = currentDetail?.event?.headline ?? state.selectedEventId;
     state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
     persistReviewDrafts();
+    recordRecentReviewActivity({
+      eventId: currentEventId,
+      headline,
+      action,
+      reviewStatus: response.reviewStatus ?? mapActionToStatus(action),
+      createdAt: response.reviewActions?.[0]?.createdAt ?? new Date().toISOString()
+    });
 
     state.lastActionMessage = buildReviewActionMessage(
       response.reviewStatus,
@@ -1649,6 +1728,24 @@ function clearActiveFilters() {
   render();
 }
 
+function applyRecentReviewActivity(reviewActivityEntry) {
+  if (!reviewActivityEntry) {
+    return;
+  }
+
+  state.searchQuery = reviewActivityEntry.reopenFilters.searchQuery;
+  state.reviewStatusFilter = reviewActivityEntry.reopenFilters.reviewStatusFilter;
+  state.confidenceFilter = reviewActivityEntry.reopenFilters.confidenceFilter;
+  state.historyFilter = reviewActivityEntry.reopenFilters.historyFilter;
+  state.tagFilter = reviewActivityEntry.reopenFilters.tagFilter;
+  state.draftFilter = reviewActivityEntry.reopenFilters.draftFilter;
+  state.demoMode = DEMO_NORMAL;
+  state.selectedEventId = reviewActivityEntry.eventId;
+  syncControlsFromState();
+  syncUrl();
+  render();
+}
+
 function saveCurrentView() {
   const savedViewLabel = normalizeSavedViewLabel(state.savedViewName);
   if (!savedViewLabel || !getCurrentFilterSummary().hasActiveFilters) {
@@ -1783,6 +1880,23 @@ function getActiveSavedView() {
   return findMatchingSavedView(state.savedViews, getCurrentFilterState());
 }
 
+function recordRecentReviewActivity(reviewActivityEntry) {
+  state.recentReviewActivity = appendRecentReviewActivity(state.recentReviewActivity, {
+    ...reviewActivityEntry,
+    reopenFilters: buildRecentReviewFilters()
+  });
+  persistRecentReviewActivity();
+}
+
+function buildRecentReviewFilters() {
+  return {
+    ...getCurrentFilterState(),
+    reviewStatusFilter: "all",
+    historyFilter: HISTORY_FILTER_ALL,
+    draftFilter: DRAFT_FILTER_ALL
+  };
+}
+
 function loadSavedViews() {
   try {
     return readSavedViews(window.localStorage.getItem(SAVED_VIEWS_STORAGE_KEY));
@@ -1815,6 +1929,25 @@ function persistReviewDrafts() {
     window.localStorage.setItem(
       REVIEW_DRAFT_STORAGE_KEY,
       serializeReviewDrafts(state.reviewDrafts)
+    );
+  } catch {
+    // Ignore storage write failures so the console remains usable.
+  }
+}
+
+function loadRecentReviewActivity() {
+  try {
+    return readRecentReviewActivity(window.localStorage.getItem(REVIEW_ACTIVITY_STORAGE_KEY));
+  } catch {
+    return [];
+  }
+}
+
+function persistRecentReviewActivity() {
+  try {
+    window.localStorage.setItem(
+      REVIEW_ACTIVITY_STORAGE_KEY,
+      serializeRecentReviewActivity(state.recentReviewActivity)
     );
   } catch {
     // Ignore storage write failures so the console remains usable.

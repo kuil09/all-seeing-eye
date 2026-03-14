@@ -261,6 +261,64 @@ a {
   color: var(--muted);
 }
 
+.recent-activity-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
+.recent-activity-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.recent-activity-card {
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid rgba(22, 37, 49, 0.1);
+  border-radius: 18px;
+  padding: 0.9rem 0.95rem;
+  background: rgba(255, 251, 247, 0.82);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.recent-activity-card:hover,
+.recent-activity-card:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(22, 37, 49, 0.18);
+  box-shadow: 0 14px 24px rgba(22, 37, 49, 0.08);
+}
+
+.recent-activity-card.is-active {
+  border-color: rgba(191, 90, 43, 0.45);
+  box-shadow: 0 16px 28px rgba(191, 90, 43, 0.12);
+}
+
+.recent-activity-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recent-activity-card strong {
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.recent-activity-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .filter-summary-header {
   display: flex;
   gap: 0.85rem;
@@ -814,6 +872,7 @@ a {
   .panel-title-row,
   .filter-summary-header,
   .saved-view-header,
+  .recent-activity-header,
   .queue-distribution-header,
   .detail-grid,
   .detail-meta,
