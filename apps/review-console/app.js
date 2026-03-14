@@ -16,6 +16,7 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
+import { matchesTimelineSearchQuery } from "./timeline-search.mjs";
 import {
   buildUrlSearch,
   createInitialUiState,
@@ -235,11 +236,8 @@ function getFilteredTimeline() {
   }
 
   return state.data.timeline.filter((item) => {
-    const matchesQuery =
-      !state.searchQuery ||
-      [item.headline, item.summary, item.primaryLocation, ...(item.tags ?? [])]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(state.searchQuery));
+    const detail = state.data.details[item.eventId];
+    const matchesQuery = matchesTimelineSearchQuery(state.searchQuery, item, detail);
 
     const matchesStatus =
       state.reviewStatusFilter === "all" || item.reviewStatus === state.reviewStatusFilter;

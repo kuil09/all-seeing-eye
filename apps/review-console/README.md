@@ -50,6 +50,7 @@ recorded without notes for quick triage.
 - Timeline-first analyst queue
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
+- Search matches timeline copy plus claim text, entity names and roles, source titles and feed keys, and recorded analyst notes
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
 - Supporting source cards show event-relative publish timing for faster provenance inspection
 - Timeline cards surface the latest review-history summary so analysts can triage prior edits without opening detail first
