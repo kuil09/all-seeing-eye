@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TIMELINE_SORT,
+  normalizeTimelineSort
+} from "./timeline-sort.mjs";
+
 export const SOURCE_FIXTURES = "fixtures";
 export const SOURCE_API = "api";
 export const DEMO_NORMAL = "normal";
@@ -60,11 +65,16 @@ export function createInitialUiState(search) {
     historyFilter: readEnum(params.get("history"), HISTORY_FILTERS, HISTORY_FILTER_ALL),
     tagFilter: readString(params.get("tag"), "all"),
     draftFilter: readEnum(params.get("drafts"), DRAFT_FILTERS, DRAFT_FILTER_ALL),
+    sortOrder: normalizeTimelineSort(params.get("sort")),
     selectedEventId: readString(params.get("eventId"), null)
   };
 }
 
-export function reconcileSelectedEventId(selectedEventId, timelineItems) {
+export function reconcileSelectedEventId(
+  selectedEventId,
+  timelineItems,
+  { preferPendingFallback = true } = {}
+) {
   if (!timelineItems.length) {
     return null;
   }
@@ -76,10 +86,14 @@ export function reconcileSelectedEventId(selectedEventId, timelineItems) {
     return selectedEventId;
   }
 
-  return (
-    timelineItems.find((item) => item.reviewStatus === PENDING_REVIEW)?.eventId ??
-    timelineItems[0].eventId
-  );
+  if (preferPendingFallback) {
+    return (
+      timelineItems.find((item) => item.reviewStatus === PENDING_REVIEW)?.eventId ??
+      timelineItems[0].eventId
+    );
+  }
+
+  return timelineItems[0].eventId;
 }
 
 export function buildUrlSearch(state) {
@@ -111,6 +125,10 @@ export function buildUrlSearch(state) {
 
   if (state.draftFilter !== DRAFT_FILTER_ALL) {
     params.set("drafts", state.draftFilter);
+  }
+
+  if (state.sortOrder !== DEFAULT_TIMELINE_SORT) {
+    params.set("sort", state.sortOrder);
   }
 
   if (state.sourceMode !== SOURCE_API) {

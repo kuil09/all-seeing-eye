@@ -5,6 +5,10 @@ import {
   HISTORY_FILTER_REVIEWED,
   HISTORY_FILTER_UNREVIEWED
 } from "./view-state.mjs";
+import {
+  DEFAULT_TIMELINE_SORT,
+  normalizeTimelineSort
+} from "./timeline-sort.mjs";
 
 const MAX_SAVED_VIEWS = 8;
 const MAX_LABEL_LENGTH = 40;
@@ -50,7 +54,8 @@ export function createSavedViewFilters(filters = {}) {
     confidenceFilter: readEnum(filters.confidenceFilter, CONFIDENCE_FILTERS, "all"),
     historyFilter: readEnum(filters.historyFilter, HISTORY_FILTERS, HISTORY_FILTER_ALL),
     tagFilter: normalizeWhitespace(filters.tagFilter) || "all",
-    draftFilter: readEnum(filters.draftFilter, DRAFT_FILTERS, DRAFT_FILTER_ALL)
+    draftFilter: readEnum(filters.draftFilter, DRAFT_FILTERS, DRAFT_FILTER_ALL),
+    sortOrder: normalizeTimelineSort(filters.sortOrder ?? DEFAULT_TIMELINE_SORT)
   };
 }
 
@@ -138,6 +143,7 @@ function areSavedViewFiltersEqual(left, right) {
     left.confidenceFilter === right.confidenceFilter &&
     left.historyFilter === right.historyFilter &&
     left.tagFilter === right.tagFilter &&
-    left.draftFilter === right.draftFilter
+    left.draftFilter === right.draftFilter &&
+    left.sortOrder === right.sortOrder
   );
 }

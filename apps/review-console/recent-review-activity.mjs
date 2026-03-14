@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TIMELINE_SORT,
+  normalizeTimelineSort
+} from "./timeline-sort.mjs";
+
 export const MAX_RECENT_REVIEW_ACTIVITY = 6;
 
 const DEFAULT_REOPEN_FILTERS = {
@@ -6,7 +11,8 @@ const DEFAULT_REOPEN_FILTERS = {
   confidenceFilter: "all",
   historyFilter: "all",
   tagFilter: "all",
-  draftFilter: "all"
+  draftFilter: "all",
+  sortOrder: DEFAULT_TIMELINE_SORT
 };
 
 export function appendRecentReviewActivity(activity, entry) {
@@ -123,7 +129,8 @@ function normalizeReopenFilters(reopenFilters) {
       DEFAULT_REOPEN_FILTERS.tagFilter,
     draftFilter:
       String(reopenFilters.draftFilter ?? DEFAULT_REOPEN_FILTERS.draftFilter).trim() ||
-      DEFAULT_REOPEN_FILTERS.draftFilter
+      DEFAULT_REOPEN_FILTERS.draftFilter,
+    sortOrder: normalizeTimelineSort(reopenFilters.sortOrder)
   };
 }
 

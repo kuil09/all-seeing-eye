@@ -16,7 +16,6 @@ test("buildFilterSummary returns active filter labels for explicit controls", ()
     }),
     {
       activeFilters: [
-        "Saved view: Harbor follow-up",
         "Search: harbor north",
         "Status: Pending review",
         "Confidence: Medium confidence",
@@ -24,6 +23,8 @@ test("buildFilterSummary returns active filter labels for explicit controls", ()
         "Tag: ports"
       ],
       hasActiveFilters: true,
+      savedViewLabel: "Saved view: Harbor follow-up",
+      sortLabel: null,
       demoModeLabel: null
     }
   );
@@ -41,6 +42,8 @@ test("buildFilterSummary keeps filter state empty when only demo override is act
     {
       activeFilters: [],
       hasActiveFilters: false,
+      savedViewLabel: null,
+      sortLabel: null,
       demoModeLabel: "Empty demo"
     }
   );
@@ -59,6 +62,8 @@ test("buildFilterSummary includes saved draft filters when attention lanes narro
     {
       activeFilters: ["Drafts: Saved notes"],
       hasActiveFilters: true,
+      savedViewLabel: null,
+      sortLabel: null,
       demoModeLabel: null
     }
   );
@@ -76,8 +81,10 @@ test("buildFilterSummary can surface the matching saved view label", () => {
       demoMode: "normal"
     }),
     {
-      activeFilters: ["Saved view: Needs edits", "Status: Edited"],
+      activeFilters: ["Status: Edited"],
       hasActiveFilters: true,
+      savedViewLabel: "Saved view: Needs edits",
+      sortLabel: null,
       demoModeLabel: null
     }
   );
@@ -97,6 +104,30 @@ test("buildFilterSummary includes review history filters when analysts reopen pr
     {
       activeFilters: ["History: No review history"],
       hasActiveFilters: true,
+      savedViewLabel: null,
+      sortLabel: null,
+      demoModeLabel: null
+    }
+  );
+});
+
+test("buildFilterSummary can surface a non-default queue sort without counting it as a filter", () => {
+  assert.deepEqual(
+    buildFilterSummary({
+      searchQuery: "",
+      reviewStatusFilter: "all",
+      confidenceFilter: "all",
+      historyFilter: "all",
+      tagFilter: "all",
+      draftFilter: "all",
+      sortOrder: "lowest_confidence",
+      demoMode: "normal"
+    }),
+    {
+      activeFilters: [],
+      hasActiveFilters: false,
+      savedViewLabel: null,
+      sortLabel: "Sort: Lowest confidence first",
       demoModeLabel: null
     }
   );

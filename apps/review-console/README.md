@@ -48,6 +48,7 @@ recorded without notes for quick triage.
 ## Current behavior
 
 - Timeline-first analyst queue
+- The queue now defaults to a pending-first sort and can switch to newest, oldest, lowest-confidence, or most-sources ordering without leaving the current queue context
 - Filter summary shows how many events remain in view and exposes one-click reset paths when search or review filters narrow the queue too far
 - Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
 - Filter controls now include review-history state so previously reviewed or untouched events can be isolated without relying on status alone
@@ -74,8 +75,8 @@ recorded without notes for quick triage.
 - Fixture-mode review actions kept browser-local as a fallback
 - Edit and reject actions require analyst notes before the console records them
 - Draft notes remain local to the browser until the corresponding review action is recorded
-- Saved views remain local to the browser and capture search, review-status, review-history, confidence, tag, and saved-draft filters
-- Recent activity remains local to the browser and captures the last reviewed event, the latest analyst note, and the relaxed reopen filters needed to inspect it again quickly
+- Saved views remain local to the browser and capture search, review-status, review-history, confidence, tag, saved-draft filters, and queue sort
+- Recent activity remains local to the browser and captures the last reviewed event, the latest analyst note, and the relaxed reopen filters plus queue sort needed to inspect it again quickly
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

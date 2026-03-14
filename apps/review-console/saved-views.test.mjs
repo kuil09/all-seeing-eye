@@ -11,6 +11,7 @@ import {
   serializeSavedViews,
   upsertSavedView
 } from "./saved-views.mjs";
+import { SORT_LOWEST_CONFIDENCE } from "./timeline-sort.mjs";
 
 test("normalizeSavedViewLabel trims and collapses whitespace", () => {
   assert.equal(normalizeSavedViewLabel("  Ports   needing edits  "), "Ports needing edits");
@@ -24,7 +25,8 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       confidenceFilter: "high",
       historyFilter: "reviewed",
       tagFilter: "ports",
-      draftFilter: "saved"
+      draftFilter: "saved",
+      sortOrder: "most_sources"
     }),
     " pending   HIGH ",
     {
@@ -33,7 +35,8 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       confidenceFilter: "medium",
       historyFilter: "unreviewed",
       tagFilter: "infrastructure",
-      draftFilter: "all"
+      draftFilter: "all",
+      sortOrder: SORT_LOWEST_CONFIDENCE
     }
   );
 
@@ -47,7 +50,8 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
         confidenceFilter: "medium",
         historyFilter: "unreviewed",
         tagFilter: "infrastructure",
-        draftFilter: "all"
+        draftFilter: "all",
+        sortOrder: SORT_LOWEST_CONFIDENCE
       }
     }
   ]);
@@ -64,7 +68,8 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
         confidenceFilter: "all",
         historyFilter: "reviewed",
         tagFilter: "all",
-        draftFilter: "saved"
+        draftFilter: "saved",
+        sortOrder: "pending_first"
       })
     }
   ];
@@ -76,7 +81,8 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       confidenceFilter: "all",
       historyFilter: "reviewed",
       tagFilter: "all",
-      draftFilter: "saved"
+      draftFilter: "saved",
+      sortOrder: "pending_first"
     }),
     savedViews[0]
   );
@@ -87,7 +93,8 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       confidenceFilter: "all",
       historyFilter: "reviewed",
       tagFilter: "all",
-      draftFilter: "saved"
+      draftFilter: "saved",
+      sortOrder: "pending_first"
     }),
     null
   );
@@ -117,7 +124,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           confidenceFilter: "low",
           historyFilter: "reviewed",
           tagFilter: "ports",
-          draftFilter: "all"
+          draftFilter: "all",
+          sortOrder: SORT_LOWEST_CONFIDENCE
         }
       },
       {
@@ -138,7 +146,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
         confidenceFilter: "low",
         historyFilter: "reviewed",
         tagFilter: "ports",
-        draftFilter: "all"
+        draftFilter: "all",
+        sortOrder: SORT_LOWEST_CONFIDENCE
       }
     }
   ]);
@@ -155,7 +164,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           confidenceFilter: "low",
           historyFilter: "reviewed",
           tagFilter: "ports",
-          draftFilter: "all"
+          draftFilter: "all",
+          sortOrder: SORT_LOWEST_CONFIDENCE
         }
       }
     ])

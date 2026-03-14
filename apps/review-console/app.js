@@ -60,6 +60,11 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
+import {
+  DEFAULT_TIMELINE_SORT,
+  SORT_PENDING_FIRST,
+  sortTimelineItems
+} from "./timeline-sort.mjs";
 import { buildTimelineEntitySummary } from "./timeline-entity-summary.mjs";
 import { matchesTimelineSearchQuery } from "./timeline-search.mjs";
 import {
@@ -87,6 +92,7 @@ const state = {
   searchQuery: initialUiState.searchQuery,
   reviewStatusFilter: initialUiState.reviewStatusFilter,
   confidenceFilter: initialUiState.confidenceFilter,
+  sortOrder: initialUiState.sortOrder,
   historyFilter: initialUiState.historyFilter,
   tagFilter: initialUiState.tagFilter,
   draftFilter: initialUiState.draftFilter,
@@ -122,6 +128,7 @@ const elements = {
   savedViewList: document.querySelector("#saved-view-list"),
   savedViewName: document.querySelector("#saved-view-name"),
   searchInput: document.querySelector("#search-input"),
+  sortOrder: document.querySelector("#sort-order"),
   sourceButtons: document.querySelectorAll("[data-source-mode]"),
   statusFilter: document.querySelector("#status-filter"),
   tagFilter: document.querySelector("#tag-filter"),
@@ -149,6 +156,12 @@ function bindEvents() {
 
   elements.confidenceFilter.addEventListener("change", (event) => {
     state.confidenceFilter = event.target.value;
+    syncUrl();
+    render();
+  });
+
+  elements.sortOrder.addEventListener("change", (event) => {
+    state.sortOrder = event.target.value;
     syncUrl();
     render();
   });
@@ -377,7 +390,10 @@ async function fetchJson(url, options) {
 }
 
 function resolveSelectedEventId(timelineItems, preferredSelectedEventId = state.selectedEventId) {
-  return reconcileSelectedEventId(preferredSelectedEventId, timelineItems);
+  const orderedTimeline = sortTimelineItems(timelineItems, state.sortOrder);
+  return reconcileSelectedEventId(preferredSelectedEventId, orderedTimeline, {
+    preferPendingFallback: state.sortOrder === SORT_PENDING_FIRST
+  });
 }
 
 function syncTagFilter(timelineItems) {
@@ -433,7 +449,7 @@ function getTimelineSlice({
     return [];
   }
 
-  return state.data.timeline.filter((item) => {
+  const filteredTimeline = state.data.timeline.filter((item) => {
     const detail = state.data.details[item.eventId];
     const matchesQuery =
       !includeSearchQuery || matchesTimelineSearchQuery(filters.searchQuery, item, detail);
@@ -470,6 +486,8 @@ function getTimelineSlice({
       matchesDraft
     );
   });
+
+  return sortTimelineItems(filteredTimeline, filters.sortOrder ?? state.sortOrder);
 }
 
 function render() {
@@ -532,7 +550,10 @@ function renderTimeline() {
 
   const nextSelectedEventId = reconcileSelectedEventId(
     state.selectedEventId,
-    filteredTimeline
+    filteredTimeline,
+    {
+      preferPendingFallback: state.sortOrder === SORT_PENDING_FIRST
+    }
   );
   if (nextSelectedEventId !== state.selectedEventId) {
     state.selectedEventId = nextSelectedEventId;
@@ -815,7 +836,8 @@ function renderSavedViews() {
 
   const normalizedSavedViewLabel = normalizeSavedViewLabel(state.savedViewName);
   const canSaveCurrentView =
-    getCurrentFilterSummary().hasActiveFilters && Boolean(normalizedSavedViewLabel);
+    Boolean(normalizedSavedViewLabel) &&
+    (getCurrentFilterSummary().hasActiveFilters || state.sortOrder !== DEFAULT_TIMELINE_SORT);
 
   elements.savedViewName.value = state.savedViewName;
   elements.saveCurrentView.disabled = !canSaveCurrentView;
@@ -1533,6 +1555,7 @@ function getCurrentFilterSummary() {
     historyFilter: state.historyFilter,
     tagFilter: state.tagFilter,
     draftFilter: state.draftFilter,
+    sortOrder: state.sortOrder,
     demoMode: state.demoMode
   });
 }
@@ -1544,7 +1567,8 @@ function getCurrentFilterState() {
     confidenceFilter: state.confidenceFilter,
     historyFilter: state.historyFilter,
     tagFilter: state.tagFilter,
-    draftFilter: state.draftFilter
+    draftFilter: state.draftFilter,
+    sortOrder: state.sortOrder
   };
 }
 
@@ -1605,7 +1629,14 @@ function buildEmptyStateCopy(filterSummary, totalCount) {
 }
 
 function renderFilterChips(filterSummary) {
-  const labels = [...filterSummary.activeFilters];
+  const labels = [];
+  if (filterSummary.savedViewLabel) {
+    labels.push(filterSummary.savedViewLabel);
+  }
+  labels.push(...filterSummary.activeFilters);
+  if (filterSummary.sortLabel) {
+    labels.push(filterSummary.sortLabel);
+  }
   if (filterSummary.demoModeLabel) {
     labels.push(filterSummary.demoModeLabel);
   }
@@ -1754,6 +1785,7 @@ function applyRecentReviewActivity(reviewActivityEntry) {
   state.historyFilter = reviewActivityEntry.reopenFilters.historyFilter;
   state.tagFilter = reviewActivityEntry.reopenFilters.tagFilter;
   state.draftFilter = reviewActivityEntry.reopenFilters.draftFilter;
+  state.sortOrder = reviewActivityEntry.reopenFilters.sortOrder;
   state.demoMode = DEMO_NORMAL;
   state.selectedEventId = reviewActivityEntry.eventId;
   if (
@@ -1774,7 +1806,11 @@ function applyRecentReviewActivity(reviewActivityEntry) {
 
 function saveCurrentView() {
   const savedViewLabel = normalizeSavedViewLabel(state.savedViewName);
-  if (!savedViewLabel || !getCurrentFilterSummary().hasActiveFilters) {
+  const canSaveCurrentView =
+    Boolean(savedViewLabel) &&
+    (getCurrentFilterSummary().hasActiveFilters || state.sortOrder !== DEFAULT_TIMELINE_SORT);
+
+  if (!canSaveCurrentView) {
     renderSavedViews();
     return;
   }
@@ -1810,6 +1846,7 @@ function applySavedView(savedView) {
   state.historyFilter = savedView.filters.historyFilter;
   state.tagFilter = savedView.filters.tagFilter;
   state.draftFilter = savedView.filters.draftFilter;
+  state.sortOrder = savedView.filters.sortOrder;
   state.savedViewName = savedView.label;
   syncControlsFromState();
   syncUrl();
@@ -1851,6 +1888,7 @@ function syncControlsFromState() {
   elements.searchInput.value = state.searchQuery;
   elements.statusFilter.value = state.reviewStatusFilter;
   elements.confidenceFilter.value = state.confidenceFilter;
+  elements.sortOrder.value = state.sortOrder;
   elements.historyFilter.value = state.historyFilter;
   elements.savedViewName.value = state.savedViewName;
 

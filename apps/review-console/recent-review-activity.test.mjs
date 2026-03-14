@@ -8,6 +8,7 @@ import {
   readRecentReviewActivity,
   serializeRecentReviewActivity
 } from "./recent-review-activity.mjs";
+import { SORT_LOWEST_CONFIDENCE } from "./timeline-sort.mjs";
 
 function createActivityEntry(overrides = {}) {
   return {
@@ -23,7 +24,8 @@ function createActivityEntry(overrides = {}) {
       confidenceFilter: "high",
       historyFilter: "all",
       tagFilter: "shipping",
-      draftFilter: "all"
+      draftFilter: "all",
+      sortOrder: "most_sources"
     },
     ...overrides
   };
@@ -120,7 +122,8 @@ test("readRecentReviewActivity tolerates malformed payloads and normalizes filte
     confidenceFilter: "all",
     historyFilter: "reviewed",
     tagFilter: "all",
-    draftFilter: "all"
+    draftFilter: "all",
+    sortOrder: "pending_first"
   });
 });
 
@@ -143,4 +146,33 @@ test("serializeRecentReviewActivity preserves the normalized ordering", () => {
   const activity = JSON.parse(serialized);
   assert.deepEqual(activity.map((entry) => entry.eventId), ["evt_older", "evt_newer"]);
   assert.deepEqual(activity.map((entry) => entry.notes), ["Older note", "Newer note"]);
+  assert.deepEqual(activity.map((entry) => entry.reopenFilters.sortOrder), [
+    "most_sources",
+    "most_sources"
+  ]);
+});
+
+test("readRecentReviewActivity preserves or normalizes the saved sort order", () => {
+  const activity = readRecentReviewActivity(
+    JSON.stringify([
+      createActivityEntry({
+        eventId: "evt_3",
+        headline: "Third event",
+        reopenFilters: {
+          sortOrder: SORT_LOWEST_CONFIDENCE
+        }
+      }),
+      createActivityEntry({
+        eventId: "evt_4",
+        headline: "Fourth event",
+        createdAt: "2026-03-15T00:03:00.000Z",
+        reopenFilters: {
+          sortOrder: "bad-value"
+        }
+      })
+    ])
+  );
+
+  assert.equal(activity[0].reopenFilters.sortOrder, SORT_LOWEST_CONFIDENCE);
+  assert.equal(activity[1].reopenFilters.sortOrder, "pending_first");
 });

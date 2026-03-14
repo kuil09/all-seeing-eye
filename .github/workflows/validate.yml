@@ -57,6 +57,7 @@ jobs:
             apps/review-console/source-provenance-summary.test.mjs \
             apps/review-console/timeline-entity-summary.test.mjs \
             apps/review-console/timeline-search.test.mjs \
+            apps/review-console/timeline-sort.test.mjs \
             apps/review-console/view-state.test.mjs
 
       - name: Install Playwright and Chromium

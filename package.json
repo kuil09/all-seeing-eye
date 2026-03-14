@@ -26,6 +26,7 @@
     "review-console:provenance:test": "node --test ./apps/review-console/source-provenance-summary.test.mjs",
     "review-console:recent-activity:test": "node --test ./apps/review-console/recent-review-activity.test.mjs",
     "review-console:search:test": "node --test ./apps/review-console/timeline-search.test.mjs",
+    "review-console:sort:test": "node --test ./apps/review-console/timeline-sort.test.mjs",
     "review-console:saved-views:test": "node --test ./apps/review-console/saved-views.test.mjs",
     "review-console:state:test": "node --test ./apps/review-console/view-state.test.mjs",
     "review-console:smoke": "./scripts/smoke_review_console.sh",

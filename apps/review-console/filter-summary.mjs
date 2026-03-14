@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TIMELINE_SORT,
+  getTimelineSortLabel
+} from "./timeline-sort.mjs";
+
 const REVIEW_STATUS_LABELS = {
   pending_review: "Pending review",
   approved: "Approved",
@@ -34,13 +39,10 @@ export function buildFilterSummary({
   historyFilter = "all",
   tagFilter = "all",
   draftFilter = "all",
+  sortOrder = DEFAULT_TIMELINE_SORT,
   demoMode = "normal"
 }) {
   const activeFilters = [];
-
-  if (savedViewLabel) {
-    activeFilters.push(`Saved view: ${savedViewLabel}`);
-  }
 
   if (searchQuery) {
     activeFilters.push(`Search: ${searchQuery}`);
@@ -69,6 +71,11 @@ export function buildFilterSummary({
   return {
     activeFilters,
     hasActiveFilters: activeFilters.length > 0,
+    savedViewLabel: savedViewLabel ? `Saved view: ${savedViewLabel}` : null,
+    sortLabel:
+      sortOrder === DEFAULT_TIMELINE_SORT
+        ? null
+        : `Sort: ${getTimelineSortLabel(sortOrder)}`,
     demoModeLabel: demoMode === "normal" ? null : DEMO_MODE_LABELS[demoMode] ?? demoMode
   };
 }

@@ -8,10 +8,14 @@ import {
   SOURCE_FIXTURES,
   reconcileSelectedEventId
 } from "./view-state.mjs";
+import {
+  DEFAULT_TIMELINE_SORT,
+  SORT_LOWEST_CONFIDENCE
+} from "./timeline-sort.mjs";
 
 test("createInitialUiState restores non-default URL state", () => {
   const state = createInitialUiState(
-    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&history=reviewed&tag=ports&drafts=saved&source=fixtures&demo=empty"
+    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&history=reviewed&tag=ports&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
   );
 
   assert.deepEqual(state, {
@@ -22,6 +26,7 @@ test("createInitialUiState restores non-default URL state", () => {
     historyFilter: "reviewed",
     tagFilter: "ports",
     draftFilter: "saved",
+    sortOrder: SORT_LOWEST_CONFIDENCE,
     sourceMode: SOURCE_FIXTURES,
     demoMode: DEMO_EMPTY
   });
@@ -40,6 +45,7 @@ test("createInitialUiState falls back for invalid URL values", () => {
     historyFilter: "all",
     tagFilter: "all",
     draftFilter: "all",
+    sortOrder: DEFAULT_TIMELINE_SORT,
     sourceMode: "api",
     demoMode: "normal"
   });
@@ -54,13 +60,14 @@ test("buildUrlSearch omits defaults and keeps explicit filters", () => {
     historyFilter: "reviewed",
     tagFilter: "infrastructure",
     draftFilter: "saved",
+    sortOrder: SORT_LOWEST_CONFIDENCE,
     sourceMode: SOURCE_FIXTURES,
     demoMode: DEMO_EMPTY
   });
 
   assert.equal(
     search,
-    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&history=reviewed&tag=infrastructure&drafts=saved&source=fixtures&demo=empty"
+    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&history=reviewed&tag=infrastructure&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
   );
 });
 
@@ -83,4 +90,19 @@ test("reconcileSelectedEventId prefers the first pending row when selection is m
   ];
 
   assert.equal(reconcileSelectedEventId("evt_missing", timelineItems), "evt_2");
+});
+
+test("reconcileSelectedEventId can fall back to the first visible row for non-pending sorts", () => {
+  const timelineItems = [
+    { eventId: "evt_1", reviewStatus: "approved" },
+    { eventId: "evt_2", reviewStatus: "pending_review" },
+    { eventId: "evt_3", reviewStatus: "edited" }
+  ];
+
+  assert.equal(
+    reconcileSelectedEventId("evt_missing", timelineItems, {
+      preferPendingFallback: false
+    }),
+    "evt_1"
+  );
 });
