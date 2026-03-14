@@ -20,7 +20,7 @@ Optional environment variables:
 
 - `PORT` defaults to `4310`
 - `HOST` defaults to `127.0.0.1`
-- `REVIEW_ACTIONS_FILE` defaults to `data/review-actions.json`
+- `REVIEW_ACTIONS_FILE` defaults to `data/review-actions.json` for fixture mode only
 
 The current implementation serves timeline and event-detail payloads derived from
 `fixtures/bootstrap-dataset.json` so product work can switch from static
@@ -38,10 +38,14 @@ When SQLite mode is enabled, timeline responses derive tag chips from source
 feed categories plus the stored event type so the review-console tag filter
 stays useful against live local reads.
 
-`POST /api/events/:eventId/review-actions` remains local-only. It writes analyst
-review state into the overlay file so refreshed `GET /api/timeline` and
-`GET /api/events/:eventId` responses reflect approve, edit, and reject actions
-without changing the shared storage contract.
+`POST /api/events/:eventId/review-actions` remains local-only, but it now
+persists through the active backend:
+
+- fixture mode writes analyst review state into the overlay file so refreshed
+  `GET /api/timeline` and `GET /api/events/:eventId` responses stay aligned
+- SQLite mode writes review history into the shared `review_actions` table and
+  updates `events.review_status` so analyst decisions survive reseeds of the
+  demo pipeline
 
 `approve` accepts optional notes. `edit` and `reject` require analyst notes so
 the persisted review history keeps an explicit rationale.

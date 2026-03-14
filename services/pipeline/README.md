@@ -36,12 +36,12 @@ duplicating them.
 - deterministic event, entity, relationship, claim, and confidence persistence
 - provenance joins via `event_source_records` and `event_entities`
 - post-write data quality checks
+- analyst review status preserved across reseeds once review actions are recorded
 
 ## Prototype Limits
 
 - RSS ingest is still fixture-backed rather than live network polling
 - synthesis is deterministic and manifest-driven instead of model-driven
-- review action history is not persisted in storage yet
 
 The read contract remains in `services/read-api`, which can now be pointed at
 the seeded SQLite database with `READ_API_DB_PATH`.

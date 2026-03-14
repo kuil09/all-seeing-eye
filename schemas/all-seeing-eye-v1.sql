@@ -229,3 +229,19 @@ CREATE TABLE confidence_assessments (
 
 CREATE INDEX idx_confidence_target_created_at
     ON confidence_assessments (target_type, target_id, created_at DESC);
+
+-- Analyst review history persisted alongside the SQLite event baseline.
+CREATE TABLE review_actions (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL,
+    action TEXT NOT NULL
+        CHECK (action IN ('approve', 'edit', 'reject')),
+    actor_type TEXT NOT NULL,
+    actor_name TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_review_actions_event_created_at
+    ON review_actions (event_id, created_at DESC, id DESC);

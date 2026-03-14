@@ -7,10 +7,34 @@ import {
   mapStoragePolarityToContract,
   mapStorageReviewStatusToContract
 } from "../../packages/contracts/storage-mappings.mjs";
+import {
+  getReviewActionValidationError,
+  sanitizeReviewNotes
+} from "../../packages/contracts/review-action-policy.mjs";
 import { deriveTimelineTags } from "../../packages/contracts/timeline-tags.mjs";
 
 export function shouldUseSqliteBackend() {
   return Boolean(process.env.READ_API_DB_PATH);
+}
+
+function sanitizeActorName(actorName) {
+  return typeof actorName === "string" && actorName.trim() ? actorName.trim() : "Local analyst";
+}
+
+function sanitizeActorType(actorType) {
+  return typeof actorType === "string" && actorType.trim() ? actorType.trim() : "analyst";
+}
+
+function mapActionToStorageReviewStatus(action) {
+  if (action === "approve") {
+    return "approved";
+  }
+
+  if (action === "edit") {
+    return "needs_revision";
+  }
+
+  return "rejected";
 }
 
 export async function getTimelineResponse(repoRoot) {
@@ -262,6 +286,23 @@ export async function getEventDetail(repoRoot, eventId) {
       )
       .all({ event_id: eventId });
 
+    const reviewActions = database
+      .prepare(
+        `
+          SELECT
+            id,
+            action,
+            actor_type AS actorType,
+            actor_name AS actorName,
+            created_at AS createdAt,
+            notes
+          FROM review_actions
+          WHERE event_id = :event_id
+          ORDER BY created_at DESC, id DESC
+        `
+      )
+      .all({ event_id: eventId });
+
     return {
       event: {
         id: eventRow.id,
@@ -282,8 +323,131 @@ export async function getEventDetail(repoRoot, eventId) {
       entities,
       relationships,
       sources,
-      reviewActions: []
+      reviewActions
     };
+  });
+}
+
+export async function recordReviewAction(repoRoot, eventId, input) {
+  const action = input?.action;
+  const notes = sanitizeReviewNotes(input?.notes);
+  const validationError = getReviewActionValidationError(action, notes);
+  if (validationError) {
+    const error = new Error(validationError);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return withDatabase(repoRoot, (database) => {
+    const eventExists = database
+      .prepare(
+        `
+          SELECT id
+          FROM events
+          WHERE id = :event_id
+        `
+      )
+      .get({ event_id: eventId });
+
+    if (!eventExists) {
+      return null;
+    }
+
+    const createdAt = new Date().toISOString();
+    const reviewAction = {
+      id: `sqlite_${eventId}_${Date.now()}`,
+      action,
+      actorType: sanitizeActorType(input?.actorType),
+      actorName: sanitizeActorName(input?.actorName),
+      createdAt,
+      notes
+    };
+
+    database.exec("BEGIN");
+
+    try {
+      database
+        .prepare(
+          `
+            INSERT INTO review_actions (
+              id,
+              event_id,
+              action,
+              actor_type,
+              actor_name,
+              notes,
+              created_at
+            ) VALUES (
+              :id,
+              :event_id,
+              :action,
+              :actor_type,
+              :actor_name,
+              :notes,
+              :created_at
+            )
+          `
+        )
+        .run({
+          id: reviewAction.id,
+          event_id: eventId,
+          action: reviewAction.action,
+          actor_type: reviewAction.actorType,
+          actor_name: reviewAction.actorName,
+          notes: reviewAction.notes,
+          created_at: reviewAction.createdAt
+        });
+
+      database
+        .prepare(
+          `
+            UPDATE events
+            SET
+              review_status = :review_status,
+              analyst_notes = CASE
+                WHEN :notes IS NULL OR trim(:notes) = '' THEN analyst_notes
+                ELSE :notes
+              END,
+              updated_at = :updated_at
+            WHERE id = :event_id
+          `
+        )
+        .run({
+          review_status: mapActionToStorageReviewStatus(action),
+          notes,
+          updated_at: createdAt,
+          event_id: eventId
+        });
+
+      const reviewActions = database
+        .prepare(
+          `
+            SELECT
+              id,
+              action,
+              actor_type AS actorType,
+              actor_name AS actorName,
+              created_at AS createdAt,
+              notes
+            FROM review_actions
+            WHERE event_id = :event_id
+            ORDER BY created_at DESC, id DESC
+          `
+        )
+        .all({ event_id: eventId });
+
+      database.exec("COMMIT");
+
+      return {
+        reviewStatus: mapStorageReviewStatusToContract(
+          mapActionToStorageReviewStatus(reviewAction.action)
+        ),
+        reviewActions
+      };
+    } catch (error) {
+      database.exec("ROLLBACK");
+      throw error;
+    }
   });
 }
 
@@ -291,6 +455,7 @@ function withDatabase(repoRoot, callback) {
   const dbPath = resolveDatabasePath(repoRoot);
   const database = new DatabaseSync(dbPath);
   database.exec("PRAGMA foreign_keys = ON;");
+  ensureReviewActionStorage(database);
 
   try {
     return callback(database);
@@ -335,4 +500,23 @@ function resolveDatabasePath(repoRoot) {
   }
 
   return resolvedDbPath;
+}
+
+function ensureReviewActionStorage(database) {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS review_actions (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      action TEXT NOT NULL
+        CHECK (action IN ('approve', 'edit', 'reject')),
+      actor_type TEXT NOT NULL,
+      actor_name TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_review_actions_event_created_at
+      ON review_actions (event_id, created_at DESC, id DESC);
+  `);
 }

@@ -11,8 +11,9 @@ timeline_file="$tmp_dir/timeline.json"
 detail_file="$tmp_dir/detail.json"
 updated_timeline_file="$tmp_dir/updated-timeline.json"
 updated_detail_file="$tmp_dir/updated-detail.json"
+reseeded_timeline_file="$tmp_dir/reseeded-timeline.json"
+reseeded_detail_file="$tmp_dir/reseeded-detail.json"
 post_response_file="$tmp_dir/post-response.json"
-review_action_file="$tmp_dir/review-actions.json"
 invalid_file="$tmp_dir/invalid-response.json"
 log_file="$tmp_dir/review-console.log"
 server_pid=""
@@ -64,7 +65,7 @@ trap cleanup EXIT
 
 node "$repo_root/services/pipeline/cli.mjs" seed-demo --db "$db_file" --run-id "review_console_sqlite_smoke" >/dev/null
 
-READ_API_DB_PATH="$db_file" REVIEW_ACTIONS_FILE="$review_action_file" PORT="$port" HOST="127.0.0.1" \
+READ_API_DB_PATH="$db_file" PORT="$port" HOST="127.0.0.1" \
   node "$repo_root/scripts/serve-review-console.mjs" >"$log_file" 2>&1 &
 server_pid="$!"
 
@@ -81,6 +82,10 @@ curl -fsS -X POST \
 curl -fsS "http://127.0.0.1:$port/api/timeline" >"$updated_timeline_file"
 curl -fsS "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections" >"$updated_detail_file"
 
+node "$repo_root/services/pipeline/cli.mjs" seed-demo --db "$db_file" --run-id "review_console_sqlite_smoke_reseed" >/dev/null
+curl -fsS "http://127.0.0.1:$port/api/timeline" >"$reseeded_timeline_file"
+curl -fsS "http://127.0.0.1:$port/api/events/evt_20260314_harbor_north_inspections" >"$reseeded_detail_file"
+
 invalid_status="$(curl -sS -o "$invalid_file" -w "%{http_code}" -X POST \
   -H "Content-Type: application/json" \
   -d '{"action":"reject","notes":"   "}' \
@@ -93,17 +98,21 @@ fi
 grep -q "Analyst Review Console" "$html_file"
 grep -q "./app.js" "$html_file"
 
-python3 - "$health_file" "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$invalid_file" <<'PY'
+python3 - "$db_file" "$health_file" "$timeline_file" "$detail_file" "$post_response_file" "$updated_timeline_file" "$updated_detail_file" "$reseeded_timeline_file" "$reseeded_detail_file" "$invalid_file" <<'PY'
 import json
+import sqlite3
 import sys
 
-health = json.load(open(sys.argv[1], "r", encoding="utf-8"))
-timeline = json.load(open(sys.argv[2], "r", encoding="utf-8"))
-detail = json.load(open(sys.argv[3], "r", encoding="utf-8"))
-post_response = json.load(open(sys.argv[4], "r", encoding="utf-8"))
-updated_timeline = json.load(open(sys.argv[5], "r", encoding="utf-8"))
-updated_detail = json.load(open(sys.argv[6], "r", encoding="utf-8"))
-invalid = json.load(open(sys.argv[7], "r", encoding="utf-8"))
+database = sqlite3.connect(sys.argv[1])
+health = json.load(open(sys.argv[2], "r", encoding="utf-8"))
+timeline = json.load(open(sys.argv[3], "r", encoding="utf-8"))
+detail = json.load(open(sys.argv[4], "r", encoding="utf-8"))
+post_response = json.load(open(sys.argv[5], "r", encoding="utf-8"))
+updated_timeline = json.load(open(sys.argv[6], "r", encoding="utf-8"))
+updated_detail = json.load(open(sys.argv[7], "r", encoding="utf-8"))
+reseeded_timeline = json.load(open(sys.argv[8], "r", encoding="utf-8"))
+reseeded_detail = json.load(open(sys.argv[9], "r", encoding="utf-8"))
+invalid = json.load(open(sys.argv[10], "r", encoding="utf-8"))
 
 assert health == {"status": "ok", "backend": "sqlite"}
 assert len(timeline["items"]) == 2
@@ -124,11 +133,31 @@ assert len(detail["relationships"]) == 2
 assert post_response["reviewStatus"] == "edited"
 assert updated_detail["event"]["reviewStatus"] == "edited"
 assert updated_detail["reviewActions"][0]["action"] == "edit"
+assert updated_detail["reviewActions"][0]["notes"] == "SQLite review console smoke edit."
 assert next(
     item for item in updated_timeline["items"]
     if item["eventId"] == "evt_20260314_harbor_north_inspections"
 )["reviewStatus"] == "edited"
+assert next(
+    item for item in reseeded_timeline["items"]
+    if item["eventId"] == "evt_20260314_harbor_north_inspections"
+)["reviewStatus"] == "edited"
+assert reseeded_detail["event"]["reviewStatus"] == "edited"
+assert reseeded_detail["reviewActions"][0]["notes"] == "SQLite review console smoke edit."
 assert invalid["error"] == "Analyst notes are required when marking an event as rejected."
+
+row = database.execute(
+    """
+    SELECT action, actor_name, notes
+    FROM review_actions
+    WHERE event_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+    """,
+    ("evt_20260314_harbor_north_inspections",),
+).fetchone()
+
+assert row == ("edit", "Local analyst", "SQLite review console smoke edit.")
 PY
 
 echo "SQLite-backed review console smoke test passed."

@@ -3,6 +3,7 @@ import {
   getReviewActionValidationError,
   sanitizeReviewNotes
 } from "../../packages/contracts/review-action-policy.mjs";
+import { buildConfidenceSummary } from "./confidence-summary.mjs";
 import {
   createEntityLookup,
   formatRelationshipDisplay
@@ -329,13 +330,13 @@ function renderTimeline() {
   elements.emptyState.hidden = filteredTimeline.length !== 0;
 
   for (const item of filteredTimeline) {
-    const reviewHistorySummary = buildReviewHistorySummary(
-      state.data.details[item.eventId]?.reviewActions ?? []
+    const detail = state.data.details[item.eventId];
+    const confidenceSummary = buildConfidenceSummary(
+      detail?.event?.confidence ?? item.confidence,
+      detail?.claims ?? []
     );
-    const provenanceSummary = buildSourceProvenanceSummary(
-      state.data.details[item.eventId]?.sources ?? [],
-      item.eventTime
-    );
+    const reviewHistorySummary = buildReviewHistorySummary(detail?.reviewActions ?? []);
+    const provenanceSummary = buildSourceProvenanceSummary(detail?.sources ?? [], item.eventTime);
     const card = document.createElement("button");
     card.type = "button";
     card.className = "timeline-card";
@@ -361,6 +362,7 @@ function renderTimeline() {
         <span class="metric-chip">${item.claimCount} claims</span>
         <span class="metric-chip">${item.entityCount} entities</span>
       </div>
+      ${confidenceSummary ? renderTimelineConfidenceSummary(confidenceSummary) : ""}
       ${provenanceSummary ? renderTimelineProvenanceSummary(provenanceSummary) : ""}
       <div class="tag-row">
         ${(item.tags ?? [])
@@ -379,6 +381,20 @@ function renderTimeline() {
 
     elements.timelineList.append(card);
   }
+}
+
+function renderTimelineConfidenceSummary(confidenceSummary) {
+  return `
+    <div class="timeline-confidence-summary">
+      <p class="timeline-confidence-title">Confidence drivers</p>
+      <div class="chip-row">
+        ${confidenceSummary.claimSignals
+          .map((signal) => `<span class="chip">${escapeHtml(signal)}</span>`)
+          .join("")}
+      </div>
+      <p class="timeline-confidence-note">${escapeHtml(confidenceSummary.rationalePreview)}</p>
+    </div>
+  `;
 }
 
 function renderTimelineProvenanceSummary(provenanceSummary) {
@@ -454,8 +470,8 @@ function renderDetail() {
 
   const reviewActionHelpText =
     state.sourceMode === SOURCE_API
-      ? "API mode persists review actions to a local overlay file so refreshed timeline and detail reads stay aligned."
-      : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted local review state.";
+      ? "API mode persists review actions through the local read API so refreshed timeline and detail reads stay aligned."
+      : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted review state.";
   const reviewActionRequirementText =
     "Edit and reject actions require analyst notes so later reviewers can understand the decision.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";

@@ -363,7 +363,7 @@ function createStatements(database) {
         summary_text = excluded.summary_text,
         event_type = excluded.event_type,
         status = excluded.status,
-        review_status = excluded.review_status,
+        review_status = events.review_status,
         start_at = excluded.start_at,
         end_at = excluded.end_at,
         timezone = excluded.timezone,
@@ -372,7 +372,7 @@ function createStatements(database) {
         longitude = excluded.longitude,
         geography_precision = excluded.geography_precision,
         first_source_record_id = excluded.first_source_record_id,
-        analyst_notes = excluded.analyst_notes,
+        analyst_notes = COALESCE(events.analyst_notes, excluded.analyst_notes),
         updated_at = excluded.updated_at
     `),
     upsertRelationship: database.prepare(`

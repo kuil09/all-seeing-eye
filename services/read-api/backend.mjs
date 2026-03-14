@@ -7,10 +7,11 @@ import {
   applyPersistedReviewStateToTimelineResponse,
   getPersistedReviewEventState,
   getPersistedReviewEventStates,
-  recordReviewAction
+  recordReviewAction as recordFixtureReviewAction
 } from "./review-action-store.mjs";
 import {
   getEventDetail as getSqliteEventDetail,
+  recordReviewAction as recordSqliteReviewAction,
   getTimelineResponse as getSqliteTimelineResponse,
   shouldUseSqliteBackend
 } from "./sqlite-store.mjs";
@@ -39,6 +40,10 @@ async function getBaseReadApiEventDetail(repoRoot, eventId) {
 }
 
 export async function getReadApiTimelineResponse(repoRoot) {
+  if (resolveReadApiBackend() === "sqlite") {
+    return getSqliteTimelineResponse(repoRoot);
+  }
+
   const [timelineResponse, persistedReviewStates] = await Promise.all([
     getBaseReadApiTimelineResponse(repoRoot),
     getPersistedReviewEventStates(repoRoot)
@@ -48,6 +53,10 @@ export async function getReadApiTimelineResponse(repoRoot) {
 }
 
 export async function getReadApiEventDetail(repoRoot, eventId) {
+  if (resolveReadApiBackend() === "sqlite") {
+    return getSqliteEventDetail(repoRoot, eventId);
+  }
+
   const [eventDetail, persistedReviewState] = await Promise.all([
     getBaseReadApiEventDetail(repoRoot, eventId),
     getPersistedReviewEventState(repoRoot, eventId)
@@ -57,12 +66,17 @@ export async function getReadApiEventDetail(repoRoot, eventId) {
 }
 
 export async function createReadApiReviewAction(repoRoot, eventId, input) {
-  const baseEventDetail = await getBaseReadApiEventDetail(repoRoot, eventId);
+  const useSqliteBackend = resolveReadApiBackend() === "sqlite";
+  const baseEventDetail = useSqliteBackend
+    ? await getSqliteEventDetail(repoRoot, eventId)
+    : await getBaseReadApiEventDetail(repoRoot, eventId);
   if (!baseEventDetail) {
     return null;
   }
 
-  const persistedReviewState = await recordReviewAction(repoRoot, eventId, input);
+  const persistedReviewState = useSqliteBackend
+    ? await recordSqliteReviewAction(repoRoot, eventId, input)
+    : await recordFixtureReviewAction(repoRoot, eventId, input);
 
   return {
     eventId,
