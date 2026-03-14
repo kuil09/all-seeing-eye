@@ -32,10 +32,18 @@ npm run review-console:smoke
 npm run review-console:smoke:sqlite
 ```
 
+API-mode review actions persist to `data/review-actions.json` by default. To keep
+that local overlay somewhere else during testing, set:
+
+```bash
+REVIEW_ACTIONS_FILE=/tmp/review-actions.json npm run review-console:dev
+```
+
 ## Current behavior
 
 - Timeline-first analyst queue
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
-- Local-only approve, edit, and reject actions for demo and UX review
+- Same-origin review actions persisted through a local overlay file in API mode
+- Fixture-mode review actions kept browser-local as a fallback
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

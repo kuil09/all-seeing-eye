@@ -2,11 +2,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  getReadApiEventDetail,
-  getReadApiHealthPayload,
-  getReadApiTimelineResponse
-} from "./backend.mjs";
+import { routeReadApiRequest } from "./http-handler.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../..");
@@ -20,68 +16,35 @@ const port =
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Origin": "*",
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store"
   });
-  response.end(`${JSON.stringify(payload, null, 2)}\n`);
+  response.end(payload === null ? "" : `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 const server = createServer(async (request, response) => {
-  if (!request.url) {
-    sendJson(response, 404, { error: "Not found" });
-    return;
-  }
-
-  const url = new URL(request.url, `http://${request.headers.host ?? host}`);
-
   try {
-    if (request.method === "OPTIONS") {
+    const routedResponse = await routeReadApiRequest(request, repoRoot);
+    if (!routedResponse) {
+      sendJson(response, 404, { error: "Not found" });
+      return;
+    }
+
+    if (routedResponse.statusCode === 204) {
       response.writeHead(204, {
         "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Origin": "*"
       });
       response.end();
       return;
     }
 
-    if (request.method !== "GET") {
-      sendJson(response, 405, {
-        error: "Method not allowed",
-        allowedMethods: ["GET", "OPTIONS"]
-      });
-      return;
-    }
-
-    if (url.pathname === "/healthz") {
-      sendJson(response, 200, getReadApiHealthPayload());
-      return;
-    }
-
-    if (url.pathname === "/api/timeline") {
-      const timelineResponse = await getReadApiTimelineResponse(repoRoot);
-      sendJson(response, 200, timelineResponse);
-      return;
-    }
-
-    const detailMatch = url.pathname.match(/^\/api\/events\/([^/]+)$/);
-    if (detailMatch) {
-      const eventDetail = await getReadApiEventDetail(repoRoot, detailMatch[1]);
-
-      if (!eventDetail) {
-        sendJson(response, 404, { error: "Event not found" });
-        return;
-      }
-
-      sendJson(response, 200, eventDetail);
-      return;
-    }
-
-    sendJson(response, 404, { error: "Not found" });
+    sendJson(response, routedResponse.statusCode, routedResponse.payload);
   } catch (error) {
-    sendJson(response, 500, {
+    sendJson(response, error.statusCode ?? 500, {
       error: error instanceof Error ? error.message : "Unexpected read API failure"
     });
   }

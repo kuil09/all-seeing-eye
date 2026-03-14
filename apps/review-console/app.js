@@ -16,8 +16,10 @@ const state = {
   data: null,
   selectedEventId: null,
   reviewDraft: "",
-  lastError: "",
-  lastActionMessage: ""
+  loadError: "",
+  actionError: "",
+  lastActionMessage: "",
+  isSubmittingReviewAction: false
 };
 
 const elements = {
@@ -96,9 +98,14 @@ function bindEvents() {
   });
 }
 
-async function refreshData() {
-  state.lastError = "";
-  state.lastActionMessage = "";
+async function refreshData(options = {}) {
+  const preserveActionMessage = options.preserveActionMessage ?? false;
+
+  state.loadError = "";
+  state.actionError = "";
+  if (!preserveActionMessage) {
+    state.lastActionMessage = "";
+  }
   render();
 
   try {
@@ -110,7 +117,7 @@ async function refreshData() {
   } catch (error) {
     state.data = null;
     state.selectedEventId = null;
-    state.lastError = error instanceof Error ? error.message : "Unknown loading error.";
+    state.loadError = error instanceof Error ? error.message : "Unknown loading error.";
   }
 
   render();
@@ -140,13 +147,20 @@ async function loadApiData() {
   };
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
+  const isJson = (response.headers.get("content-type") ?? "").includes("application/json");
+  const payload = isJson ? await response.json() : null;
+
   if (!response.ok) {
-    throw new Error(`Request failed for ${url} with status ${response.status}.`);
+    const errorMessage =
+      payload && typeof payload.error === "string"
+        ? payload.error
+        : `Request failed for ${url} with status ${response.status}.`;
+    throw new Error(errorMessage);
   }
 
-  return response.json();
+  return payload;
 }
 
 function resolveSelectedEventId(timelineItems) {
@@ -235,7 +249,7 @@ function renderSummary() {
     elements.pendingCount.textContent = "0";
     elements.generatedAt.textContent = "Unavailable";
     elements.bannerMessage.textContent =
-      state.lastError || "Loading the analyst review queue and event detail fixtures.";
+      state.loadError || "Loading the analyst review queue and event detail fixtures.";
     return;
   }
 
@@ -251,6 +265,8 @@ function renderSummary() {
   } else if (state.demoMode === DEMO_EMPTY) {
     elements.bannerMessage.textContent =
       "Empty demo mode keeps the queue visible while exercising no-results copy.";
+  } else if (state.actionError) {
+    elements.bannerMessage.textContent = state.actionError;
   } else if (state.sourceMode === SOURCE_API) {
     elements.bannerMessage.textContent =
       "Local read API mode fetches /api/timeline and /api/events/:eventId directly.";
@@ -275,7 +291,7 @@ function renderTimeline() {
 
   elements.timelineList.innerHTML = "";
 
-  if (!state.data || state.demoMode === DEMO_ERROR || state.lastError) {
+  if (!state.data || state.demoMode === DEMO_ERROR || state.loadError) {
     elements.emptyState.hidden = true;
     return;
   }
@@ -327,12 +343,12 @@ function renderTimeline() {
 }
 
 function renderDetail() {
-  const shouldShowError = state.demoMode === DEMO_ERROR || Boolean(state.lastError);
+  const shouldShowError = state.demoMode === DEMO_ERROR || Boolean(state.loadError);
   elements.errorState.hidden = !shouldShowError;
 
   if (shouldShowError) {
     elements.errorMessage.textContent =
-      state.lastError ||
+      state.loadError ||
       "The timeline contract could not be loaded. Switch back to fixtures to keep the review loop available.";
   }
 
@@ -357,11 +373,22 @@ function renderDetail() {
     return;
   }
 
+  const reviewActionHelpText =
+    state.sourceMode === SOURCE_API
+      ? "API mode persists review actions to a local overlay file so refreshed timeline and detail reads stay aligned."
+      : "Fixture mode keeps review actions in browser memory only. Switch back to Local read API mode for persisted local review state.";
+  const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
+
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
       ${
         state.lastActionMessage
           ? `<div class="flash-note">${escapeHtml(state.lastActionMessage)}</div>`
+          : ""
+      }
+      ${
+        state.actionError
+          ? `<div class="flash-note is-error">${escapeHtml(state.actionError)}</div>`
           : ""
       }
       <section class="detail-hero">
@@ -414,17 +441,14 @@ function renderDetail() {
 
       <section class="review-form">
         <h3>Local review action</h3>
-        <p class="detail-copy">
-          The write path is still local-only, so actions update the in-memory console state and
-          review history for demo purposes.
-        </p>
-        <textarea id="review-notes" placeholder="Document why this event was approved, edited, or rejected.">${escapeHtml(
+        <p class="detail-copy">${escapeHtml(reviewActionHelpText)}</p>
+        <textarea id="review-notes" placeholder="Document why this event was approved, edited, or rejected." ${disabledAttribute}>${escapeHtml(
           state.reviewDraft
         )}</textarea>
         <div class="action-row">
-          <button type="button" class="primary-action" data-review-action="approve">Approve</button>
-          <button type="button" class="neutral-action" data-review-action="edit">Mark edited</button>
-          <button type="button" class="danger-action" data-review-action="reject">Reject</button>
+          <button type="button" class="primary-action" data-review-action="approve" ${disabledAttribute}>Approve</button>
+          <button type="button" class="neutral-action" data-review-action="edit" ${disabledAttribute}>Mark edited</button>
+          <button type="button" class="danger-action" data-review-action="reject" ${disabledAttribute}>Reject</button>
         </div>
       </section>
     </div>
@@ -441,7 +465,7 @@ function renderDetail() {
       if (!action) {
         return;
       }
-      applyReviewAction(action);
+      void handleReviewAction(action);
     });
   });
 }
@@ -551,7 +575,18 @@ function renderSourceCard(source) {
   `;
 }
 
-function applyReviewAction(action) {
+async function handleReviewAction(action) {
+  state.actionError = "";
+
+  if (state.sourceMode === SOURCE_API && state.demoMode === DEMO_NORMAL) {
+    await submitPersistedReviewAction(action);
+    return;
+  }
+
+  applyLocalReviewAction(action);
+}
+
+function applyLocalReviewAction(action) {
   if (!state.data || !state.selectedEventId) {
     return;
   }
@@ -582,6 +617,41 @@ function applyReviewAction(action) {
   }.`;
   state.reviewDraft = "";
   render();
+}
+
+async function submitPersistedReviewAction(action) {
+  if (!state.data || !state.selectedEventId || state.isSubmittingReviewAction) {
+    return;
+  }
+
+  state.isSubmittingReviewAction = true;
+  state.actionError = "";
+  state.lastActionMessage = "";
+  render();
+
+  try {
+    const response = await fetchJson(`/api/events/${state.selectedEventId}/review-actions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action,
+        notes: state.reviewDraft
+      })
+    });
+    const headline = state.data.details[state.selectedEventId]?.event.headline ?? state.selectedEventId;
+
+    state.lastActionMessage = `${formatReviewStatus(response.reviewStatus)} recorded for ${headline}.`;
+    await refreshData({ preserveActionMessage: true });
+  } catch (error) {
+    state.actionError =
+      error instanceof Error ? error.message : "Review action could not be recorded.";
+    render();
+  } finally {
+    state.isSubmittingReviewAction = false;
+    render();
+  }
 }
 
 function mapActionToStatus(action) {

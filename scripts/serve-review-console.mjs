@@ -5,10 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  getReadApiEventDetail,
-  getReadApiHealthPayload,
-  getReadApiTimelineResponse
-} from "../services/read-api/backend.mjs";
+  routeReadApiRequest
+} from "../services/read-api/http-handler.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -59,30 +57,19 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (url.pathname === "/healthz") {
-      respondJson(response, 200, getReadApiHealthPayload());
-      return;
-    }
-
-    if (url.pathname === "/api/timeline") {
-      respondJson(response, 200, await getReadApiTimelineResponse(repoRoot));
-      return;
-    }
-
-    const detailMatch = url.pathname.match(/^\/api\/events\/([^/]+)$/);
-    if (detailMatch) {
-      const eventDetail = await getReadApiEventDetail(repoRoot, detailMatch[1]);
-
-      if (!eventDetail) {
-        respondJson(response, 404, { error: "Event not found" });
+    const routedResponse = await routeReadApiRequest(request, repoRoot);
+    if (routedResponse) {
+      if (routedResponse.statusCode === 204) {
+        response.writeHead(204);
+        response.end();
         return;
       }
 
-      respondJson(response, 200, eventDetail);
+      respondJson(response, routedResponse.statusCode, routedResponse.payload);
       return;
     }
   } catch (error) {
-    respondJson(response, 500, {
+    respondJson(response, error.statusCode ?? 500, {
       error: error instanceof Error ? error.message : "Unexpected read API failure"
     });
     return;
