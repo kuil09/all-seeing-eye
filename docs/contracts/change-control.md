@@ -15,9 +15,12 @@ The following files form the shared first-slice contract:
 
 1. Treat contract changes as cross-track work.
 2. Update schema, JSON schema, and examples in the same change.
-3. Prefer additive changes until the Friday, March 20, 2026 integration checkpoint.
-4. If a breaking change is unavoidable, flag it the same day and explain why the existing contract blocks delivery.
-5. Keep example payloads production-shaped even if the implementation behind them is still mocked.
+3. Treat `schemas/all-seeing-eye-v1.sql` as the mirrored storage baseline from the NIT-12 architecture package until the implementation contract fully lives in this repo.
+4. Treat `contracts/json-schemas/` plus `contracts/examples/` as the live read-contract baseline for implementation work.
+5. If a company-root note or scratch draft diverges from this repo baseline, reconcile the files before continuing implementation.
+6. Prefer additive changes until the Friday, March 20, 2026 integration checkpoint.
+7. If a breaking change is unavoidable, flag it the same day and explain why the existing contract blocks delivery.
+8. Keep example payloads production-shaped even if the implementation behind them is still mocked.
 
 ## Review Cadence
 

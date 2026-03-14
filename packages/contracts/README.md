@@ -4,6 +4,6 @@ Use this package surface for generated or hand-maintained shared types once the 
 
 For now, the source of truth lives in:
 
-- `contracts/json-schemas/`
-- `contracts/examples/`
-- `schemas/all-seeing-eye-v1.sql`
+- `contracts/json-schemas/` for the live read contract
+- `contracts/examples/` for canonical example payloads
+- `schemas/all-seeing-eye-v1.sql` for the mirrored storage baseline from the NIT-12 architecture package
