@@ -57,6 +57,7 @@ recorded without notes for quick triage.
 - API and SQLite-backed timeline responses keep tag chips derived from feed categories and event types so tag filtering remains usable outside fixture mode
 - Relationship cards resolve canonical entity names and event roles instead of raw ids
 - Same-origin review actions persisted through the active local read-api backend
+- Recording an action on a `pending_review` event automatically advances the console to the next pending queue item when one exists
 - Fixture-mode review actions kept browser-local as a fallback
 - Edit and reject actions require analyst notes before the console records them
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes

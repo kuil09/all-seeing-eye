@@ -12,6 +12,7 @@ import {
   buildReviewHistorySummary,
   formatReviewActionCount
 } from "./review-history-summary.mjs";
+import { resolveNextPendingEventId } from "./review-queue-navigation.mjs";
 import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
@@ -132,6 +133,7 @@ function bindEvents() {
 
 async function refreshData(options = {}) {
   const preserveActionMessage = options.preserveActionMessage ?? false;
+  const preferredSelectedEventId = options.preferredSelectedEventId ?? state.selectedEventId;
 
   state.loadError = "";
   state.actionError = "";
@@ -143,7 +145,7 @@ async function refreshData(options = {}) {
   try {
     state.data =
       state.sourceMode === SOURCE_API ? await loadApiData() : await loadFixtureData();
-    state.selectedEventId = resolveSelectedEventId(state.data.timeline);
+    state.selectedEventId = resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
     state.reviewDraft = "";
     syncTagFilter(state.data.timeline);
   } catch (error) {
@@ -197,8 +199,8 @@ async function fetchJson(url, options) {
   return payload;
 }
 
-function resolveSelectedEventId(timelineItems) {
-  return reconcileSelectedEventId(state.selectedEventId, timelineItems);
+function resolveSelectedEventId(timelineItems, preferredSelectedEventId = state.selectedEventId) {
+  return reconcileSelectedEventId(preferredSelectedEventId, timelineItems);
 }
 
 function syncTagFilter(timelineItems) {
@@ -733,6 +735,10 @@ function applyLocalReviewAction(action) {
     return;
   }
 
+  const shouldAdvanceQueue = detail.event.reviewStatus === "pending_review";
+  const nextPendingEventId = shouldAdvanceQueue
+    ? resolveNextPendingEventId(state.data.timeline, state.selectedEventId)
+    : null;
   const nextStatus = mapActionToStatus(action);
   detail.event.reviewStatus = nextStatus;
   timelineItem.reviewStatus = nextStatus;
@@ -748,9 +754,15 @@ function applyLocalReviewAction(action) {
     ...detail.reviewActions
   ];
 
-  state.lastActionMessage = `${formatReviewStatus(nextStatus)} recorded for ${
-    detail.event.headline
-  }.`;
+  if (nextPendingEventId) {
+    state.selectedEventId = nextPendingEventId;
+  }
+
+  state.lastActionMessage = buildReviewActionMessage(
+    nextStatus,
+    detail.event.headline,
+    nextPendingEventId ? state.data.details[nextPendingEventId]?.event?.headline : null
+  );
   state.reviewDraft = "";
   render();
 }
@@ -766,6 +778,11 @@ async function submitPersistedReviewAction(action) {
   render();
 
   try {
+    const currentDetail = state.data.details[state.selectedEventId];
+    const shouldAdvanceQueue = currentDetail?.event?.reviewStatus === "pending_review";
+    const nextPendingEventId = shouldAdvanceQueue
+      ? resolveNextPendingEventId(state.data.timeline, state.selectedEventId)
+      : null;
     const response = await fetchJson(`/api/events/${state.selectedEventId}/review-actions`, {
       method: "POST",
       headers: {
@@ -776,10 +793,17 @@ async function submitPersistedReviewAction(action) {
         notes: sanitizeReviewNotes(state.reviewDraft)
       })
     });
-    const headline = state.data.details[state.selectedEventId]?.event.headline ?? state.selectedEventId;
+    const headline = currentDetail?.event?.headline ?? state.selectedEventId;
 
-    state.lastActionMessage = `${formatReviewStatus(response.reviewStatus)} recorded for ${headline}.`;
-    await refreshData({ preserveActionMessage: true });
+    state.lastActionMessage = buildReviewActionMessage(
+      response.reviewStatus,
+      headline,
+      nextPendingEventId ? state.data.details[nextPendingEventId]?.event?.headline : null
+    );
+    await refreshData({
+      preserveActionMessage: true,
+      preferredSelectedEventId: nextPendingEventId ?? state.selectedEventId
+    });
   } catch (error) {
     state.actionError =
       error instanceof Error ? error.message : "Review action could not be recorded.";
@@ -798,6 +822,15 @@ function mapActionToStatus(action) {
     return "edited";
   }
   return "rejected";
+}
+
+function buildReviewActionMessage(reviewStatus, headline, nextHeadline) {
+  const statusLabel = formatReviewStatus(reviewStatus);
+  if (!nextHeadline) {
+    return `${statusLabel} recorded for ${headline}.`;
+  }
+
+  return `${statusLabel} recorded for ${headline}. Advanced to next pending event: ${nextHeadline}.`;
 }
 
 function renderFeedChips(provenanceSummary) {
