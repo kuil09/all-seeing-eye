@@ -53,6 +53,7 @@ recorded without notes for quick triage.
 - Filter summary now also surfaces one-click analyst attention lanes for saved local drafts and pending confidence slices, so unfinished notes and likely review buckets can be reopened without restacking filters
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event while analysts move around the queue, and timeline cards show when a local draft note is waiting
+- Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened

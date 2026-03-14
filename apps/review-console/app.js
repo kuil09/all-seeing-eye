@@ -23,6 +23,10 @@ import {
   setReviewDraft
 } from "./review-draft-state.mjs";
 import {
+  applyReviewNoteSuggestion,
+  buildReviewNoteSuggestions
+} from "./review-note-suggestions.mjs";
+import {
   deleteSavedView,
   findMatchingSavedView,
   normalizeSavedViewLabel,
@@ -847,6 +851,7 @@ function renderDetail() {
   );
   const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
   const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
+  const noteSuggestions = buildReviewNoteSuggestions(detail);
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -936,6 +941,22 @@ function renderDetail() {
         <p class="detail-copy">${escapeHtml(reviewActionHelpText)}</p>
         <p class="meta-copy">${escapeHtml(reviewActionRequirementText)}</p>
         <p class="meta-copy">${escapeHtml(reviewDraftStatusText)}</p>
+        ${
+          noteSuggestions.length
+            ? `
+              <div class="review-note-suggestions">
+                <p class="section-kicker">Quick note starters</p>
+                <div class="queue-lane-row">
+                  ${noteSuggestions
+                    .map((suggestion) =>
+                      renderReviewNoteSuggestionButton(suggestion, disabledAttribute)
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+            : ""
+        }
         <textarea id="review-notes" placeholder="Document why this event was approved, edited, or rejected." ${disabledAttribute}>${escapeHtml(
           getSelectedReviewDraft()
         )}</textarea>
@@ -956,6 +977,22 @@ function renderDetail() {
       event.target.value
     );
     renderTimelineDraftState();
+  });
+
+  document.querySelectorAll("[data-note-suggestion]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const suggestion = button.getAttribute("data-note-suggestion");
+      if (!suggestion || !state.selectedEventId) {
+        return;
+      }
+
+      const nextDraft = applyReviewNoteSuggestion(reviewNotes.value, suggestion);
+      reviewNotes.value = nextDraft;
+      state.reviewDrafts = setReviewDraft(state.reviewDrafts, state.selectedEventId, nextDraft);
+      renderTimelineDraftState();
+      reviewNotes.focus();
+      reviewNotes.setSelectionRange(nextDraft.length, nextDraft.length);
+    });
   });
 
   document.querySelectorAll("[data-queue-target]").forEach((button) => {
@@ -1094,6 +1131,20 @@ function renderSourceCard(source, eventTime) {
         <span class="meta-copy">${formatDateTime(source.publishedAt)}</span>
       </div>
     </article>
+  `;
+}
+
+function renderReviewNoteSuggestionButton(suggestion, disabledAttribute) {
+  return `
+    <button
+      type="button"
+      class="quick-lane note-suggestion"
+      data-note-suggestion="${escapeAttribute(suggestion.note)}"
+      data-tone="${escapeAttribute(suggestion.tone ?? "neutral")}"
+      ${disabledAttribute}
+    >
+      <strong>${escapeHtml(suggestion.label)}</strong>
+    </button>
   `;
 }
 

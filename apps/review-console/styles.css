@@ -682,6 +682,25 @@ a {
   gap: 0.85rem;
 }
 
+.review-note-suggestions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.note-suggestion {
+  background: rgba(22, 37, 49, 0.05);
+}
+
+.note-suggestion[data-tone="edit"] {
+  background: rgba(80, 61, 148, 0.1);
+  color: #503d94;
+}
+
+.note-suggestion[data-tone="reject"] {
+  background: var(--rose-soft);
+  color: var(--rose);
+}
+
 .review-form textarea {
   min-height: 7rem;
   resize: vertical;

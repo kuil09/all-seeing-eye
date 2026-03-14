@@ -21,6 +21,7 @@
     "review-console:history:test": "node --test ./apps/review-console/review-history-summary.test.mjs",
     "review-console:queue-context:test": "node --test ./apps/review-console/review-queue-context.test.mjs",
     "review-console:navigation:test": "node --test ./apps/review-console/review-queue-navigation.test.mjs",
+    "review-console:notes:test": "node --test ./apps/review-console/review-note-suggestions.test.mjs",
     "review-console:provenance:test": "node --test ./apps/review-console/source-provenance-summary.test.mjs",
     "review-console:search:test": "node --test ./apps/review-console/timeline-search.test.mjs",
     "review-console:saved-views:test": "node --test ./apps/review-console/saved-views.test.mjs",
