@@ -67,4 +67,38 @@ test.describe("draft note localStorage persistence", () => {
     // Screenshot: draft cleared after action
     await page.screenshot({ path: "test-results/draft-cleared-after-action.png", fullPage: true });
   });
+
+  test("recent activity restores the last recorded note into the draft editor", async ({
+    page
+  }) => {
+    await page.goto(FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    const firstHeadline = await page.locator(".detail-shell h2").first().textContent();
+    const reviewNotes = page.locator("#review-notes");
+    await expect(reviewNotes).toBeVisible();
+    await reviewNotes.fill(DRAFT_TEXT);
+
+    await page.locator('[data-review-action="edit"]').click();
+    await expect(page.locator(".flash-note")).toBeVisible();
+
+    const currentHeadline = await page.locator(".detail-shell h2").first().textContent();
+    expect(currentHeadline).not.toBe(firstHeadline);
+
+    const recentActivityCard = page.locator("#recent-review-activity .recent-activity-card").first();
+    await expect(recentActivityCard).toContainText("Verify cargo count before approving");
+    await expect(recentActivityCard).toContainText("restored into the draft editor");
+    await recentActivityCard.click();
+
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(firstHeadline ?? "");
+    await expect(page.locator("#review-notes")).toHaveValue(DRAFT_TEXT);
+
+    await page.screenshot({
+      path: "test-results/recent-activity-restores-draft.png",
+      fullPage: true
+    });
+  });
 });
