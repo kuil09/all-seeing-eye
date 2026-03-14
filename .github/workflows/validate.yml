@@ -33,3 +33,22 @@ jobs:
 
       - name: Smoke test SQLite-backed review console
         run: ./scripts/smoke_review_console_sqlite.sh
+
+      - name: Run review-console unit tests
+        run: |
+          node --test \
+            apps/review-console/attention-lanes.test.mjs \
+            apps/review-console/confidence-summary.test.mjs \
+            apps/review-console/detail-formatters.test.mjs \
+            apps/review-console/filter-summary.test.mjs \
+            apps/review-console/queue-distribution.test.mjs \
+            apps/review-console/review-draft-state.test.mjs \
+            apps/review-console/review-history-summary.test.mjs \
+            apps/review-console/review-note-suggestions.test.mjs \
+            apps/review-console/review-queue-context.test.mjs \
+            apps/review-console/review-queue-navigation.test.mjs \
+            apps/review-console/saved-views.test.mjs \
+            apps/review-console/source-provenance-summary.test.mjs \
+            apps/review-console/timeline-entity-summary.test.mjs \
+            apps/review-console/timeline-search.test.mjs \
+            apps/review-console/view-state.test.mjs
