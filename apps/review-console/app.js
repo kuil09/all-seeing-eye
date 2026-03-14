@@ -23,6 +23,14 @@ import {
   setReviewDraft
 } from "./review-draft-state.mjs";
 import {
+  deleteSavedView,
+  findMatchingSavedView,
+  normalizeSavedViewLabel,
+  readSavedViews,
+  serializeSavedViews,
+  upsertSavedView
+} from "./saved-views.mjs";
+import {
   buildReviewHistorySummary,
   formatReviewActionCount
 } from "./review-history-summary.mjs";
@@ -50,6 +58,7 @@ import {
 } from "./view-state.mjs";
 
 const initialUiState = createInitialUiState(window.location.search);
+const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -62,6 +71,8 @@ const state = {
   data: null,
   selectedEventId: initialUiState.selectedEventId,
   reviewDrafts: {},
+  savedViews: loadSavedViews(),
+  savedViewName: "",
   loadError: "",
   actionError: "",
   lastActionMessage: "",
@@ -73,6 +84,7 @@ const elements = {
   bannerMessage: document.querySelector("#banner-message"),
   confidenceFilter: document.querySelector("#confidence-filter"),
   dataSourceLabel: document.querySelector("#data-source-label"),
+  deleteActiveView: document.querySelector("#delete-active-view"),
   demoButtons: document.querySelectorAll("[data-demo-mode]"),
   detailPanel: document.querySelector("#detail-panel"),
   emptyState: document.querySelector("#empty-state"),
@@ -81,6 +93,9 @@ const elements = {
   fallbackButton: document.querySelector("#fallback-button"),
   generatedAt: document.querySelector("#generated-at"),
   pendingCount: document.querySelector("#pending-count"),
+  saveCurrentView: document.querySelector("#save-current-view"),
+  savedViewList: document.querySelector("#saved-view-list"),
+  savedViewName: document.querySelector("#saved-view-name"),
   searchInput: document.querySelector("#search-input"),
   sourceButtons: document.querySelectorAll("[data-source-mode]"),
   statusFilter: document.querySelector("#status-filter"),
@@ -117,6 +132,28 @@ function bindEvents() {
     state.tagFilter = event.target.value;
     syncUrl();
     render();
+  });
+
+  elements.savedViewName.addEventListener("input", (event) => {
+    state.savedViewName = event.target.value;
+    renderSavedViews();
+  });
+
+  elements.savedViewName.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    saveCurrentView();
+  });
+
+  elements.saveCurrentView.addEventListener("click", () => {
+    saveCurrentView();
+  });
+
+  elements.deleteActiveView.addEventListener("click", () => {
+    deleteActiveSavedView();
   });
 
   for (const button of elements.sourceButtons) {
@@ -156,6 +193,16 @@ function bindEvents() {
     const clearFiltersButton = event.target.closest("[data-clear-filters]");
     if (clearFiltersButton) {
       clearActiveFilters();
+      return;
+    }
+
+    const savedViewButton = event.target.closest("[data-saved-view-id]");
+    if (savedViewButton) {
+      const savedViewId = savedViewButton.getAttribute("data-saved-view-id");
+      const savedView = state.savedViews.find((entry) => entry.id === savedViewId);
+      if (savedView) {
+        applySavedView(savedView);
+      }
       return;
     }
 
@@ -322,7 +369,7 @@ function getTimelineSlice({
   includeConfidenceFilter = true,
   includeTagFilter = true,
   includeDraftFilter = true
-} = {}) {
+} = {}, filters = getCurrentFilterState()) {
   if (!state.data) {
     return [];
   }
@@ -334,22 +381,22 @@ function getTimelineSlice({
   return state.data.timeline.filter((item) => {
     const detail = state.data.details[item.eventId];
     const matchesQuery =
-      !includeSearchQuery || matchesTimelineSearchQuery(state.searchQuery, item, detail);
+      !includeSearchQuery || matchesTimelineSearchQuery(filters.searchQuery, item, detail);
     const matchesStatus =
       !includeReviewStatusFilter ||
-      state.reviewStatusFilter === "all" ||
-      item.reviewStatus === state.reviewStatusFilter;
+      filters.reviewStatusFilter === "all" ||
+      item.reviewStatus === filters.reviewStatusFilter;
     const matchesConfidence =
       !includeConfidenceFilter ||
-      state.confidenceFilter === "all" ||
-      item.confidence.label === state.confidenceFilter;
+      filters.confidenceFilter === "all" ||
+      item.confidence.label === filters.confidenceFilter;
     const matchesTag =
       !includeTagFilter ||
-      state.tagFilter === "all" ||
-      (item.tags ?? []).includes(state.tagFilter);
+      filters.tagFilter === "all" ||
+      (item.tags ?? []).includes(filters.tagFilter);
     const matchesDraft =
       !includeDraftFilter ||
-      state.draftFilter === DRAFT_FILTER_ALL ||
+      filters.draftFilter === DRAFT_FILTER_ALL ||
       hasReviewDraft(state.reviewDrafts, item.eventId);
 
     return matchesQuery && matchesStatus && matchesConfidence && matchesTag && matchesDraft;
@@ -359,6 +406,7 @@ function getTimelineSlice({
 function render() {
   renderToggles();
   renderSummary();
+  renderSavedViews();
   renderTimeline();
   renderDetail();
 }
@@ -673,6 +721,39 @@ function renderFilterSummary(filteredTimeline) {
     ${renderQueueDistribution(queueDistribution)}
     ${renderAttentionLanes(attentionLanes)}
   `;
+}
+
+function renderSavedViews() {
+  const activeSavedView = getActiveSavedView();
+  const savedViewOptions = state.savedViews.map((savedView) => ({
+    ...savedView,
+    count: getTimelineSlice({}, savedView.filters).length,
+    isActive: activeSavedView?.id === savedView.id
+  }));
+
+  if (!savedViewOptions.length) {
+    elements.savedViewList.innerHTML =
+      '<p class="saved-view-empty">No saved views yet. Save the current filter combination to reopen it later.</p>';
+  } else {
+    elements.savedViewList.innerHTML = savedViewOptions
+      .map((savedView) => renderSavedViewButton(savedView))
+      .join("");
+  }
+
+  const normalizedSavedViewLabel = normalizeSavedViewLabel(state.savedViewName);
+  const canSaveCurrentView =
+    getCurrentFilterSummary().hasActiveFilters && Boolean(normalizedSavedViewLabel);
+
+  elements.savedViewName.value = state.savedViewName;
+  elements.saveCurrentView.disabled = !canSaveCurrentView;
+  elements.saveCurrentView.textContent =
+    activeSavedView && activeSavedView.id === normalizedSavedViewLabel.toLowerCase()
+      ? "Update active view"
+      : "Save current view";
+  elements.deleteActiveView.hidden = !activeSavedView;
+  if (activeSavedView) {
+    elements.deleteActiveView.textContent = `Delete ${activeSavedView.label}`;
+  }
 }
 
 function renderEmptyState() {
@@ -1170,7 +1251,10 @@ function renderFeedChips(provenanceSummary) {
 }
 
 function getCurrentFilterSummary() {
+  const activeSavedView = getActiveSavedView();
+
   return buildFilterSummary({
+    savedViewLabel: activeSavedView?.label ?? "",
     searchQuery: state.searchQuery,
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
@@ -1178,6 +1262,16 @@ function getCurrentFilterSummary() {
     draftFilter: state.draftFilter,
     demoMode: state.demoMode
   });
+}
+
+function getCurrentFilterState() {
+  return {
+    searchQuery: state.searchQuery,
+    reviewStatusFilter: state.reviewStatusFilter,
+    confidenceFilter: state.confidenceFilter,
+    tagFilter: state.tagFilter,
+    draftFilter: state.draftFilter
+  };
 }
 
 function buildTimelineMetaLabel(filteredCount) {
@@ -1350,12 +1444,68 @@ function renderAttentionLaneButton(lane) {
   `;
 }
 
+function renderSavedViewButton(savedView) {
+  return `
+    <button
+      type="button"
+      class="quick-lane${savedView.isActive ? " is-active" : ""}"
+      data-saved-view-id="${escapeAttribute(savedView.id)}"
+    >
+      <span>${escapeHtml(savedView.label)}</span>
+      <strong>${savedView.count}</strong>
+    </button>
+  `;
+}
+
 function clearActiveFilters() {
   state.searchQuery = "";
   state.reviewStatusFilter = "all";
   state.confidenceFilter = "all";
   state.tagFilter = "all";
   state.draftFilter = DRAFT_FILTER_ALL;
+  syncControlsFromState();
+  syncUrl();
+  render();
+}
+
+function saveCurrentView() {
+  const savedViewLabel = normalizeSavedViewLabel(state.savedViewName);
+  if (!savedViewLabel || !getCurrentFilterSummary().hasActiveFilters) {
+    renderSavedViews();
+    return;
+  }
+
+  state.savedViews = upsertSavedView(
+    state.savedViews,
+    savedViewLabel,
+    getCurrentFilterState()
+  );
+  state.savedViewName = savedViewLabel;
+  persistSavedViews();
+  render();
+}
+
+function deleteActiveSavedView() {
+  const activeSavedView = getActiveSavedView();
+  if (!activeSavedView) {
+    return;
+  }
+
+  state.savedViews = deleteSavedView(state.savedViews, activeSavedView.id);
+  if (normalizeSavedViewLabel(state.savedViewName).toLowerCase() === activeSavedView.id) {
+    state.savedViewName = "";
+  }
+  persistSavedViews();
+  render();
+}
+
+function applySavedView(savedView) {
+  state.searchQuery = savedView.filters.searchQuery;
+  state.reviewStatusFilter = savedView.filters.reviewStatusFilter;
+  state.confidenceFilter = savedView.filters.confidenceFilter;
+  state.tagFilter = savedView.filters.tagFilter;
+  state.draftFilter = savedView.filters.draftFilter;
+  state.savedViewName = savedView.label;
   syncControlsFromState();
   syncUrl();
   render();
@@ -1396,6 +1546,7 @@ function syncControlsFromState() {
   elements.searchInput.value = state.searchQuery;
   elements.statusFilter.value = state.reviewStatusFilter;
   elements.confidenceFilter.value = state.confidenceFilter;
+  elements.savedViewName.value = state.savedViewName;
 
   if ([...elements.tagFilter.options].some((option) => option.value === state.tagFilter)) {
     elements.tagFilter.value = state.tagFilter;
@@ -1443,4 +1594,27 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value);
+}
+
+function getActiveSavedView() {
+  return findMatchingSavedView(state.savedViews, getCurrentFilterState());
+}
+
+function loadSavedViews() {
+  try {
+    return readSavedViews(window.localStorage.getItem(SAVED_VIEWS_STORAGE_KEY));
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedViews() {
+  try {
+    window.localStorage.setItem(
+      SAVED_VIEWS_STORAGE_KEY,
+      serializeSavedViews(state.savedViews)
+    );
+  } catch {
+    // Ignore storage write failures so the console remains usable.
+  }
 }

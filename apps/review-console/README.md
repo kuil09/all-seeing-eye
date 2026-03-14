@@ -51,6 +51,7 @@ recorded without notes for quick triage.
 - Filter summary shows how many events remain in view and exposes one-click reset paths when search or review filters narrow the queue too far
 - Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
 - Filter summary now also surfaces one-click analyst attention lanes for saved local drafts and pending confidence slices, so unfinished notes and likely review buckets can be reopened without restacking filters
+- Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event while analysts move around the queue, and timeline cards show when a local draft note is waiting
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
@@ -69,6 +70,7 @@ recorded without notes for quick triage.
 - Fixture-mode review actions kept browser-local as a fallback
 - Edit and reject actions require analyst notes before the console records them
 - Draft notes remain local to the browser session until the corresponding review action is recorded
+- Saved views remain local to the browser and capture search, review-status, confidence, tag, and saved-draft filters
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

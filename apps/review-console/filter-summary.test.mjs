@@ -6,6 +6,7 @@ import { buildFilterSummary } from "./filter-summary.mjs";
 test("buildFilterSummary returns active filter labels for explicit controls", () => {
   assert.deepEqual(
     buildFilterSummary({
+      savedViewLabel: "Harbor follow-up",
       searchQuery: "harbor north",
       reviewStatusFilter: "pending_review",
       confidenceFilter: "medium",
@@ -14,6 +15,7 @@ test("buildFilterSummary returns active filter labels for explicit controls", ()
     }),
     {
       activeFilters: [
+        "Saved view: Harbor follow-up",
         "Search: harbor north",
         "Status: Pending review",
         "Confidence: Medium confidence",
@@ -54,6 +56,24 @@ test("buildFilterSummary includes saved draft filters when attention lanes narro
     }),
     {
       activeFilters: ["Drafts: Saved notes"],
+      hasActiveFilters: true,
+      demoModeLabel: null
+    }
+  );
+});
+
+test("buildFilterSummary can surface the matching saved view label", () => {
+  assert.deepEqual(
+    buildFilterSummary({
+      savedViewLabel: "Needs edits",
+      searchQuery: "",
+      reviewStatusFilter: "edited",
+      confidenceFilter: "all",
+      tagFilter: "all",
+      demoMode: "normal"
+    }),
+    {
+      activeFilters: ["Saved view: Needs edits", "Status: Edited"],
       hasActiveFilters: true,
       demoModeLabel: null
     }

@@ -89,6 +89,42 @@
 
             <div id="active-filter-summary" class="filter-summary" aria-live="polite"></div>
 
+            <section class="saved-view-panel" aria-label="Saved views">
+              <div class="saved-view-header">
+                <div>
+                  <p class="section-kicker">Saved views</p>
+                  <p class="saved-view-copy">
+                    Store recurring triage filters and reopen them in one click.
+                  </p>
+                </div>
+                <p class="meta-copy">Local browser only</p>
+              </div>
+
+              <div id="saved-view-list" class="queue-lane-row" aria-live="polite"></div>
+
+              <div class="saved-view-composer">
+                <label class="field saved-view-field">
+                  <span>View name</span>
+                  <input
+                    id="saved-view-name"
+                    name="saved-view-name"
+                    type="text"
+                    maxlength="40"
+                    placeholder="Ports needing edits"
+                  />
+                </label>
+
+                <div class="saved-view-actions">
+                  <button id="save-current-view" type="button" class="secondary-action">
+                    Save current view
+                  </button>
+                  <button id="delete-active-view" type="button" class="secondary-action" hidden>
+                    Delete active view
+                  </button>
+                </div>
+              </div>
+            </section>
+
             <div class="control-groups">
               <div>
                 <p class="toggle-label">Data source</p>

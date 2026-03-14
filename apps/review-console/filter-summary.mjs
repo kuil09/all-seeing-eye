@@ -22,6 +22,7 @@ const DEMO_MODE_LABELS = {
 };
 
 export function buildFilterSummary({
+  savedViewLabel = "",
   searchQuery = "",
   reviewStatusFilter = "all",
   confidenceFilter = "all",
@@ -30,6 +31,10 @@ export function buildFilterSummary({
   demoMode = "normal"
 }) {
   const activeFilters = [];
+
+  if (savedViewLabel) {
+    activeFilters.push(`Saved view: ${savedViewLabel}`);
+  }
 
   if (searchQuery) {
     activeFilters.push(`Search: ${searchQuery}`);
