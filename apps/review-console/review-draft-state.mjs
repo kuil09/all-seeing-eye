@@ -1,4 +1,5 @@
 const PREVIEW_MAX_LENGTH = 96;
+const MAX_STORED_DRAFTS = 48;
 
 export function getReviewDraft(reviewDrafts, eventId) {
   if (!eventId) {
@@ -68,10 +69,57 @@ export function buildReviewDraftPreview(reviewDraft) {
   return `${normalizedReviewDraft.slice(0, PREVIEW_MAX_LENGTH - 3).trimEnd()}...`;
 }
 
+export function readReviewDrafts(serializedReviewDrafts) {
+  if (
+    typeof serializedReviewDrafts !== "string" ||
+    !serializedReviewDrafts.trim()
+  ) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(serializedReviewDrafts);
+    return sanitizeStoredReviewDrafts(parsed);
+  } catch {
+    return {};
+  }
+}
+
+export function serializeReviewDrafts(reviewDrafts) {
+  return JSON.stringify(sanitizeStoredReviewDrafts(reviewDrafts));
+}
+
 function normalizeReviewDraft(reviewDraft) {
   if (typeof reviewDraft !== "string") {
     return "";
   }
 
   return reviewDraft.trim().replace(/\s+/g, " ");
+}
+
+function sanitizeStoredReviewDrafts(reviewDrafts) {
+  if (!reviewDrafts || typeof reviewDrafts !== "object" || Array.isArray(reviewDrafts)) {
+    return {};
+  }
+
+  const nextDrafts = {};
+
+  for (const [eventId, reviewDraft] of Object.entries(reviewDrafts)) {
+    if (
+      typeof eventId !== "string" ||
+      !eventId.trim() ||
+      typeof reviewDraft !== "string" ||
+      !normalizeReviewDraft(reviewDraft)
+    ) {
+      continue;
+    }
+
+    nextDrafts[eventId] = reviewDraft;
+
+    if (Object.keys(nextDrafts).length >= MAX_STORED_DRAFTS) {
+      break;
+    }
+  }
+
+  return nextDrafts;
 }

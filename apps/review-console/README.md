@@ -52,7 +52,7 @@ recorded without notes for quick triage.
 - Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
 - Filter summary now also surfaces one-click analyst attention lanes for saved local drafts and pending confidence slices, so unfinished notes and likely review buckets can be reopened without restacking filters
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
-- Review-note drafts stay attached to each event while analysts move around the queue, and timeline cards show when a local draft note is waiting
+- Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
@@ -70,7 +70,7 @@ recorded without notes for quick triage.
 - Recording an action on a `pending_review` event automatically advances the console to the next pending queue item when one exists
 - Fixture-mode review actions kept browser-local as a fallback
 - Edit and reject actions require analyst notes before the console records them
-- Draft notes remain local to the browser session until the corresponding review action is recorded
+- Draft notes remain local to the browser until the corresponding review action is recorded
 - Saved views remain local to the browser and capture search, review-status, confidence, tag, and saved-draft filters
 - URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states

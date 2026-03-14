@@ -20,6 +20,8 @@ import {
   getReviewDraft,
   hasReviewDraft,
   pruneReviewDrafts,
+  readReviewDrafts,
+  serializeReviewDrafts,
   setReviewDraft
 } from "./review-draft-state.mjs";
 import {
@@ -63,6 +65,7 @@ import {
 
 const initialUiState = createInitialUiState(window.location.search);
 const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
+const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -74,7 +77,7 @@ const state = {
   draftFilter: initialUiState.draftFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
-  reviewDrafts: {},
+  reviewDrafts: loadReviewDrafts(),
   savedViews: loadSavedViews(),
   savedViewName: "",
   loadError: "",
@@ -273,6 +276,7 @@ async function refreshData(options = {}) {
       state.reviewDrafts,
       state.data.timeline.map((item) => item.eventId)
     );
+    persistReviewDrafts();
     state.selectedEventId = resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
     syncTagFilter(state.data.timeline);
   } catch (error) {
@@ -841,8 +845,8 @@ function renderDetail() {
     "Edit and reject actions require analyst notes so later reviewers can understand the decision.";
   const reviewDraftStatusText =
     hasReviewDraft(state.reviewDrafts, state.selectedEventId)
-      ? "Draft notes stay attached to this event while you move around the queue."
-      : "Draft notes stay attached to each event until you record the review action.";
+      ? "Draft notes stay attached to this event in this browser, even after refresh, until you record the review action."
+      : "Draft notes stay attached to each event in this browser until you record the review action.";
   const disabledAttribute = state.isSubmittingReviewAction ? "disabled" : "";
   const entityLookup = createEntityLookup(detail.entities);
   const provenanceSummary = buildSourceProvenanceSummary(
@@ -976,6 +980,7 @@ function renderDetail() {
       state.selectedEventId,
       event.target.value
     );
+    persistReviewDrafts();
     renderTimelineDraftState();
   });
 
@@ -989,6 +994,7 @@ function renderDetail() {
       const nextDraft = applyReviewNoteSuggestion(reviewNotes.value, suggestion);
       reviewNotes.value = nextDraft;
       state.reviewDrafts = setReviewDraft(state.reviewDrafts, state.selectedEventId, nextDraft);
+      persistReviewDrafts();
       renderTimelineDraftState();
       reviewNotes.focus();
       reviewNotes.setSelectionRange(nextDraft.length, nextDraft.length);
@@ -1194,6 +1200,7 @@ function applyLocalReviewAction(action) {
     ...detail.reviewActions
   ];
   state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
+  persistReviewDrafts();
 
   if (nextPendingEventId) {
     state.selectedEventId = nextPendingEventId;
@@ -1237,6 +1244,7 @@ async function submitPersistedReviewAction(action) {
     });
     const headline = currentDetail?.event?.headline ?? state.selectedEventId;
     state.reviewDrafts = clearReviewDraft(state.reviewDrafts, currentEventId);
+    persistReviewDrafts();
 
     state.lastActionMessage = buildReviewActionMessage(
       response.reviewStatus,
@@ -1664,6 +1672,25 @@ function persistSavedViews() {
     window.localStorage.setItem(
       SAVED_VIEWS_STORAGE_KEY,
       serializeSavedViews(state.savedViews)
+    );
+  } catch {
+    // Ignore storage write failures so the console remains usable.
+  }
+}
+
+function loadReviewDrafts() {
+  try {
+    return readReviewDrafts(window.localStorage.getItem(REVIEW_DRAFT_STORAGE_KEY));
+  } catch {
+    return {};
+  }
+}
+
+function persistReviewDrafts() {
+  try {
+    window.localStorage.setItem(
+      REVIEW_DRAFT_STORAGE_KEY,
+      serializeReviewDrafts(state.reviewDrafts)
     );
   } catch {
     // Ignore storage write failures so the console remains usable.

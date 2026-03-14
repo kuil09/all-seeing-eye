@@ -7,6 +7,8 @@ import {
   getReviewDraft,
   hasReviewDraft,
   pruneReviewDrafts,
+  readReviewDrafts,
+  serializeReviewDrafts,
   setReviewDraft
 } from "./review-draft-state.mjs";
 
@@ -71,5 +73,27 @@ test("buildReviewDraftPreview normalizes whitespace and truncates long drafts", 
       "Need to verify which source first reported the docking window before the event was synthesized into the queue."
     ),
     "Need to verify which source first reported the docking window before the event was synthesize..."
+  );
+});
+
+test("readReviewDrafts and serializeReviewDrafts keep only non-blank string drafts", () => {
+  const reviewDrafts = readReviewDrafts(
+    JSON.stringify({
+      "evt-1": "Keep the current excerpt but verify the cargo count.",
+      "evt-2": "   ",
+      "": "ignored",
+      "evt-3": 42
+    })
+  );
+
+  assert.deepEqual(reviewDrafts, {
+    "evt-1": "Keep the current excerpt but verify the cargo count."
+  });
+
+  assert.equal(
+    serializeReviewDrafts(reviewDrafts),
+    JSON.stringify({
+      "evt-1": "Keep the current excerpt but verify the cargo count."
+    })
   );
 });
