@@ -204,19 +204,6 @@ export function buildViewHandoffNote({
   if (normalizeLabel(handoffSummary.selectedReviewContext)) {
     reviewerContextLines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
   }
-  if (
-    Array.isArray(handoffSummary.selectedSourceProofItems) &&
-    handoffSummary.selectedSourceProofItems.length
-  ) {
-    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
-      reviewerContextLines.push(`- Source proof: ${sourceProofItem}`);
-    }
-  }
-  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
-    reviewerContextLines.push(
-      `- Source proof summary: ${handoffSummary.selectedSourceProofOverflowCopy}`
-    );
-  }
   if (normalizeLabel(handoffSummary.selectedSearchContext)) {
     reviewerContextLines.push(
       `- ${
@@ -228,6 +215,22 @@ export function buildViewHandoffNote({
     reviewerContextLines.push(`- Draft snapshot: ${handoffSummary.selectedDraftPreview}`);
   }
   appendHandoffNoteSection(lines, "Reviewer context", reviewerContextLines);
+
+  const evidenceAppendixLines = [];
+  if (
+    Array.isArray(handoffSummary.selectedSourceProofItems) &&
+    handoffSummary.selectedSourceProofItems.length
+  ) {
+    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
+      evidenceAppendixLines.push(`- Source proof: ${sourceProofItem}`);
+    }
+  }
+  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
+    evidenceAppendixLines.push(
+      `- Source proof summary: ${handoffSummary.selectedSourceProofOverflowCopy}`
+    );
+  }
+  appendHandoffNoteSection(lines, "Evidence appendix", evidenceAppendixLines);
 
   const scopeLines = [];
   appendHandoffNoteScope(scopeLines, "Included in link", handoffSummary.includedState);

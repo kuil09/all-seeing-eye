@@ -230,6 +230,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
     );
+    expect(copiedText).toContain("Evidence appendix");
     expect(copiedText).toContain(
       "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
     );

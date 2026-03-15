@@ -424,6 +424,8 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "Reviewer context",
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms.",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
+      "",
+      "Evidence appendix",
       "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity.",
       "- Source proof summary: 1 more supporting source remains in provenance detail.",
       "",
