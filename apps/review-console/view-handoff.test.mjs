@@ -55,9 +55,50 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
   assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
   assert.equal(summary.showPortableCopyAction, false);
+  assert.equal(summary.selectedSearchLabel, "");
+  assert.equal(summary.selectedSearchContext, "");
   assert.equal(
     summary.portabilityNote,
     "Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
+  );
+});
+
+test("buildViewHandoffSummary prioritizes the active search focus in handoff context", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    filterSummary: {
+      activeFilters: ["Search: harbor"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    },
+    selectedSearchMatches: [
+      {
+        label: "Participant",
+        preview: "Harbor North Port Authority",
+        detailSectionId: "detail-entities"
+      },
+      {
+        label: "Source",
+        preview: "coastal-shipping-association",
+        detailSectionId: "detail-provenance"
+      },
+      {
+        label: "Review history",
+        preview: "Waiting for one more source before approving.",
+        detailSectionId: "detail-review-history"
+      }
+    ],
+    activeSearchFocusTarget: "detail-provenance"
+  });
+
+  assert.equal(summary.selectedSearchLabel, "Focused search match");
+  assert.equal(
+    summary.selectedSearchContext,
+    "Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)"
   );
 });
 
@@ -165,6 +206,59 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
+      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
+      "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
+      "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
+    ].join("\n")
+  );
+});
+
+test("buildViewHandoffNote includes active search rationale before the copied links", () => {
+  const handoffSummary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    filterSummary: {
+      activeFilters: ["Search: harbor"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    },
+    selectedSearchMatches: [
+      {
+        label: "Participant",
+        preview: "Harbor North Port Authority",
+        detailSectionId: "detail-entities"
+      },
+      {
+        label: "Source",
+        preview: "coastal-shipping-association",
+        detailSectionId: "detail-provenance"
+      },
+      {
+        label: "Review history",
+        preview: "Waiting for one more source before approving.",
+        detailSectionId: "detail-review-history"
+      }
+    ],
+    activeSearchFocusTarget: "detail-provenance"
+  });
+
+  const handoffNote = buildViewHandoffNote({
+    handoffSummary,
+    shareUrl:
+      "http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures"
+  });
+
+  assert.equal(
+    handoffNote,
+    [
+      "Review console handoff",
+      "",
+      "- Selected event: Inspection surge reported at Harbor North cargo terminal",
+      "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
+      "- Focused search match: Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."

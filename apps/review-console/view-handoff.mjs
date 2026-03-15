@@ -10,7 +10,9 @@ export function buildViewHandoffSummary({
   activeSavedViewLabel = "",
   selectedDraftPreview = "",
   selectedContextItems = [],
-  selectedReviewContext = ""
+  selectedReviewContext = "",
+  selectedSearchMatches = [],
+  activeSearchFocusTarget = ""
 }) {
   const cleanedSelectedHeadline = String(selectedHeadline).trim();
   const cleanedSourceLabel = normalizeLabel(sourceLabel);
@@ -18,6 +20,10 @@ export function buildViewHandoffSummary({
   const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
   const cleanedSelectedContextItems = normalizeLabels(selectedContextItems);
   const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
+  const selectedSearchSummary = buildSelectedSearchSummary(
+    selectedSearchMatches,
+    activeSearchFocusTarget
+  );
   const sortLabel = normalizeSortLabel(filterSummary.sortLabel);
   const includedState = buildIncludedState({
     cleanedSelectedHeadline,
@@ -60,6 +66,8 @@ export function buildViewHandoffSummary({
     selectedDraftPreview: cleanedSelectedDraftPreview,
     selectedContextItems: cleanedSelectedContextItems,
     selectedReviewContext: cleanedSelectedReviewContext,
+    selectedSearchLabel: selectedSearchSummary.label,
+    selectedSearchContext: selectedSearchSummary.context,
     portabilityNote: buildPortabilityNote({
       draftFilter,
       demoMode,
@@ -98,6 +106,14 @@ export function buildViewHandoffNote({
 
   if (normalizeLabel(handoffSummary.selectedReviewContext)) {
     lines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
+  }
+
+  if (normalizeLabel(handoffSummary.selectedSearchContext)) {
+    lines.push(
+      `- ${
+        normalizeLabel(handoffSummary.selectedSearchLabel) || "Search rationale"
+      }: ${handoffSummary.selectedSearchContext}`
+    );
   }
 
   if (currentLink) {
@@ -229,6 +245,49 @@ function normalizeLabel(label) {
 function normalizeLabels(labels) {
   return Array.isArray(labels)
     ? labels.map((label) => normalizeLabel(String(label))).filter(Boolean)
+    : [];
+}
+
+function buildSelectedSearchSummary(searchMatches, activeSearchFocusTarget) {
+  const normalizedMatches = normalizeSearchMatches(searchMatches);
+  if (!normalizedMatches.length) {
+    return { label: "", context: "" };
+  }
+
+  const activeMatch = normalizedMatches.find(
+    (match) => match.detailSectionId === normalizeLabel(activeSearchFocusTarget)
+  );
+  const prioritizedMatches = activeMatch
+    ? [activeMatch, ...normalizedMatches.filter((match) => match !== activeMatch)]
+    : normalizedMatches;
+  const visibleMatches = prioritizedMatches.slice(0, 2);
+  const remainingMatchCount = Math.max(0, prioritizedMatches.length - visibleMatches.length);
+  const matchCopy = visibleMatches
+    .map((match) => `${match.label}: ${match.preview}`)
+    .join("; ");
+  const suffix = remainingMatchCount
+    ? ` (+${remainingMatchCount} more match${remainingMatchCount === 1 ? "" : "es"})`
+    : "";
+
+  return {
+    label: activeMatch
+      ? "Focused search match"
+      : normalizedMatches.length === 1
+        ? "Search match"
+        : "Search matches",
+    context: `${matchCopy}${suffix}`
+  };
+}
+
+function normalizeSearchMatches(searchMatches) {
+  return Array.isArray(searchMatches)
+    ? searchMatches
+        .map((match) => ({
+          label: normalizeLabel(match?.label),
+          preview: normalizeLabel(match?.preview),
+          detailSectionId: normalizeLabel(match?.detailSectionId)
+        }))
+        .filter((match) => match.label && match.preview)
     : [];
 }
 

@@ -970,10 +970,19 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
 
   const activeSavedView = getActiveSavedView();
   const filterSummary = getCurrentFilterSummary();
+  const selectedTimelineItem = state.selectedEventId
+    ? filteredTimeline.find((item) => item.eventId === state.selectedEventId) ??
+      state.data.timeline.find((item) => item.eventId === state.selectedEventId) ??
+      null
+    : null;
   const selectedDetail = state.selectedEventId
     ? state.data.details[state.selectedEventId] ?? null
     : null;
   const selectedContext = buildSelectedHandoffContext(selectedDetail);
+  const selectedSearchMatches =
+    selectedTimelineItem && selectedDetail
+      ? buildTimelineSearchMatches(state.searchQuery, selectedTimelineItem, selectedDetail)
+      : [];
 
   return buildViewHandoffSummary({
     selectedHeadline: selectedDetail?.event?.headline ?? "",
@@ -987,6 +996,8 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     activeSavedViewLabel: activeSavedView?.label ?? "",
     selectedContextItems: selectedContext.items,
     selectedReviewContext: selectedContext.reviewContext,
+    selectedSearchMatches,
+    activeSearchFocusTarget: getActiveSearchFocusTarget(selectedSearchMatches),
     selectedDraftPreview: buildReviewDraftPreview(
       getReviewDraft(state.reviewDrafts, state.selectedEventId),
       { maxLength: HANDOFF_DRAFT_PREVIEW_MAX_LENGTH }
@@ -1110,6 +1121,13 @@ function renderViewHandoffPanel(handoffSummary) {
             ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
                 handoffSummary.selectedReviewContext
               )}</p>`
+            : ""
+        }
+        ${
+          handoffSummary.selectedSearchContext
+            ? `<p class="meta-copy view-handoff-context-copy"><strong>${escapeHtml(
+                handoffSummary.selectedSearchLabel
+              )}:</strong> ${escapeHtml(handoffSummary.selectedSearchContext)}</p>`
             : ""
         }
         <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
