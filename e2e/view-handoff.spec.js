@@ -155,7 +155,13 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain("- Current link: http://127.0.0.1:");
     expect(copiedText).toContain("drafts=saved");
     expect(copiedText).toContain("- Portable link: http://127.0.0.1:");
+    expect(copiedText).toContain(
+      "- Included in handoff note only: Selected draft note snapshot"
+    );
     expect(copiedText).toContain("- Needs local browser state: Saved-draft filter");
     expect(copiedText).toContain("- Stays local: Draft note text");
+    expect(copiedText).toContain(
+      "- Draft snapshot: Portable handoff should keep this event selected."
+    );
   });
 });

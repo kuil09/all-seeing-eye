@@ -87,7 +87,8 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
       sortLabel: null
     },
     hasSelectedDraft: true,
-    activeSavedViewLabel: "Ports needing edits"
+    activeSavedViewLabel: "Ports needing edits",
+    selectedDraftPreview: "Need to verify whether the outage alert reached both substations."
   });
 
   assert.deepEqual(summary.includedState, [
@@ -97,6 +98,7 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
     "Local read API"
   ]);
   assert.deepEqual(summary.localDependentState, []);
+  assert.deepEqual(summary.noteOnlyState, ["Selected draft note snapshot"]);
   assert.deepEqual(summary.localOnlyState, [
     "Draft note text",
     "Saved view label: Ports needing edits"
@@ -104,7 +106,7 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
   assert.equal(summary.isWarning, true);
   assert.equal(
     summary.portabilityNote,
-    'The copied URL reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only.'
+    'The copied URL reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only. Copy handoff note includes the current draft snapshot for reviewer context.'
   );
 });
 
@@ -156,7 +158,8 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
     },
     draftFilter: "saved",
     hasSelectedDraft: true,
-    activeSavedViewLabel: "Ports needing edits"
+    activeSavedViewLabel: "Ports needing edits",
+    selectedDraftPreview: "Portable handoff should keep this event selected."
   });
 
   const handoffNote = buildViewHandoffNote({
@@ -177,9 +180,11 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1",
       "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1 (saved-draft filter removed)",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
+      "- Included in handoff note only: Selected draft note snapshot",
       "- Needs local browser state: Saved-draft filter",
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
-      "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."
+      "- Draft snapshot: Portable handoff should keep this event selected.",
+      "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency. Copy handoff note includes the current draft snapshot for reviewer context."
     ].join("\n")
   );
 });

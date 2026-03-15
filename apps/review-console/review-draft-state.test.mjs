@@ -74,6 +74,14 @@ test("buildReviewDraftPreview normalizes whitespace and truncates long drafts", 
     ),
     "Need to verify which source first reported the docking window before the event was synthesize..."
   );
+
+  assert.equal(
+    buildReviewDraftPreview(
+      "Need to verify which source first reported the docking window.",
+      { maxLength: 24 }
+    ),
+    "Need to verify which..."
+  );
 });
 
 test("readReviewDrafts and serializeReviewDrafts keep only non-blank string drafts", () => {

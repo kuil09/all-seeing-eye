@@ -7,11 +7,13 @@ export function buildViewHandoffSummary({
   draftFilter = "all",
   demoMode = "normal",
   hasSelectedDraft = false,
-  activeSavedViewLabel = ""
+  activeSavedViewLabel = "",
+  selectedDraftPreview = ""
 }) {
   const cleanedSelectedHeadline = String(selectedHeadline).trim();
   const cleanedSourceLabel = normalizeLabel(sourceLabel);
   const cleanedSavedViewLabel = normalizeLabel(activeSavedViewLabel);
+  const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
   const sortLabel = normalizeSortLabel(filterSummary.sortLabel);
   const includedState = buildIncludedState({
     cleanedSelectedHeadline,
@@ -24,6 +26,9 @@ export function buildViewHandoffSummary({
   const localDependentState =
     draftFilter === "saved" ? ["Saved-draft filter"] : [];
   const localOnlyState = [];
+  const noteOnlyState = cleanedSelectedDraftPreview
+    ? ["Selected draft note snapshot"]
+    : [];
 
   if (hasSelectedDraft) {
     localOnlyState.push("Draft note text");
@@ -47,11 +52,14 @@ export function buildViewHandoffSummary({
     includedState,
     localDependentState,
     localOnlyState,
+    noteOnlyState,
+    selectedDraftPreview: cleanedSelectedDraftPreview,
     portabilityNote: buildPortabilityNote({
       draftFilter,
       demoMode,
       hasSelectedDraft,
-      activeSavedViewLabel: cleanedSavedViewLabel
+      activeSavedViewLabel: cleanedSavedViewLabel,
+      hasSelectedDraftSnapshot: Boolean(cleanedSelectedDraftPreview)
     }),
     showPortableCopyAction: draftFilter === "saved",
     isWarning: localDependentState.length > 0 || hasSelectedDraft
@@ -89,10 +97,19 @@ export function buildViewHandoffNote({
   appendHandoffNoteScope(lines, "Included in link", handoffSummary.includedState);
   appendHandoffNoteScope(
     lines,
+    "Included in handoff note only",
+    handoffSummary.noteOnlyState
+  );
+  appendHandoffNoteScope(
+    lines,
     "Needs local browser state",
     handoffSummary.localDependentState
   );
   appendHandoffNoteScope(lines, "Stays local", handoffSummary.localOnlyState);
+
+  if (normalizeLabel(handoffSummary.selectedDraftPreview)) {
+    lines.push(`- Draft snapshot: ${handoffSummary.selectedDraftPreview}`);
+  }
 
   if (portabilityNote) {
     lines.push(`- Portability note: ${portabilityNote}`);
@@ -153,10 +170,14 @@ function buildPortabilityNote({
   draftFilter,
   demoMode,
   hasSelectedDraft,
-  activeSavedViewLabel
+  activeSavedViewLabel,
+  hasSelectedDraftSnapshot
 }) {
   if (draftFilter === "saved") {
-    return "Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency.";
+    return appendDraftSnapshotNote(
+      "Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency.",
+      hasSelectedDraftSnapshot
+    );
   }
 
   const localOnlyLabels = [];
@@ -168,9 +189,12 @@ function buildPortabilityNote({
   }
 
   if (localOnlyLabels.length) {
-    return `The copied URL reopens this queue, but ${joinLabelList(localOnlyLabels)} ${
-      localOnlyLabels.length === 1 ? "stays" : "stay"
-    } in this browser only.`;
+    return appendDraftSnapshotNote(
+      `The copied URL reopens this queue, but ${joinLabelList(localOnlyLabels)} ${
+        localOnlyLabels.length === 1 ? "stays" : "stay"
+      } in this browser only.`,
+      hasSelectedDraftSnapshot
+    );
   }
 
   if (demoMode !== "normal") {
@@ -186,6 +210,14 @@ function normalizeLabel(label) {
   }
 
   return label.trim();
+}
+
+function appendDraftSnapshotNote(message, hasSelectedDraftSnapshot) {
+  if (!hasSelectedDraftSnapshot) {
+    return message;
+  }
+
+  return `${message} Copy handoff note includes the current draft snapshot for reviewer context.`;
 }
 
 function appendHandoffNoteScope(lines, label, items) {

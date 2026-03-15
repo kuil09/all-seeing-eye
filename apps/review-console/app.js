@@ -95,6 +95,7 @@ const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
 const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
 const REVIEW_ACTIVITY_STORAGE_KEY = "all-seeing-eye.review-console.recent-activity.v1";
 const DETAIL_FOCUS_HIGHLIGHT_MS = 1800;
+const HANDOFF_DRAFT_PREVIEW_MAX_LENGTH = 240;
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -979,7 +980,11 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     draftFilter: state.draftFilter,
     demoMode: state.demoMode,
     hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
-    activeSavedViewLabel: activeSavedView?.label ?? ""
+    activeSavedViewLabel: activeSavedView?.label ?? "",
+    selectedDraftPreview: buildReviewDraftPreview(
+      getReviewDraft(state.reviewDrafts, state.selectedEventId),
+      { maxLength: HANDOFF_DRAFT_PREVIEW_MAX_LENGTH }
+    )
   });
 }
 
@@ -992,6 +997,10 @@ function renderViewHandoffPanel(handoffSummary) {
   const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
   const scopeGroups = [
     renderViewHandoffScopeGroup("Included in link", handoffSummary.includedState),
+    renderViewHandoffScopeGroup(
+      "Included in handoff note only",
+      handoffSummary.noteOnlyState
+    ),
     renderViewHandoffScopeGroup(
       "Needs local browser state",
       handoffSummary.localDependentState,
