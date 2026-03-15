@@ -36,12 +36,12 @@ test.describe("shareable view handoff", () => {
     await page.locator("[data-search-focus-target='detail-provenance']").click();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
-    const copyButton = page.getByRole("button", { name: "Copy current view link" });
+    const copyButton = page.getByRole("button", { name: "Copy start link" });
     await expect(copyButton).toBeVisible();
     await copyButton.click();
 
     await expect(page.locator(".view-handoff-note.is-success")).toContainText(
-      "Copied current view link."
+      "Copied start link."
     );
 
     const copiedText = await page.evaluate(() => window.__copiedText);
@@ -104,13 +104,15 @@ test.describe("shareable view handoff", () => {
 
     await page.getByRole("button", { name: /Saved drafts/i }).click();
     await page.locator("[data-search-focus-target='detail-provenance']").click();
-    await expect(page.getByRole("button", { name: "Copy portable link" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Copy start link without saved drafts" })
+    ).toBeVisible();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
-    await page.getByRole("button", { name: "Copy portable link" }).click();
+    await page.getByRole("button", { name: "Copy start link without saved drafts" }).click();
 
     await expect(page.locator(".view-handoff-note.is-success")).toContainText(
-      "Copied portable link without saved-draft filtering."
+      "Copied start link without saved drafts."
     );
 
     const copiedText = await page.evaluate(() => window.__copiedText);
@@ -125,7 +127,9 @@ test.describe("shareable view handoff", () => {
       "aria-pressed",
       "true"
     );
-    await expect(page.getByRole("button", { name: "Copy portable link" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Copy start link without saved drafts" })
+    ).toHaveCount(0);
 
     await page.screenshot({
       path: "test-results/shareable-view-portable-link.png",
@@ -186,8 +190,8 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Recommended path: Start here. The selected event is still pending in this view."
     );
-    await expect(handoffPreview).toContainText("Preview expanded handoff context");
-    await expect(handoffPreview).toContainText("5 handoff context items");
+    await expect(handoffPreview).toContainText("Show reviewer context and evidence");
+    await expect(handoffPreview).toContainText("5 review details");
     await expect(page.locator(".view-handoff-preview-item").first()).not.toBeVisible();
     await handoffPreview.locator("summary").click();
     await expect(page.locator(".view-handoff-preview-item").first()).toBeVisible();
@@ -206,10 +210,10 @@ test.describe("shareable view handoff", () => {
     await expect(handoffPreview).not.toContainText(
       "Source proof: Harbor North security review extends outbound inspections"
     );
-    await page.getByRole("button", { name: "Copy handoff note" }).click();
+    await page.getByRole("button", { name: "Copy review note" }).click();
 
     await expect(page.locator(".view-handoff-note.is-success")).toContainText(
-      "Copied handoff note with current and portable links."
+      "Copied review note with both start links."
     );
 
     const copiedText = await page.evaluate(() => window.__copiedText);
@@ -309,7 +313,7 @@ test.describe("shareable view handoff", () => {
       "Recommended path: Start here for context, then continue with next pending to keep triage moving."
     );
 
-    await page.getByRole("button", { name: "Copy handoff note" }).click();
+    await page.getByRole("button", { name: "Copy review note" }).click();
 
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain(

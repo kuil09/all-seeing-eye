@@ -282,7 +282,7 @@ test("buildViewHandoffSummary warns when saved-draft filtering depends on local 
   assert.equal(summary.showPortableCopyAction, true);
   assert.equal(
     summary.portabilityNote,
-    "Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."
+    "Saved-draft filtering stays in the copied start link, but it only reproduces on browsers that already have matching local drafts. Use Copy start link without saved drafts to remove this dependency."
   );
 });
 
@@ -318,7 +318,7 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
   assert.equal(summary.isWarning, true);
   assert.equal(
     summary.portabilityNote,
-    'The copied URL reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only. Copy handoff note includes the current draft snapshot for reviewer context.'
+    'The copied start link reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only. Copy review note includes the current draft snapshot for reviewer context.'
   );
 });
 
@@ -663,7 +663,7 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "- Included in handoff note only: Reviewer context below",
       "- Needs local browser state: Saved-draft filter",
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
-      "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency. Copy handoff note includes the current draft snapshot for reviewer context."
+      "- Portability note: Saved-draft filtering stays in the copied start link, but it only reproduces on browsers that already have matching local drafts. Use Copy start link without saved drafts to remove this dependency. Copy review note includes the current draft snapshot for reviewer context."
     ].join("\n")
   );
 });
@@ -725,7 +725,7 @@ test("buildViewHandoffNote includes direct next pending links when the current s
       "Handoff scope",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
       "- Needs local browser state: Saved-draft filter",
-      "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."
+      "- Portability note: Saved-draft filtering stays in the copied start link, but it only reproduces on browsers that already have matching local drafts. Use Copy start link without saved drafts to remove this dependency."
     ].join("\n")
   );
 });

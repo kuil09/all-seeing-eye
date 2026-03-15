@@ -89,8 +89,8 @@ export function buildViewHandoffSummary({
       .filter(Boolean)
       .join(" · "),
     helperCopy: cleanedSelectedHeadline
-      ? "Copy a URL that reopens this queue slice and selected event for async review handoff."
-      : "Copy a URL that reopens this queue slice for async review handoff.",
+      ? "Copy the next reviewer's starting point for this queue slice and selected event."
+      : "Copy the next reviewer's starting point for this queue slice.",
     includedState,
     localDependentState,
     localOnlyState,
@@ -379,7 +379,7 @@ function buildPortabilityNote({
 }) {
   if (draftFilter === "saved") {
     return appendDraftSnapshotNote(
-      "Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency.",
+      "Saved-draft filtering stays in the copied start link, but it only reproduces on browsers that already have matching local drafts. Use Copy start link without saved drafts to remove this dependency.",
       hasSelectedDraftSnapshot
     );
   }
@@ -394,7 +394,7 @@ function buildPortabilityNote({
 
   if (localOnlyLabels.length) {
     return appendDraftSnapshotNote(
-      `The copied URL reopens this queue, but ${joinLabelList(localOnlyLabels)} ${
+      `The copied start link reopens this queue, but ${joinLabelList(localOnlyLabels)} ${
         localOnlyLabels.length === 1 ? "stays" : "stay"
       } in this browser only.`,
       hasSelectedDraftSnapshot
@@ -645,7 +645,7 @@ function appendDraftSnapshotNote(message, hasSelectedDraftSnapshot) {
     return message;
   }
 
-  return `${message} Copy handoff note includes the current draft snapshot for reviewer context.`;
+  return `${message} Copy review note includes the current draft snapshot for reviewer context.`;
 }
 
 function appendHandoffNoteSection(lines, label, sectionLines) {

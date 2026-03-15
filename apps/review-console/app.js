@@ -1179,7 +1179,7 @@ function renderViewHandoffPanel(handoffSummary) {
         </div>
         <div class="action-row view-handoff-actions">
           <button type="button" class="secondary-action" data-copy-view-link>
-            Copy current view link
+            Copy start link
           </button>
           ${
             handoffSummary.showPortableCopyAction
@@ -1189,13 +1189,13 @@ function renderViewHandoffPanel(handoffSummary) {
                   class="secondary-action"
                   data-copy-portable-view-link
                 >
-                  Copy portable link
+                  Copy start link without saved drafts
                 </button>
               `
               : ""
           }
           <button type="button" class="secondary-action" data-copy-handoff-note>
-            Copy handoff note
+            Copy review note
           </button>
         </div>
       </div>
@@ -1248,15 +1248,17 @@ function renderViewHandoffPreview(previewItems) {
     return "";
   }
 
-  const previewCountLabel = `${previewItems.length} handoff context item${
+  const reviewDetailCountLabel = `${previewItems.length} review detail${
     previewItems.length === 1 ? "" : "s"
   }`;
 
   return `
     <details class="view-handoff-preview">
       <summary class="view-handoff-preview-summary">
-        Preview expanded handoff context
-        <span class="view-handoff-preview-count">${escapeHtml(previewCountLabel)}</span>
+        Show reviewer context and evidence
+        <span class="view-handoff-preview-count">${escapeHtml(
+          reviewDetailCountLabel
+        )}</span>
       </summary>
       <div class="view-handoff-preview-list">
         ${previewItems
@@ -2437,13 +2439,13 @@ async function copyCurrentViewLink({ portable = false } = {}) {
     await copyTextToClipboard(shareUrl.toString());
     setShareViewFeedback(
       portable
-        ? "Copied portable link without saved-draft filtering."
-        : "Copied current view link.",
+        ? "Copied start link without saved drafts."
+        : "Copied start link.",
       "success"
     );
   } catch (error) {
     setShareViewFeedback(
-      "Copy failed. Use the browser address bar to share this view.",
+      "Copy failed. Use the browser address bar to share this start link.",
       "error"
     );
   }
@@ -2485,13 +2487,13 @@ async function copyViewHandoffNote() {
     await copyTextToClipboard(handoffNote);
     setShareViewFeedback(
       portableShareUrl
-        ? "Copied handoff note with current and portable links."
-        : "Copied handoff note.",
+        ? "Copied review note with both start links."
+        : "Copied review note.",
       "success"
     );
   } catch (error) {
     setShareViewFeedback(
-      "Copy failed. Use the links and scope summary below to share this view.",
+      "Copy failed. Use the start links and scope summary below to share this handoff.",
       "error"
     );
   }
