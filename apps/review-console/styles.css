@@ -257,6 +257,14 @@ a {
   line-height: 1.45;
 }
 
+.view-handoff-context {
+  margin-top: 0.1rem;
+}
+
+.view-handoff-context-copy {
+  margin: 0;
+}
+
 .view-handoff-note {
   margin: 0;
   line-height: 1.45;

@@ -57,6 +57,7 @@ recorded without notes for quick triage.
 - Shareable view now also offers a portable-link copy path that strips saved-draft filtering so async handoff does not depend on browser-local state
 - Shareable view now also breaks handoff scope into URL-carried state, saved-draft dependencies, and browser-local-only state such as unsaved draft-note text or active saved-view labels
 - Shareable view now also copies a paste-ready handoff note that bundles the current link, a portable link when needed, the included versus local-only scope cues, and the selected local draft snapshot when one exists
+- Shareable view now also surfaces a reviewer snapshot plus recent persisted review context for the selected event, so async handoff notes explain why this queue item needs attention before the next reviewer opens detail
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field

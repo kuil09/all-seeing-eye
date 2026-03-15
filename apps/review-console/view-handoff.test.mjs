@@ -12,6 +12,14 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     filteredCount: 2,
     totalCount: 7,
     sourceLabel: "Contract fixtures",
+    selectedContextItems: [
+      "Status: pending review",
+      "Confidence: high confidence 88%",
+      "Provenance: 2 sources across 2 feeds",
+      "Review history: 1 review action"
+    ],
+    selectedReviewContext:
+      "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
     filterSummary: {
       hasActiveFilters: true,
       demoModeLabel: "",
@@ -33,6 +41,16 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     "Lowest confidence first",
     "Contract fixtures"
   ]);
+  assert.deepEqual(summary.selectedContextItems, [
+    "Status: pending review",
+    "Confidence: high confidence 88%",
+    "Provenance: 2 sources across 2 feeds",
+    "Review history: 1 review action"
+  ]);
+  assert.equal(
+    summary.selectedReviewContext,
+    "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
+  );
   assert.deepEqual(summary.localDependentState, []);
   assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
@@ -116,6 +134,14 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
     filteredCount: 2,
     totalCount: 7,
     sourceLabel: "Contract fixtures",
+    selectedContextItems: [
+      "Status: pending review",
+      "Confidence: high confidence 88%",
+      "Provenance: 2 sources across 2 feeds",
+      "Review history: 1 review action"
+    ],
+    selectedReviewContext:
+      "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
     filterSummary: {
       activeFilters: ["Search: harbor"],
       hasActiveFilters: true,
@@ -137,6 +163,8 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
+      "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
+      "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."

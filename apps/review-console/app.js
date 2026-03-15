@@ -970,9 +970,13 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
 
   const activeSavedView = getActiveSavedView();
   const filterSummary = getCurrentFilterSummary();
+  const selectedDetail = state.selectedEventId
+    ? state.data.details[state.selectedEventId] ?? null
+    : null;
+  const selectedContext = buildSelectedHandoffContext(selectedDetail);
 
   return buildViewHandoffSummary({
-    selectedHeadline: state.data.details[state.selectedEventId]?.event?.headline ?? "",
+    selectedHeadline: selectedDetail?.event?.headline ?? "",
     filteredCount: filteredTimeline.length,
     totalCount: state.data.timeline.length,
     sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
@@ -981,11 +985,58 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     demoMode: state.demoMode,
     hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
     activeSavedViewLabel: activeSavedView?.label ?? "",
+    selectedContextItems: selectedContext.items,
+    selectedReviewContext: selectedContext.reviewContext,
     selectedDraftPreview: buildReviewDraftPreview(
       getReviewDraft(state.reviewDrafts, state.selectedEventId),
       { maxLength: HANDOFF_DRAFT_PREVIEW_MAX_LENGTH }
     )
   });
+}
+
+function buildSelectedHandoffContext(detail) {
+  if (!detail?.event) {
+    return { items: [], reviewContext: "" };
+  }
+
+  const provenanceSummary = buildSourceProvenanceSummary(
+    detail.sources ?? [],
+    detail.event.eventTime
+  );
+  const reviewHistorySummary = buildReviewHistorySummary(detail.reviewActions ?? []);
+
+  return {
+    items: [
+      `Status: ${formatReviewStatus(detail.event.reviewStatus)}`,
+      detail.event.confidence
+        ? `Confidence: ${formatConfidence(detail.event.confidence)}`
+        : "",
+      provenanceSummary
+        ? `Provenance: ${provenanceSummary.postureLabel}`
+        : "",
+      reviewHistorySummary
+        ? `Review history: ${formatReviewActionCount(reviewHistorySummary.actionCount)}`
+        : "Review history: No prior review"
+    ].filter(Boolean),
+    reviewContext: buildSelectedReviewContext(reviewHistorySummary)
+  };
+}
+
+function buildSelectedReviewContext(reviewHistorySummary) {
+  if (!reviewHistorySummary) {
+    return "";
+  }
+
+  const actorLabel = reviewHistorySummary.actorLabel
+    ? ` by ${reviewHistorySummary.actorLabel}`
+    : "";
+  const notePreview =
+    reviewHistorySummary.notePreview &&
+    reviewHistorySummary.notePreview !== "No notes recorded."
+      ? ` Note: ${reviewHistorySummary.notePreview}`
+      : "";
+
+  return `Latest review was ${reviewHistorySummary.actionLabel}${actorLabel}.${notePreview}`;
 }
 
 function renderViewHandoffPanel(handoffSummary) {
@@ -995,6 +1046,11 @@ function renderViewHandoffPanel(handoffSummary) {
       ? " is-warning"
       : "";
   const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
+  const selectedContextChips = Array.isArray(handoffSummary.selectedContextItems)
+    ? handoffSummary.selectedContextItems
+        .map((item) => `<span class="chip">${escapeHtml(item)}</span>`)
+        .join("")
+    : "";
   const scopeGroups = [
     renderViewHandoffScopeGroup("Included in link", handoffSummary.includedState),
     renderViewHandoffScopeGroup(
@@ -1044,6 +1100,18 @@ function renderViewHandoffPanel(handoffSummary) {
         <p class="view-handoff-label">${escapeHtml(handoffSummary.selectedLabel)}</p>
         <strong class="view-handoff-title">${escapeHtml(handoffSummary.selectedValue)}</strong>
         <p class="meta-copy">${escapeHtml(handoffSummary.contextLabel)}</p>
+        ${
+          selectedContextChips
+            ? `<div class="chip-row view-handoff-context">${selectedContextChips}</div>`
+            : ""
+        }
+        ${
+          handoffSummary.selectedReviewContext
+            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
+                handoffSummary.selectedReviewContext
+              )}</p>`
+            : ""
+        }
         <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
         ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
       </div>

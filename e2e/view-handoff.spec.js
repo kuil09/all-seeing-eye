@@ -73,9 +73,12 @@ test.describe("shareable view handoff", () => {
 
     await page.goto(FIXTURES_URL);
 
-    const firstCard = page.locator("#timeline-list .timeline-card").first();
-    await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    const harborCard = page
+      .locator("#timeline-list .timeline-card")
+      .filter({ hasText: "Inspection surge reported at Harbor North cargo terminal" })
+      .first();
+    await expect(harborCard).toBeVisible();
+    await harborCard.click();
 
     const reviewNotes = page.locator("#review-notes");
     await expect(reviewNotes).toBeVisible();
@@ -129,9 +132,12 @@ test.describe("shareable view handoff", () => {
 
     await page.goto(FIXTURES_URL);
 
-    const firstCard = page.locator("#timeline-list .timeline-card").first();
-    await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    const harborCard = page
+      .locator("#timeline-list .timeline-card")
+      .filter({ hasText: "Inspection surge reported at Harbor North cargo terminal" })
+      .first();
+    await expect(harborCard).toBeVisible();
+    await harborCard.click();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
     const reviewNotes = page.locator("#review-notes");
@@ -143,6 +149,10 @@ test.describe("shareable view handoff", () => {
     );
 
     await page.getByRole("button", { name: /Saved drafts/i }).click();
+    await expect(page.locator(".view-handoff-snapshot")).toContainText("Status: pending review");
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Latest review was edit by bootstrap-fixture."
+    );
     await page.getByRole("button", { name: "Copy handoff note" }).click();
 
     await expect(page.locator(".view-handoff-note.is-success")).toContainText(
@@ -152,6 +162,12 @@ test.describe("shareable view handoff", () => {
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain("Review console handoff");
     expect(copiedText).toContain(`- Selected event: ${selectedHeadline ?? ""}`);
+    expect(copiedText).toContain(
+      "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
+    );
+    expect(copiedText).toContain(
+      "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
+    );
     expect(copiedText).toContain("- Current link: http://127.0.0.1:");
     expect(copiedText).toContain("drafts=saved");
     expect(copiedText).toContain("- Portable link: http://127.0.0.1:");

@@ -8,12 +8,16 @@ export function buildViewHandoffSummary({
   demoMode = "normal",
   hasSelectedDraft = false,
   activeSavedViewLabel = "",
-  selectedDraftPreview = ""
+  selectedDraftPreview = "",
+  selectedContextItems = [],
+  selectedReviewContext = ""
 }) {
   const cleanedSelectedHeadline = String(selectedHeadline).trim();
   const cleanedSourceLabel = normalizeLabel(sourceLabel);
   const cleanedSavedViewLabel = normalizeLabel(activeSavedViewLabel);
   const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
+  const cleanedSelectedContextItems = normalizeLabels(selectedContextItems);
+  const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
   const sortLabel = normalizeSortLabel(filterSummary.sortLabel);
   const includedState = buildIncludedState({
     cleanedSelectedHeadline,
@@ -54,6 +58,8 @@ export function buildViewHandoffSummary({
     localOnlyState,
     noteOnlyState,
     selectedDraftPreview: cleanedSelectedDraftPreview,
+    selectedContextItems: cleanedSelectedContextItems,
+    selectedReviewContext: cleanedSelectedReviewContext,
     portabilityNote: buildPortabilityNote({
       draftFilter,
       demoMode,
@@ -84,6 +90,14 @@ export function buildViewHandoffNote({
 
   if (contextLabel) {
     lines.push(`- Queue: ${contextLabel}`);
+  }
+
+  if (Array.isArray(handoffSummary.selectedContextItems) && handoffSummary.selectedContextItems.length) {
+    lines.push(`- Reviewer snapshot: ${handoffSummary.selectedContextItems.join("; ")}`);
+  }
+
+  if (normalizeLabel(handoffSummary.selectedReviewContext)) {
+    lines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
   }
 
   if (currentLink) {
@@ -210,6 +224,12 @@ function normalizeLabel(label) {
   }
 
   return label.trim();
+}
+
+function normalizeLabels(labels) {
+  return Array.isArray(labels)
+    ? labels.map((label) => normalizeLabel(String(label))).filter(Boolean)
+    : [];
 }
 
 function appendDraftSnapshotNote(message, hasSelectedDraftSnapshot) {
