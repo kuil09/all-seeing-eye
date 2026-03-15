@@ -180,10 +180,13 @@ test.describe("shareable view handoff", () => {
       "Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim."
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Source proof: Harbor North security review extends outbound inspections"
+      "Source proof: Members report cargo delays at Harbor North terminal"
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Source proof: Members report cargo delays at Harbor North terminal"
+      "Source proof summary: 1 more supporting source remains in provenance detail."
+    );
+    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
+      "Source proof: Harbor North security review extends outbound inspections"
     );
     await page.getByRole("button", { name: "Copy handoff note" }).click();
 
@@ -207,10 +210,13 @@ test.describe("shareable view handoff", () => {
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
     );
     expect(copiedText).toContain(
-      "- Source proof: Harbor North security review extends outbound inspections (regional-port-bulletin, 35m before event): Outbound containers are subject to enhanced screening through the morning shift."
+      "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
     );
     expect(copiedText).toContain(
-      "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
+      "- Source proof summary: 1 more supporting source remains in provenance detail."
+    );
+    expect(copiedText).not.toContain(
+      "- Source proof: Harbor North security review extends outbound inspections"
     );
     expect(copiedText).toContain(
       "- Focused search match: Source: coastal-shipping-association"

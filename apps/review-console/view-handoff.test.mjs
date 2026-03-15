@@ -252,6 +252,29 @@ test("buildViewHandoffSummary marks source proof as handoff-note-only context", 
   ]);
 });
 
+test("buildViewHandoffSummary carries source proof overflow copy when extra provenance stays in detail", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    filterSummary: {
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    },
+    selectedSourceProofItems: [
+      "Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
+    ],
+    selectedSourceProofOverflowCopy: "1 more supporting source remains in provenance detail."
+  });
+
+  assert.equal(
+    summary.selectedSourceProofOverflowCopy,
+    "1 more supporting source remains in provenance detail."
+  );
+});
+
 test("buildViewHandoffSummary marks confidence drivers as handoff-note-only context", () => {
   const summary = buildViewHandoffSummary({
     selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
@@ -298,9 +321,10 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
     selectedReviewContext:
       "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
     selectedSourceProofItems: [
-      "Harbor North security review extends outbound inspections (regional-port-bulletin, 35m before event): Outbound containers are subject to enhanced screening through the morning shift.",
       "Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
     ],
+    selectedSourceProofOverflowCopy:
+      "1 more supporting source remains in provenance detail.",
     filterSummary: {
       activeFilters: ["Search: harbor"],
       hasActiveFilters: true,
@@ -326,8 +350,8 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms.",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
-      "- Source proof: Harbor North security review extends outbound inspections (regional-port-bulletin, 35m before event): Outbound containers are subject to enhanced screening through the morning shift.",
       "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity.",
+      "- Source proof summary: 1 more supporting source remains in provenance detail.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Included in handoff note only: Confidence driver snapshot; Supporting source snapshots",

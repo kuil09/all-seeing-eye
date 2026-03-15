@@ -13,6 +13,7 @@ export function buildViewHandoffSummary({
   selectedConfidenceContext = "",
   selectedReviewContext = "",
   selectedSourceProofItems = [],
+  selectedSourceProofOverflowCopy = "",
   queueContext = null,
   nextPendingEventId = "",
   nextPendingHeadline = "",
@@ -27,6 +28,9 @@ export function buildViewHandoffSummary({
   const cleanedSelectedConfidenceContext = normalizeLabel(selectedConfidenceContext);
   const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
   const cleanedSelectedSourceProofItems = normalizeLabels(selectedSourceProofItems);
+  const cleanedSelectedSourceProofOverflowCopy = normalizeLabel(
+    selectedSourceProofOverflowCopy
+  );
   const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const selectedSearchSummary = buildSelectedSearchSummary(
@@ -83,6 +87,7 @@ export function buildViewHandoffSummary({
     selectedConfidenceContext: cleanedSelectedConfidenceContext,
     selectedReviewContext: cleanedSelectedReviewContext,
     selectedSourceProofItems: cleanedSelectedSourceProofItems,
+    selectedSourceProofOverflowCopy: cleanedSelectedSourceProofOverflowCopy,
     selectedQueueContext: buildSelectedQueueContext(queueContext),
     nextPendingEventId: cleanedNextPendingEventId,
     nextPendingCopy: cleanedNextPendingHeadline
@@ -153,6 +158,12 @@ export function buildViewHandoffNote({
     for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
       lines.push(`- Source proof: ${sourceProofItem}`);
     }
+  }
+
+  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
+    lines.push(
+      `- Source proof summary: ${handoffSummary.selectedSourceProofOverflowCopy}`
+    );
   }
 
   if (normalizeLabel(handoffSummary.selectedSearchContext)) {

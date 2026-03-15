@@ -60,7 +60,7 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
-import { buildSourceProofSnapshots } from "./source-proof-snapshot.mjs";
+import { buildSourceProofSnapshotBundle } from "./source-proof-snapshot.mjs";
 import {
   DEFAULT_TIMELINE_SORT,
   SORT_PENDING_FIRST,
@@ -991,11 +991,15 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
   const selectedDetail = state.selectedEventId
     ? state.data.details[state.selectedEventId] ?? null
     : null;
-  const selectedContext = buildSelectedHandoffContext(selectedDetail);
   const selectedSearchMatches =
     selectedTimelineItem && selectedDetail
       ? buildTimelineSearchMatches(state.searchQuery, selectedTimelineItem, selectedDetail)
       : [];
+  const activeSearchFocusTarget = getActiveSearchFocusTarget(selectedSearchMatches);
+  const selectedContext = buildSelectedHandoffContext(selectedDetail, {
+    searchQuery: state.searchQuery,
+    activeSearchFocusTarget
+  });
 
   return buildViewHandoffSummary({
     selectedHeadline: selectedDetail?.event?.headline ?? "",
@@ -1017,8 +1021,9 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     selectedConfidenceContext: selectedContext.confidenceContext,
     selectedReviewContext: selectedContext.reviewContext,
     selectedSourceProofItems: selectedContext.sourceProofItems,
+    selectedSourceProofOverflowCopy: selectedContext.sourceProofOverflowCopy,
     selectedSearchMatches,
-    activeSearchFocusTarget: getActiveSearchFocusTarget(selectedSearchMatches),
+    activeSearchFocusTarget,
     selectedDraftPreview: buildReviewDraftPreview(
       getReviewDraft(state.reviewDrafts, state.selectedEventId),
       { maxLength: HANDOFF_DRAFT_PREVIEW_MAX_LENGTH }
@@ -1026,13 +1031,17 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
   });
 }
 
-function buildSelectedHandoffContext(detail) {
+function buildSelectedHandoffContext(
+  detail,
+  { searchQuery = "", activeSearchFocusTarget = "" } = {}
+) {
   if (!detail?.event) {
     return {
       items: [],
       confidenceContext: "",
       reviewContext: "",
-      sourceProofItems: []
+      sourceProofItems: [],
+      sourceProofOverflowCopy: ""
     };
   }
 
@@ -1045,9 +1054,13 @@ function buildSelectedHandoffContext(detail) {
     detail.event.eventTime
   );
   const reviewHistorySummary = buildReviewHistorySummary(detail.reviewActions ?? []);
-  const sourceProofItems = buildSourceProofSnapshots(
+  const sourceProofSelection = buildSourceProofSnapshotBundle(
     detail.sources ?? [],
-    detail.event.eventTime
+    detail.event.eventTime,
+    {
+      searchQuery,
+      activeSearchFocusTarget
+    }
   );
 
   return {
@@ -1065,7 +1078,10 @@ function buildSelectedHandoffContext(detail) {
     ].filter(Boolean),
     confidenceContext: buildSelectedConfidenceContext(confidenceSummary),
     reviewContext: buildSelectedReviewContext(reviewHistorySummary),
-    sourceProofItems
+    sourceProofItems: sourceProofSelection.items,
+    sourceProofOverflowCopy: buildSourceProofOverflowCopy(
+      sourceProofSelection.hiddenCount
+    )
   };
 }
 
@@ -1112,6 +1128,16 @@ function buildSelectedReviewContext(reviewHistorySummary) {
       : "";
 
   return `Latest review was ${reviewHistorySummary.actionLabel}${actorLabel}.${notePreview}`;
+}
+
+function buildSourceProofOverflowCopy(hiddenCount) {
+  if (!hiddenCount) {
+    return "";
+  }
+
+  return `${hiddenCount} more supporting source${
+    hiddenCount === 1 ? "" : "s"
+  } remain${hiddenCount === 1 ? "s" : ""} in provenance detail.`;
 }
 
 function renderViewHandoffPanel(handoffSummary) {
@@ -1208,7 +1234,10 @@ function renderViewHandoffPanel(handoffSummary) {
               )}</p>`
             : ""
         }
-        ${renderViewHandoffSourceProof(handoffSummary.selectedSourceProofItems)}
+        ${renderViewHandoffSourceProof(
+          handoffSummary.selectedSourceProofItems,
+          handoffSummary.selectedSourceProofOverflowCopy
+        )}
         ${
           handoffSummary.selectedSearchContext
             ? `<p class="meta-copy view-handoff-context-copy"><strong>${escapeHtml(
@@ -1223,8 +1252,13 @@ function renderViewHandoffPanel(handoffSummary) {
   `;
 }
 
-function renderViewHandoffSourceProof(sourceProofItems) {
-  if (!Array.isArray(sourceProofItems) || !sourceProofItems.length) {
+function renderViewHandoffSourceProof(sourceProofItems, sourceProofOverflowCopy = "") {
+  const normalizedSourceProofOverflowCopy = String(sourceProofOverflowCopy ?? "").trim();
+
+  if (
+    (!Array.isArray(sourceProofItems) || !sourceProofItems.length) &&
+    !normalizedSourceProofOverflowCopy
+  ) {
     return "";
   }
 
@@ -1239,6 +1273,17 @@ function renderViewHandoffSourceProof(sourceProofItems) {
           `
         )
         .join("")}
+      ${
+        normalizedSourceProofOverflowCopy
+          ? `
+            <p class="meta-copy view-handoff-context-copy view-handoff-proof">
+              <strong>Source proof summary:</strong> ${escapeHtml(
+                normalizedSourceProofOverflowCopy
+              )}
+            </p>
+          `
+          : ""
+      }
     </div>
   `;
 }
