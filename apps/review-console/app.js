@@ -1165,10 +1165,6 @@ function renderViewHandoffPanel(handoffSummary) {
   const scopeGroups = [
     renderViewHandoffScopeGroup("Included in link", handoffSummary.includedState),
     renderViewHandoffScopeGroup(
-      "Included in handoff note only",
-      handoffSummary.noteOnlyState
-    ),
-    renderViewHandoffScopeGroup(
       "Needs local browser state",
       handoffSummary.localDependentState,
       "warning"

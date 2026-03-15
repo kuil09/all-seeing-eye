@@ -192,6 +192,15 @@ test.describe("shareable view handoff", () => {
     );
     await expect(handoffPreview).toContainText("Show reviewer context and evidence");
     await expect(handoffPreview).toContainText("5 review details");
+    await expect(page.locator(".view-handoff-scope")).not.toContainText(
+      "Included in handoff note only"
+    );
+    await expect(page.locator(".view-handoff-scope")).not.toContainText(
+      "Reviewer context below"
+    );
+    await expect(page.locator(".view-handoff-scope")).not.toContainText(
+      "Evidence appendix below"
+    );
     await expect(page.locator(".view-handoff-preview-item").first()).not.toBeVisible();
     await handoffPreview.locator("summary").click();
     await expect(page.locator(".view-handoff-preview-item").first()).toBeVisible();
