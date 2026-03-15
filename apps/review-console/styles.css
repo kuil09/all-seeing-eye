@@ -846,6 +846,24 @@ a {
   color: var(--teal);
 }
 
+.flash-note.has-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.flash-note-copy {
+  margin: 0;
+  flex: 1;
+}
+
+.flash-note-action {
+  flex-shrink: 0;
+  border-color: rgba(31, 116, 100, 0.22);
+  color: var(--teal);
+}
+
 .flash-note.is-error {
   background: rgba(139, 59, 59, 0.12);
   color: var(--rose);
@@ -875,6 +893,11 @@ a {
 @media (max-width: 760px) {
   .shell {
     padding: 1rem;
+  }
+
+  .flash-note.has-action {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .masthead,

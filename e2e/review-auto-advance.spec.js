@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 const FIXTURES_URL = "/apps/review-console/?source=fixtures";
+const DRAFT_TEXT = "Recheck the earlier source summary before finalizing this event.";
 
 test.describe("review action submission and queue auto-advance", () => {
   test("approving a pending event advances the console to the next pending item", async ({
@@ -59,6 +60,37 @@ test.describe("review action submission and queue auto-advance", () => {
     // Screenshot: edit blocked without notes
     await page.screenshot({
       path: "test-results/edit-blocked-no-notes.png",
+      fullPage: true
+    });
+  });
+
+  test("success flash note can reopen the event that was just reviewed", async ({ page }) => {
+    await page.goto(FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    const firstHeadline = await page.locator(".detail-shell h2").first().textContent();
+    const reviewNotes = page.locator("#review-notes");
+    await expect(reviewNotes).toBeVisible();
+    await reviewNotes.fill(DRAFT_TEXT);
+
+    await page.locator('[data-review-action="edit"]').click();
+
+    const reopenButton = page.locator('[data-reopen-last-reviewed]');
+    await expect(reopenButton).toBeVisible();
+
+    const currentHeadline = await page.locator(".detail-shell h2").first().textContent();
+    expect(currentHeadline).not.toBe(firstHeadline);
+
+    await reopenButton.click();
+
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(firstHeadline ?? "");
+    await expect(page.locator("#review-notes")).toHaveValue(DRAFT_TEXT);
+
+    await page.screenshot({
+      path: "test-results/reopen-last-reviewed-from-flash-note.png",
       fullPage: true
     });
   });

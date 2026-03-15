@@ -262,6 +262,16 @@ function bindEvents() {
       return;
     }
 
+    const reopenLastReviewedButton = event.target.closest("[data-reopen-last-reviewed]");
+    if (reopenLastReviewedButton) {
+      const reviewActivityEntry = getLastActionRecoveryEntry();
+      if (reviewActivityEntry) {
+        state.lastActionMessage = "";
+        applyRecentReviewActivity(reviewActivityEntry);
+      }
+      return;
+    }
+
     const quickStatusButton = event.target.closest("[data-quick-status]");
     if (quickStatusButton) {
       const nextStatusFilter = quickStatusButton.getAttribute("data-quick-status");
@@ -963,11 +973,7 @@ function renderDetail() {
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
-      ${
-        state.lastActionMessage
-          ? `<div class="flash-note">${escapeHtml(state.lastActionMessage)}</div>`
-          : ""
-      }
+      ${renderActionFlashNote()}
       ${
         state.actionError
           ? `<div class="flash-note is-error">${escapeHtml(state.actionError)}</div>`
@@ -1511,6 +1517,24 @@ function buildReviewActionMessage(reviewStatus, headline, nextHeadline) {
   return `${statusLabel} recorded for ${headline}. Advanced to next pending event: ${nextHeadline}.`;
 }
 
+function renderActionFlashNote() {
+  if (!state.lastActionMessage) {
+    return "";
+  }
+
+  const reviewActivityEntry = getLastActionRecoveryEntry();
+  return `
+    <div class="flash-note${reviewActivityEntry ? " has-action" : ""}">
+      <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
+      ${
+        reviewActivityEntry
+          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen last reviewed event</button>'
+          : ""
+      }
+    </div>
+  `;
+}
+
 function canRunShortcutReviewAction() {
   if (!state.data || !state.selectedEventId || state.demoMode === DEMO_ERROR || state.loadError) {
     return false;
@@ -1942,6 +1966,21 @@ function escapeAttribute(value) {
 
 function getActiveSavedView() {
   return findMatchingSavedView(state.savedViews, getCurrentFilterState());
+}
+
+function getLastActionRecoveryEntry() {
+  if (!state.lastActionMessage || !state.data || !state.recentReviewActivity.length) {
+    return null;
+  }
+
+  const reviewActivityEntry = state.recentReviewActivity[0];
+  if (!reviewActivityEntry || reviewActivityEntry.eventId === state.selectedEventId) {
+    return null;
+  }
+
+  return state.data.timeline.some((item) => item.eventId === reviewActivityEntry.eventId)
+    ? reviewActivityEntry
+    : null;
 }
 
 function recordRecentReviewActivity(reviewActivityEntry) {
