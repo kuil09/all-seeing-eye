@@ -411,16 +411,23 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
     [
       "Review console handoff",
       "",
+      "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
+      "- Recommended path: Start with the selected event. It is still pending in this view.",
+      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
+      "",
+      "Queue snapshot",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
       "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
+      "",
+      "Reviewer context",
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms.",
-      "- Recommended path: Start with the selected event. It is still pending in this view.",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
       "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity.",
       "- Source proof summary: 1 more supporting source remains in provenance detail.",
-      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
+      "",
+      "Handoff scope",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Included in handoff note only: Confidence driver snapshot; Supporting source snapshots",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
@@ -428,7 +435,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
   );
 });
 
-test("buildViewHandoffNote includes active search rationale before the copied links", () => {
+test("buildViewHandoffNote keeps active search rationale in reviewer context", () => {
   const handoffSummary = buildViewHandoffSummary({
     selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
     filteredCount: 2,
@@ -471,11 +478,18 @@ test("buildViewHandoffNote includes active search rationale before the copied li
     [
       "Review console handoff",
       "",
+      "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
-      "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
       "- Recommended path: Start with the selected event. It is still pending in this view.",
+      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
+      "",
+      "Queue snapshot",
+      "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
+      "",
+      "Reviewer context",
       "- Focused search match: Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)",
-      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
+      "",
+      "Handoff scope",
       "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     ].join("\n")
@@ -520,17 +534,24 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
     [
       "Review console handoff",
       "",
+      "Open now",
       "- Selected event: Storm-related outage affects East Grid substation 7",
+      "- Recommended path: Start with the selected event. It is still pending in this view.",
+      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1)",
+      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1)",
+      "",
+      "Queue snapshot",
       "- Queue: 1 of 7 events visible · Local read API",
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view.",
-      "- Recommended path: Start with the selected event. It is still pending in this view.",
-      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1",
-      "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1 (saved-draft filter removed)",
+      "",
+      "Reviewer context",
+      "- Draft snapshot: Portable handoff should keep this event selected.",
+      "",
+      "Handoff scope",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
       "- Included in handoff note only: Selected draft note snapshot",
       "- Needs local browser state: Saved-draft filter",
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
-      "- Draft snapshot: Portable handoff should keep this event selected.",
       "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency. Copy handoff note includes the current draft snapshot for reviewer context."
     ].join("\n")
   );
@@ -577,15 +598,20 @@ test("buildViewHandoffNote includes direct next pending links when the current s
     [
       "Review console handoff",
       "",
+      "Open now",
       "- Selected event: Port access restored after overnight channel sweep",
+      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event.",
+      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed)",
+      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed)",
+      "- Next pending view: [Open next pending event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid)",
+      "- Portable next pending view: [Open next pending event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid)",
+      "",
+      "Queue snapshot",
       "- Queue: 2 of 7 events visible · Local read API",
       "- Queue context: Visible 1 of 2 in this view. 1 pending event remain elsewhere in this view.",
       "- Next pending in this view: Storm-related outage affects East Grid substation 7",
-      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event.",
-      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed",
-      "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed (saved-draft filter removed)",
-      "- Next pending link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid",
-      "- Portable next pending link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid (saved-draft filter removed)",
+      "",
+      "Handoff scope",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
       "- Needs local browser state: Saved-draft filter",
       "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."

@@ -205,7 +205,15 @@ test.describe("shareable view handoff", () => {
 
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain("Review console handoff");
+    expect(copiedText).toContain("Open now");
     expect(copiedText).toContain(`- Selected event: ${selectedHeadline ?? ""}`);
+    expect(copiedText).toContain("- Current view: [Open selected event](http://127.0.0.1:");
+    expect(copiedText).toContain("focus=detail-provenance");
+    expect(copiedText).toContain("drafts=saved");
+    expect(copiedText).toContain(
+      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:"
+    );
+    expect(copiedText).toContain("Queue snapshot");
     expect(copiedText).toContain(
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
     );
@@ -215,6 +223,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Recommended path: Start with the selected event. It is still pending in this view."
     );
+    expect(copiedText).toContain("Reviewer context");
     expect(copiedText).toContain(
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
     );
@@ -233,10 +242,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Focused search match: Source: coastal-shipping-association"
     );
-    expect(copiedText).toContain("- Current link: http://127.0.0.1:");
-    expect(copiedText).toContain("focus=detail-provenance");
-    expect(copiedText).toContain("drafts=saved");
-    expect(copiedText).toContain("- Portable link: http://127.0.0.1:");
+    expect(copiedText).toContain("Handoff scope");
     expect(copiedText).toContain(
       "- Included in link: Selected event; Focused detail section; Search: coastal-shipping-association; Pending first sort; Contract fixtures"
     );
@@ -301,16 +307,17 @@ test.describe("shareable view handoff", () => {
 
     const currentLinkLine = copiedText
       .split("\n")
-      .find((line) => line.startsWith("- Current link: "));
+      .find((line) => line.startsWith("- Current view: "));
     const nextPendingLinkLine = copiedText
       .split("\n")
-      .find((line) => line.startsWith("- Next pending link: "));
+      .find((line) => line.startsWith("- Next pending view: "));
 
     expect(currentLinkLine).toBeTruthy();
     expect(nextPendingLinkLine).toBeTruthy();
     expect(nextPendingLinkLine).not.toBe(currentLinkLine);
 
-    const nextPendingLink = nextPendingLinkLine.replace("- Next pending link: ", "");
+    const nextPendingLink = nextPendingLinkLine.match(/\((http:\/\/127\.0\.0\.1:[^)]+)\)$/)?.[1];
+    expect(nextPendingLink).toBeTruthy();
     await page.goto(nextPendingLink);
     await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
   });

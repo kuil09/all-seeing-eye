@@ -131,100 +131,124 @@ export function buildViewHandoffNote({
   const portableNextPendingLink = normalizeLabel(portableNextPendingShareUrl);
   const portabilityNote = normalizeLabel(handoffSummary.portabilityNote);
 
-  lines.push(`- ${selectedLabel}: ${selectedValue}`);
-
-  if (contextLabel) {
-    lines.push(`- Queue: ${contextLabel}`);
-  }
-
-  if (Array.isArray(handoffSummary.selectedContextItems) && handoffSummary.selectedContextItems.length) {
-    lines.push(`- Reviewer snapshot: ${handoffSummary.selectedContextItems.join("; ")}`);
-  }
-
-  if (normalizeLabel(handoffSummary.selectedQueueContext)) {
-    lines.push(`- Queue context: ${handoffSummary.selectedQueueContext}`);
-  }
-
-  if (normalizeLabel(handoffSummary.selectedConfidenceContext)) {
-    lines.push(`- Confidence drivers: ${handoffSummary.selectedConfidenceContext}`);
-  }
-
-  if (normalizeLabel(handoffSummary.nextPendingCopy)) {
-    lines.push(`- ${handoffSummary.nextPendingCopy}`);
-  }
-
+  const openNowLines = [`- ${selectedLabel}: ${selectedValue}`];
   if (normalizeLabel(handoffSummary.recommendedPathCopy)) {
-    lines.push(`- Recommended path: ${handoffSummary.recommendedPathCopy}`);
+    openNowLines.push(`- Recommended path: ${handoffSummary.recommendedPathCopy}`);
   }
-
-  if (normalizeLabel(handoffSummary.selectedReviewContext)) {
-    lines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
-  }
-
-  if (
-    Array.isArray(handoffSummary.selectedSourceProofItems) &&
-    handoffSummary.selectedSourceProofItems.length
-  ) {
-    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
-      lines.push(`- Source proof: ${sourceProofItem}`);
-    }
-  }
-
-  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
-    lines.push(
-      `- Source proof summary: ${handoffSummary.selectedSourceProofOverflowCopy}`
-    );
-  }
-
-  if (normalizeLabel(handoffSummary.selectedSearchContext)) {
-    lines.push(
-      `- ${
-        normalizeLabel(handoffSummary.selectedSearchLabel) || "Search rationale"
-      }: ${handoffSummary.selectedSearchContext}`
-    );
-  }
-
-  if (currentLink) {
-    lines.push(`- Current link: ${currentLink}`);
-  }
-
+  appendHandoffNoteLink(
+    openNowLines,
+    "Current view",
+    currentLink,
+    selectedLabel === "Selected event"
+      ? "Open selected event"
+      : "Open current queue state"
+  );
   if (portableLink && portableLink !== currentLink) {
-    lines.push(`- Portable link: ${portableLink} (saved-draft filter removed)`);
+    appendHandoffNoteLink(
+      openNowLines,
+      "Portable view",
+      portableLink,
+      selectedLabel === "Selected event"
+        ? "Open selected event without saved-draft filter"
+        : "Open current queue state without saved-draft filter"
+    );
   }
-
   if (nextPendingLink && nextPendingLink !== currentLink) {
-    lines.push(`- Next pending link: ${nextPendingLink}`);
+    appendHandoffNoteLink(
+      openNowLines,
+      "Next pending view",
+      nextPendingLink,
+      "Open next pending event"
+    );
   }
-
   if (
     portableNextPendingLink &&
     portableNextPendingLink !== nextPendingLink &&
     portableNextPendingLink !== portableLink
   ) {
-    lines.push(
-      `- Portable next pending link: ${portableNextPendingLink} (saved-draft filter removed)`
+    appendHandoffNoteLink(
+      openNowLines,
+      "Portable next pending view",
+      portableNextPendingLink,
+      "Open next pending event without saved-draft filter"
     );
   }
+  appendHandoffNoteSection(lines, "Open now", openNowLines);
 
-  appendHandoffNoteScope(lines, "Included in link", handoffSummary.includedState);
+  const queueSnapshotLines = [];
+  if (contextLabel) {
+    queueSnapshotLines.push(`- Queue: ${contextLabel}`);
+  }
+  if (
+    Array.isArray(handoffSummary.selectedContextItems) &&
+    handoffSummary.selectedContextItems.length
+  ) {
+    queueSnapshotLines.push(
+      `- Reviewer snapshot: ${handoffSummary.selectedContextItems.join("; ")}`
+    );
+  }
+  if (normalizeLabel(handoffSummary.selectedQueueContext)) {
+    queueSnapshotLines.push(`- Queue context: ${handoffSummary.selectedQueueContext}`);
+  }
+  if (normalizeLabel(handoffSummary.nextPendingCopy)) {
+    queueSnapshotLines.push(`- ${handoffSummary.nextPendingCopy}`);
+  }
+  appendHandoffNoteSection(lines, "Queue snapshot", queueSnapshotLines);
+
+  const reviewerContextLines = [];
+  if (normalizeLabel(handoffSummary.selectedConfidenceContext)) {
+    reviewerContextLines.push(
+      `- Confidence drivers: ${handoffSummary.selectedConfidenceContext}`
+    );
+  }
+  if (normalizeLabel(handoffSummary.selectedReviewContext)) {
+    reviewerContextLines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
+  }
+  if (
+    Array.isArray(handoffSummary.selectedSourceProofItems) &&
+    handoffSummary.selectedSourceProofItems.length
+  ) {
+    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
+      reviewerContextLines.push(`- Source proof: ${sourceProofItem}`);
+    }
+  }
+  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
+    reviewerContextLines.push(
+      `- Source proof summary: ${handoffSummary.selectedSourceProofOverflowCopy}`
+    );
+  }
+  if (normalizeLabel(handoffSummary.selectedSearchContext)) {
+    reviewerContextLines.push(
+      `- ${
+        normalizeLabel(handoffSummary.selectedSearchLabel) || "Search rationale"
+      }: ${handoffSummary.selectedSearchContext}`
+    );
+  }
+  if (normalizeLabel(handoffSummary.selectedDraftPreview)) {
+    reviewerContextLines.push(`- Draft snapshot: ${handoffSummary.selectedDraftPreview}`);
+  }
+  appendHandoffNoteSection(lines, "Reviewer context", reviewerContextLines);
+
+  const scopeLines = [];
+  appendHandoffNoteScope(scopeLines, "Included in link", handoffSummary.includedState);
   appendHandoffNoteScope(
-    lines,
+    scopeLines,
     "Included in handoff note only",
     handoffSummary.noteOnlyState
   );
   appendHandoffNoteScope(
-    lines,
+    scopeLines,
     "Needs local browser state",
     handoffSummary.localDependentState
   );
-  appendHandoffNoteScope(lines, "Stays local", handoffSummary.localOnlyState);
-
-  if (normalizeLabel(handoffSummary.selectedDraftPreview)) {
-    lines.push(`- Draft snapshot: ${handoffSummary.selectedDraftPreview}`);
-  }
-
+  appendHandoffNoteScope(scopeLines, "Stays local", handoffSummary.localOnlyState);
   if (portabilityNote) {
-    lines.push(`- Portability note: ${portabilityNote}`);
+    scopeLines.push(`- Portability note: ${portabilityNote}`);
+  }
+  appendHandoffNoteSection(lines, "Handoff scope", scopeLines);
+
+  while (lines.at(-1) === "") {
+    lines.pop();
   }
 
   return lines.join("\n");
@@ -542,6 +566,27 @@ function appendDraftSnapshotNote(message, hasSelectedDraftSnapshot) {
   }
 
   return `${message} Copy handoff note includes the current draft snapshot for reviewer context.`;
+}
+
+function appendHandoffNoteSection(lines, label, sectionLines) {
+  if (!Array.isArray(sectionLines) || !sectionLines.length) {
+    return;
+  }
+
+  lines.push(label);
+  lines.push(...sectionLines);
+  lines.push("");
+}
+
+function appendHandoffNoteLink(lines, label, url, linkLabel) {
+  const normalizedUrl = normalizeLabel(url);
+  const normalizedLinkLabel = normalizeLabel(linkLabel);
+
+  if (!normalizedUrl || !normalizedLinkLabel) {
+    return;
+  }
+
+  lines.push(`- ${label}: [${normalizedLinkLabel}](${normalizedUrl})`);
 }
 
 function appendHandoffNoteScope(lines, label, items) {
