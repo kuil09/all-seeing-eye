@@ -251,11 +251,6 @@ export function buildViewHandoffNote({
   appendHandoffNoteScope(scopeLines, "Included in link", handoffSummary.includedState);
   appendHandoffNoteScope(
     scopeLines,
-    "Included in handoff note only",
-    handoffSummary.noteOnlyState
-  );
-  appendHandoffNoteScope(
-    scopeLines,
     "Needs local browser state",
     handoffSummary.localDependentState
   );

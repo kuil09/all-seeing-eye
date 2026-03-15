@@ -573,8 +573,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "- Source proof summary: 1 more supporting source remains in provenance detail.",
       "",
       "Handoff scope",
-      "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
-      "- Included in handoff note only: Reviewer context below; Evidence appendix below"
+      "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures"
     ].join("\n")
   );
 });
@@ -634,8 +633,7 @@ test("buildViewHandoffNote keeps active search rationale in reviewer context", (
       "- Focused search match: Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)",
       "",
       "Handoff scope",
-      "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
-      "- Included in handoff note only: Reviewer context below"
+      "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures"
     ].join("\n")
   );
 });
@@ -693,7 +691,6 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "",
       "Handoff scope",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
-      "- Included in handoff note only: Reviewer context below",
       "- Needs local browser state: Saved-draft filter",
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
       "- Portability note: Saved-draft filtering stays in the copied start link, but it only reproduces on browsers that already have matching local drafts. Use Copy start link without saved drafts to remove this dependency. Copy review note includes the current draft snapshot for reviewer context."

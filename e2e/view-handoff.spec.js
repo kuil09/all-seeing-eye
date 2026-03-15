@@ -261,9 +261,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Included in link: Selected event; Focused detail section; Search: coastal-shipping-association; Pending first sort; Contract fixtures"
     );
-    expect(copiedText).toContain(
-      "- Included in handoff note only: Reviewer context below; Evidence appendix below"
-    );
+    expect(copiedText).not.toContain("Included in handoff note only");
     expect(copiedText).not.toContain(
       "Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     );
