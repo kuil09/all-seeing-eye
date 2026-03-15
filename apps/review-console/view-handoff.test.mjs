@@ -167,9 +167,9 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
   );
   assert.equal(summary.nextPendingEventId, "evt-east-grid");
   assert.deepEqual(summary.selectedContextItems, [
-    "Status: approved",
     "Confidence: medium confidence 61%",
-    "Provenance: 1 source across 1 feed"
+    "Provenance: 1 source across 1 feed",
+    "Status: approved"
   ]);
   assert.equal(
     summary.nextPendingCopy,
@@ -201,6 +201,38 @@ test("buildViewHandoffSummary keeps pending status when queue context is unavail
   assert.deepEqual(summary.selectedContextItems, [
     "Status: pending review",
     "Confidence: high confidence 88%"
+  ]);
+});
+
+test("buildViewHandoffSummary drops low-signal no-prior-review copy from reviewer snapshot", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    selectedContextItems: [
+      "Review history: No prior review",
+      "Status: pending review",
+      "Provenance: 2 sources across 2 feeds",
+      "Confidence: high confidence 88%"
+    ],
+    queueContext: {
+      visibleCount: 2,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: 1,
+      remainingPendingAfterSelection: 0
+    },
+    filterSummary: {
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    }
+  });
+
+  assert.deepEqual(summary.selectedContextItems, [
+    "Confidence: high confidence 88%",
+    "Provenance: 2 sources across 2 feeds"
   ]);
 });
 

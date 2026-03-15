@@ -460,13 +460,52 @@ function buildSelectedSnapshotItems(selectedContextItems, normalizedQueueContext
     return [];
   }
 
-  return selectedContextItems.filter((item) => {
-    if (!/^Status:\s*pending review$/i.test(item)) {
-      return true;
-    }
+  return selectedContextItems
+    .filter((item) => {
+      if (/^Review history:\s*No prior review$/i.test(item)) {
+        return false;
+      }
 
-    return !normalizedQueueContext || normalizedQueueContext.pendingPosition === null;
-  });
+      if (!/^Status:\s*pending review$/i.test(item)) {
+        return true;
+      }
+
+      return !normalizedQueueContext || normalizedQueueContext.pendingPosition === null;
+    })
+    .sort(
+      (left, right) =>
+        getSelectedSnapshotPriority(left, normalizedQueueContext) -
+        getSelectedSnapshotPriority(right, normalizedQueueContext)
+    );
+}
+
+function getSelectedSnapshotPriority(item, normalizedQueueContext) {
+  const normalizedItem = normalizeLabel(item);
+
+  if (
+    /^Status:\s*pending review$/i.test(normalizedItem) &&
+    (!normalizedQueueContext || normalizedQueueContext.pendingPosition === null)
+  ) {
+    return 0;
+  }
+
+  if (/^Confidence:\s*/i.test(normalizedItem)) {
+    return 10;
+  }
+
+  if (/^Provenance:\s*/i.test(normalizedItem)) {
+    return 20;
+  }
+
+  if (/^Review history:\s*/i.test(normalizedItem)) {
+    return 30;
+  }
+
+  if (/^Status:\s*/i.test(normalizedItem)) {
+    return 40;
+  }
+
+  return 50;
 }
 
 function buildRecommendedPathCopy({
