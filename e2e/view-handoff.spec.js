@@ -171,6 +171,9 @@ test.describe("shareable view handoff", () => {
     await page.getByRole("button", { name: /Saved drafts/i }).click();
     await expect(page.locator(".view-handoff-snapshot")).toContainText("Status: pending review");
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
+    );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Latest review was edit by bootstrap-fixture."
     );
     await page.getByRole("button", { name: "Copy handoff note" }).click();
@@ -184,6 +187,9 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(`- Selected event: ${selectedHeadline ?? ""}`);
     expect(copiedText).toContain(
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
+    );
+    expect(copiedText).toContain(
+      "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
     expect(copiedText).toContain(
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."

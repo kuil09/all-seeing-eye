@@ -11,6 +11,8 @@ export function buildViewHandoffSummary({
   selectedDraftPreview = "",
   selectedContextItems = [],
   selectedReviewContext = "",
+  queueContext = null,
+  nextPendingHeadline = "",
   selectedSearchMatches = [],
   activeSearchFocusTarget = ""
 }) {
@@ -20,6 +22,7 @@ export function buildViewHandoffSummary({
   const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
   const cleanedSelectedContextItems = normalizeLabels(selectedContextItems);
   const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
+  const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const selectedSearchSummary = buildSelectedSearchSummary(
     selectedSearchMatches,
     activeSearchFocusTarget
@@ -70,6 +73,10 @@ export function buildViewHandoffSummary({
     selectedDraftPreview: cleanedSelectedDraftPreview,
     selectedContextItems: cleanedSelectedContextItems,
     selectedReviewContext: cleanedSelectedReviewContext,
+    selectedQueueContext: buildSelectedQueueContext(queueContext),
+    nextPendingCopy: cleanedNextPendingHeadline
+      ? `Next pending in this view: ${cleanedNextPendingHeadline}`
+      : "",
     selectedSearchLabel: selectedSearchSummary.label,
     selectedSearchContext: selectedSearchSummary.context,
     portabilityNote: buildPortabilityNote({
@@ -106,6 +113,14 @@ export function buildViewHandoffNote({
 
   if (Array.isArray(handoffSummary.selectedContextItems) && handoffSummary.selectedContextItems.length) {
     lines.push(`- Reviewer snapshot: ${handoffSummary.selectedContextItems.join("; ")}`);
+  }
+
+  if (normalizeLabel(handoffSummary.selectedQueueContext)) {
+    lines.push(`- Queue context: ${handoffSummary.selectedQueueContext}`);
+  }
+
+  if (normalizeLabel(handoffSummary.nextPendingCopy)) {
+    lines.push(`- ${handoffSummary.nextPendingCopy}`);
   }
 
   if (normalizeLabel(handoffSummary.selectedReviewContext)) {
@@ -254,6 +269,45 @@ function normalizeLabels(labels) {
     : [];
 }
 
+function buildSelectedQueueContext(queueContext) {
+  const normalizedQueueContext = normalizeQueueContext(queueContext);
+  if (!normalizedQueueContext) {
+    return "";
+  }
+
+  const {
+    visibleCount,
+    visiblePosition,
+    pendingCount,
+    pendingPosition,
+    remainingPendingAfterSelection
+  } = normalizedQueueContext;
+  const segments = [`Visible ${visiblePosition} of ${visibleCount} in this view`];
+
+  if (pendingPosition === null) {
+    segments.push(
+      pendingCount === 0
+        ? "No pending events remain in this view"
+        : `${pendingCount} pending event${
+            pendingCount === 1 ? "" : "s"
+          } remain elsewhere in this view`
+    );
+  } else {
+    segments.push(`Pending ${pendingPosition} of ${pendingCount}`);
+    segments.push(
+      remainingPendingAfterSelection === 0
+        ? pendingCount === 1
+          ? "This is the only pending event in this view"
+          : "No later pending events remain in this view"
+        : `${remainingPendingAfterSelection} pending event${
+            remainingPendingAfterSelection === 1 ? "" : "s"
+          } remain after this selection`
+    );
+  }
+
+  return `${segments.join(". ")}.`;
+}
+
 function buildSelectedSearchSummary(searchMatches, activeSearchFocusTarget) {
   const normalizedMatches = normalizeSearchMatches(searchMatches);
   if (!normalizedMatches.length) {
@@ -295,6 +349,54 @@ function normalizeSearchMatches(searchMatches) {
         }))
         .filter((match) => match.label && match.preview)
     : [];
+}
+
+function normalizeQueueContext(queueContext) {
+  if (!queueContext || typeof queueContext !== "object") {
+    return null;
+  }
+
+  const normalized = {
+    visibleCount: normalizePositiveInteger(queueContext.visibleCount),
+    visiblePosition: normalizePositiveInteger(queueContext.visiblePosition),
+    pendingCount: normalizeNonNegativeInteger(queueContext.pendingCount),
+    pendingPosition:
+      queueContext.pendingPosition === null
+        ? null
+        : normalizePositiveInteger(queueContext.pendingPosition),
+    remainingPendingAfterSelection: normalizeNonNegativeInteger(
+      queueContext.remainingPendingAfterSelection
+    )
+  };
+
+  if (!normalized.visibleCount || !normalized.visiblePosition) {
+    return null;
+  }
+
+  if (
+    normalized.visiblePosition > normalized.visibleCount ||
+    normalized.pendingCount === null ||
+    normalized.remainingPendingAfterSelection === null
+  ) {
+    return null;
+  }
+
+  if (
+    normalized.pendingPosition !== null &&
+    (normalized.pendingCount < 1 || normalized.pendingPosition > normalized.pendingCount)
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function normalizePositiveInteger(value) {
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function normalizeNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0 ? value : null;
 }
 
 function appendDraftSnapshotNote(message, hasSelectedDraftSnapshot) {

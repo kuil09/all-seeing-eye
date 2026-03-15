@@ -977,6 +977,8 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
 
   const activeSavedView = getActiveSavedView();
   const filterSummary = getCurrentFilterSummary();
+  const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
+  const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
   const selectedTimelineItem = state.selectedEventId
     ? filteredTimeline.find((item) => item.eventId === state.selectedEventId) ??
       state.data.timeline.find((item) => item.eventId === state.selectedEventId) ??
@@ -997,6 +999,12 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     totalCount: state.data.timeline.length,
     sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
     filterSummary,
+    queueContext,
+    nextPendingHeadline:
+      filteredTimeline.find((item) => item.eventId === queueNavigation?.nextPendingEventId)
+        ?.headline ??
+      state.data.details[queueNavigation?.nextPendingEventId]?.event?.headline ??
+      "",
     draftFilter: state.draftFilter,
     demoMode: state.demoMode,
     hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
@@ -1121,6 +1129,20 @@ function renderViewHandoffPanel(handoffSummary) {
         ${
           selectedContextChips
             ? `<div class="chip-row view-handoff-context">${selectedContextChips}</div>`
+            : ""
+        }
+        ${
+          handoffSummary.selectedQueueContext
+            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
+                handoffSummary.selectedQueueContext
+              )}</p>`
+            : ""
+        }
+        ${
+          handoffSummary.nextPendingCopy
+            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
+                handoffSummary.nextPendingCopy
+              )}</p>`
             : ""
         }
         ${

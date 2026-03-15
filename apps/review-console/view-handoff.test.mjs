@@ -12,6 +12,13 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     filteredCount: 2,
     totalCount: 7,
     sourceLabel: "Contract fixtures",
+    queueContext: {
+      visibleCount: 2,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: 1,
+      remainingPendingAfterSelection: 0
+    },
     selectedContextItems: [
       "Status: pending review",
       "Confidence: high confidence 88%",
@@ -51,6 +58,11 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     summary.selectedReviewContext,
     "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
   );
+  assert.equal(
+    summary.selectedQueueContext,
+    "Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view."
+  );
+  assert.equal(summary.nextPendingCopy, "");
   assert.deepEqual(summary.localDependentState, []);
   assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
@@ -107,6 +119,38 @@ test("buildViewHandoffSummary prioritizes the active search focus in handoff con
     "Lowest confidence first",
     "Contract fixtures"
   ]);
+});
+
+test("buildViewHandoffSummary carries the next pending event when the selection is already reviewed", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Port access restored after overnight channel sweep",
+    filteredCount: 4,
+    totalCount: 7,
+    sourceLabel: "Local read API",
+    queueContext: {
+      visibleCount: 4,
+      visiblePosition: 2,
+      pendingCount: 2,
+      pendingPosition: null,
+      remainingPendingAfterSelection: 2
+    },
+    nextPendingHeadline: "Storm-related outage affects East Grid substation 7",
+    filterSummary: {
+      activeFilters: ["Status: approved"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Newest first"
+    }
+  });
+
+  assert.equal(
+    summary.selectedQueueContext,
+    "Visible 2 of 4 in this view. 2 pending events remain elsewhere in this view."
+  );
+  assert.equal(
+    summary.nextPendingCopy,
+    "Next pending in this view: Storm-related outage affects East Grid substation 7"
+  );
 });
 
 test("buildViewHandoffSummary warns when saved-draft filtering depends on local state", () => {
@@ -182,6 +226,13 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
     filteredCount: 2,
     totalCount: 7,
     sourceLabel: "Contract fixtures",
+    queueContext: {
+      visibleCount: 2,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: 1,
+      remainingPendingAfterSelection: 0
+    },
     selectedContextItems: [
       "Status: pending review",
       "Confidence: high confidence 88%",
@@ -212,6 +263,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
+      "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
@@ -279,6 +331,13 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
     filteredCount: 1,
     totalCount: 7,
     sourceLabel: "Local read API",
+    queueContext: {
+      visibleCount: 1,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: 1,
+      remainingPendingAfterSelection: 0
+    },
     filterSummary: {
       activeFilters: ["Search: outage", "Drafts: saved"],
       hasActiveFilters: true,
@@ -306,6 +365,7 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "",
       "- Selected event: Storm-related outage affects East Grid substation 7",
       "- Queue: 1 of 7 events visible · Local read API",
+      "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1",
       "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1 (saved-draft filter removed)",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
