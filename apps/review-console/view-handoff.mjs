@@ -34,6 +34,8 @@ export function buildViewHandoffSummary({
   const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const normalizedQueueContext = normalizeQueueContext(queueContext);
+  const showNextPendingCopyAction =
+    Boolean(cleanedNextPendingEventId) && normalizedQueueContext?.pendingPosition === null;
   const cleanedSelectedSnapshotItems = buildSelectedSnapshotItems(
     cleanedSelectedContextItems,
     normalizedQueueContext,
@@ -88,9 +90,11 @@ export function buildViewHandoffSummary({
     contextLabel: [buildQueueLabel(filteredCount, totalCount, filterSummary), sourceLabel, sortLabel]
       .filter(Boolean)
       .join(" · "),
-    helperCopy: cleanedSelectedHeadline
-      ? "Copy the next reviewer's starting point for this queue slice and selected event."
-      : "Copy the next reviewer's starting point for this queue slice.",
+    helperCopy: showNextPendingCopyAction
+      ? "Copy this queue context or jump the next reviewer straight to the next pending event."
+      : cleanedSelectedHeadline
+        ? "Copy the next reviewer's starting point for this queue slice and selected event."
+        : "Copy the next reviewer's starting point for this queue slice.",
     includedState,
     localDependentState,
     localOnlyState,
@@ -103,7 +107,9 @@ export function buildViewHandoffSummary({
     selectedSourceProofOverflowCopy: cleanedSelectedSourceProofOverflowCopy,
     selectedQueueContext: buildSelectedQueueContext(normalizedQueueContext),
     nextPendingEventId: cleanedNextPendingEventId,
-    nextPendingCopy: cleanedNextPendingHeadline ? `Next pending: ${cleanedNextPendingHeadline}` : "",
+    nextPendingCopy: cleanedNextPendingHeadline
+      ? `Next pending: ${cleanedNextPendingHeadline}`
+      : "",
     recommendedPathCopy: buildRecommendedPathCopy({
       normalizedQueueContext,
       cleanedSelectedHeadline,
@@ -119,6 +125,7 @@ export function buildViewHandoffSummary({
       hasSelectedDraftSnapshot: Boolean(cleanedSelectedDraftPreview)
     }),
     showPortableCopyAction: draftFilter === "saved",
+    showNextPendingCopyAction,
     isWarning: localDependentState.length > 0 || hasSelectedDraft
   };
 }

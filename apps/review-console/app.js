@@ -279,6 +279,14 @@ function bindEvents() {
       return;
     }
 
+    const copyNextPendingViewLinkButton = event.target.closest(
+      "[data-copy-next-pending-link]"
+    );
+    if (copyNextPendingViewLinkButton) {
+      void copyNextPendingViewLink();
+      return;
+    }
+
     const copyHandoffNoteButton = event.target.closest("[data-copy-handoff-note]");
     if (copyHandoffNoteButton) {
       void copyViewHandoffNote();
@@ -1190,6 +1198,19 @@ function renderViewHandoffPanel(handoffSummary) {
                   data-copy-portable-view-link
                 >
                   Copy start link without saved drafts
+                </button>
+              `
+              : ""
+          }
+          ${
+            handoffSummary.showNextPendingCopyAction
+              ? `
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-copy-next-pending-link
+                >
+                  Copy next pending link
                 </button>
               `
               : ""
@@ -2432,23 +2453,46 @@ function syncUrl() {
   window.history.replaceState({}, "", url);
 }
 
-async function copyCurrentViewLink({ portable = false } = {}) {
-  const shareUrl = buildShareViewUrl({ portable });
+async function copyCurrentViewLink({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride,
+  successMessage,
+  errorMessage
+} = {}) {
+  const shareUrl = buildShareViewUrl({
+    portable,
+    eventIdOverride,
+    activeSearchFocusTargetOverride
+  });
 
   try {
     await copyTextToClipboard(shareUrl.toString());
     setShareViewFeedback(
-      portable
-        ? "Copied start link without saved drafts."
-        : "Copied start link.",
+      successMessage ??
+        (portable ? "Copied start link without saved drafts." : "Copied start link."),
       "success"
     );
   } catch (error) {
     setShareViewFeedback(
-      "Copy failed. Use the browser address bar to share this start link.",
+      errorMessage ?? "Copy failed. Use the browser address bar to share this start link.",
       "error"
     );
   }
+}
+
+async function copyNextPendingViewLink() {
+  const handoffSummary = getViewHandoffSummary();
+  if (!handoffSummary?.showNextPendingCopyAction || !handoffSummary.nextPendingEventId) {
+    return;
+  }
+
+  await copyCurrentViewLink({
+    eventIdOverride: handoffSummary.nextPendingEventId,
+    activeSearchFocusTargetOverride: null,
+    successMessage: "Copied next pending link.",
+    errorMessage: "Copy failed. Use Copy review note to share the next pending handoff."
+  });
 }
 
 async function copyViewHandoffNote() {

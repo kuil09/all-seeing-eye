@@ -162,6 +162,11 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     "Visible 2 of 4. 2 pending events remain elsewhere in this queue."
   );
   assert.equal(summary.nextPendingEventId, "evt-east-grid");
+  assert.equal(summary.showNextPendingCopyAction, true);
+  assert.equal(
+    summary.helperCopy,
+    "Copy this queue context or jump the next reviewer straight to the next pending event."
+  );
   assert.deepEqual(summary.selectedContextItems, [
     "Confidence: medium confidence 61%",
     "Provenance: 1 source across 1 feed",
@@ -204,6 +209,7 @@ test("buildViewHandoffSummary keeps the next-step copy compact when more pending
     summary.selectedQueueContext,
     "Visible 1 of 3. Pending 1 of 2. 1 pending event remains after this one."
   );
+  assert.equal(summary.showNextPendingCopyAction, false);
   assert.equal(
     summary.recommendedPathCopy,
     "Start here, then continue with next pending."

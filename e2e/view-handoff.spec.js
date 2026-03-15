@@ -310,7 +310,16 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Recommended path: Start here for context, then continue with next pending."
     );
+    await expect(
+      page.getByRole("button", { name: "Copy next pending link" })
+    ).toBeVisible();
 
+    await page.getByRole("button", { name: "Copy next pending link" }).click();
+    await expect(page.locator(".view-handoff-note.is-success")).toContainText(
+      "Copied next pending link."
+    );
+
+    const copiedNextPendingLink = await page.evaluate(() => window.__copiedText);
     await page.getByRole("button", { name: "Copy review note" }).click();
 
     const copiedText = await page.evaluate(() => window.__copiedText);
@@ -334,6 +343,7 @@ test.describe("shareable view handoff", () => {
 
     const nextPendingLink = nextPendingLinkLine.match(/\((http:\/\/127\.0\.0\.1:[^)]+)\)$/)?.[1];
     expect(nextPendingLink).toBeTruthy();
+    expect(copiedNextPendingLink).toBe(nextPendingLink);
     await page.goto(nextPendingLink);
     await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
   });
