@@ -69,6 +69,10 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     "Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view."
   );
   assert.equal(summary.nextPendingCopy, "");
+  assert.equal(
+    summary.recommendedPathCopy,
+    "Start with the selected event. It is still pending in this view."
+  );
   assert.deepEqual(summary.localDependentState, []);
   assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
@@ -158,6 +162,10 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
   assert.equal(
     summary.nextPendingCopy,
     "Next pending in this view: Storm-related outage affects East Grid substation 7"
+  );
+  assert.equal(
+    summary.recommendedPathCopy,
+    "Use the current link for context, then open Next pending link to continue triage on the actionable event."
   );
 });
 
@@ -349,6 +357,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
       "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms.",
+      "- Recommended path: Start with the selected event. It is still pending in this view.",
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
       "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity.",
       "- Source proof summary: 1 more supporting source remains in provenance detail.",
@@ -405,6 +414,7 @@ test("buildViewHandoffNote includes active search rationale before the copied li
       "",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
+      "- Recommended path: Start with the selected event. It is still pending in this view.",
       "- Focused search match: Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
       "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
@@ -454,6 +464,7 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "- Selected event: Storm-related outage affects East Grid substation 7",
       "- Queue: 1 of 7 events visible · Local read API",
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view.",
+      "- Recommended path: Start with the selected event. It is still pending in this view.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1",
       "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1 (saved-draft filter removed)",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
@@ -511,6 +522,7 @@ test("buildViewHandoffNote includes direct next pending links when the current s
       "- Queue: 2 of 7 events visible · Local read API",
       "- Queue context: Visible 1 of 2 in this view. 1 pending event remain elsewhere in this view.",
       "- Next pending in this view: Storm-related outage affects East Grid substation 7",
+      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event.",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed",
       "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed (saved-draft filter removed)",
       "- Next pending link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid",

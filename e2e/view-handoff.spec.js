@@ -174,6 +174,9 @@ test.describe("shareable view handoff", () => {
       "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Recommended path: Start with the selected event. It is still pending in this view."
+    );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Latest review was edit by bootstrap-fixture."
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
@@ -202,6 +205,9 @@ test.describe("shareable view handoff", () => {
     );
     expect(copiedText).toContain(
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
+    );
+    expect(copiedText).toContain(
+      "- Recommended path: Start with the selected event. It is still pending in this view."
     );
     expect(copiedText).toContain(
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
@@ -273,12 +279,18 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       `Next pending in this view: ${nextPendingHeadline}`
     );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event."
+    );
 
     await page.getByRole("button", { name: "Copy handoff note" }).click();
 
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain(
       `- Next pending in this view: ${nextPendingHeadline}`
+    );
+    expect(copiedText).toContain(
+      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event."
     );
 
     const currentLinkLine = copiedText

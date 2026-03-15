@@ -1221,6 +1221,13 @@ function renderViewHandoffPanel(handoffSummary) {
             : ""
         }
         ${
+          handoffSummary.recommendedPathCopy
+            ? `<p class="meta-copy view-handoff-context-copy"><strong>Recommended path:</strong> ${escapeHtml(
+                handoffSummary.recommendedPathCopy
+              )}</p>`
+            : ""
+        }
+        ${
           handoffSummary.selectedConfidenceContext
             ? `<p class="meta-copy view-handoff-context-copy"><strong>Confidence drivers:</strong> ${escapeHtml(
                 handoffSummary.selectedConfidenceContext

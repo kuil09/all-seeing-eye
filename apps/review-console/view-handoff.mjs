@@ -33,6 +33,7 @@ export function buildViewHandoffSummary({
   );
   const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
+  const normalizedQueueContext = normalizeQueueContext(queueContext);
   const selectedSearchSummary = buildSelectedSearchSummary(
     selectedSearchMatches,
     activeSearchFocusTarget
@@ -88,11 +89,16 @@ export function buildViewHandoffSummary({
     selectedReviewContext: cleanedSelectedReviewContext,
     selectedSourceProofItems: cleanedSelectedSourceProofItems,
     selectedSourceProofOverflowCopy: cleanedSelectedSourceProofOverflowCopy,
-    selectedQueueContext: buildSelectedQueueContext(queueContext),
+    selectedQueueContext: buildSelectedQueueContext(normalizedQueueContext),
     nextPendingEventId: cleanedNextPendingEventId,
     nextPendingCopy: cleanedNextPendingHeadline
       ? `Next pending in this view: ${cleanedNextPendingHeadline}`
       : "",
+    recommendedPathCopy: buildRecommendedPathCopy({
+      normalizedQueueContext,
+      cleanedSelectedHeadline,
+      cleanedNextPendingHeadline
+    }),
     selectedSearchLabel: selectedSearchSummary.label,
     selectedSearchContext: selectedSearchSummary.context,
     portabilityNote: buildPortabilityNote({
@@ -145,6 +151,10 @@ export function buildViewHandoffNote({
 
   if (normalizeLabel(handoffSummary.nextPendingCopy)) {
     lines.push(`- ${handoffSummary.nextPendingCopy}`);
+  }
+
+  if (normalizeLabel(handoffSummary.recommendedPathCopy)) {
+    lines.push(`- Recommended path: ${handoffSummary.recommendedPathCopy}`);
   }
 
   if (normalizeLabel(handoffSummary.selectedReviewContext)) {
@@ -359,6 +369,34 @@ function buildSelectedQueueContext(queueContext) {
   }
 
   return `${segments.join(". ")}.`;
+}
+
+function buildRecommendedPathCopy({
+  normalizedQueueContext,
+  cleanedSelectedHeadline,
+  cleanedNextPendingHeadline
+}) {
+  if (normalizedQueueContext?.pendingPosition !== null) {
+    if (normalizedQueueContext?.remainingPendingAfterSelection > 0 && cleanedNextPendingHeadline) {
+      return "Start with the selected event. Next pending link continues the same queue slice after this review.";
+    }
+
+    return cleanedSelectedHeadline
+      ? "Start with the selected event. It is still pending in this view."
+      : "Continue with the current queue state. The selected event is still pending in this view.";
+  }
+
+  if (cleanedNextPendingHeadline) {
+    return cleanedSelectedHeadline
+      ? "Use the current link for context, then open Next pending link to continue triage on the actionable event."
+      : "Open Next pending link first to continue triage in this queue slice.";
+  }
+
+  if (cleanedSelectedHeadline) {
+    return "Use the current link for context. No pending events remain in this view.";
+  }
+
+  return "";
 }
 
 function buildSelectedSearchSummary(searchMatches, activeSearchFocusTarget) {
