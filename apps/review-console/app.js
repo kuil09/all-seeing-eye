@@ -66,7 +66,10 @@ import {
   sortTimelineItems
 } from "./timeline-sort.mjs";
 import { buildTimelineEntitySummary } from "./timeline-entity-summary.mjs";
-import { matchesTimelineSearchQuery } from "./timeline-search.mjs";
+import {
+  buildTimelineSearchMatches,
+  matchesTimelineSearchQuery
+} from "./timeline-search.mjs";
 import {
   buildUrlSearch,
   createInitialUiState,
@@ -598,6 +601,7 @@ function renderTimeline() {
     });
     const reviewHistorySummary = buildReviewHistorySummary(detail?.reviewActions ?? []);
     const provenanceSummary = buildSourceProvenanceSummary(detail?.sources ?? [], item.eventTime);
+    const searchMatches = buildTimelineSearchMatches(state.searchQuery, item, detail);
     const reviewDraftPreview = buildReviewDraftPreview(
       getReviewDraft(state.reviewDrafts, item.eventId)
     );
@@ -629,6 +633,7 @@ function renderTimeline() {
       ${entitySummary ? renderTimelineEntitySummary(entitySummary) : ""}
       ${confidenceSummary ? renderTimelineConfidenceSummary(confidenceSummary) : ""}
       ${provenanceSummary ? renderTimelineProvenanceSummary(provenanceSummary) : ""}
+      ${searchMatches.length ? renderTimelineSearchSummary(searchMatches) : ""}
       <div class="tag-row">
         ${(item.tags ?? [])
           .map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`)
@@ -695,6 +700,37 @@ function renderTimelineProvenanceSummary(provenanceSummary) {
       </div>
       <div class="chip-row">
         ${renderFeedChips(provenanceSummary)}
+      </div>
+    </div>
+  `;
+}
+
+function renderTimelineSearchSummary(searchMatches) {
+  const visibleMatches = searchMatches.slice(0, 2);
+  const remainingMatchCount = Math.max(0, searchMatches.length - visibleMatches.length);
+
+  return `
+    <div class="timeline-review-summary timeline-search-summary">
+      <div class="timeline-review-header">
+        <span class="chip">Search match</span>
+        ${
+          remainingMatchCount
+            ? `<span class="meta-copy">+${remainingMatchCount} more field${
+                remainingMatchCount === 1 ? "" : "s"
+              }</span>`
+            : ""
+        }
+      </div>
+      <div class="timeline-search-match-list">
+        ${visibleMatches
+          .map(
+            (match) => `
+              <p class="timeline-search-match">
+                <strong>${escapeHtml(match.label)}:</strong> ${escapeHtml(match.preview)}
+              </p>
+            `
+          )
+          .join("")}
       </div>
     </div>
   `;

@@ -522,6 +522,13 @@ a {
   border-top: 0;
 }
 
+.timeline-search-summary {
+  background: rgba(31, 116, 100, 0.06);
+  border-radius: 16px;
+  padding: 0.85rem;
+  border-top: 0;
+}
+
 .timeline-entity-summary,
 .timeline-confidence-summary {
   display: grid;
@@ -571,6 +578,19 @@ a {
 
 .timeline-review-note {
   font-size: 0.95rem;
+}
+
+.timeline-search-match-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.timeline-search-match {
+  font-size: 0.95rem;
+}
+
+.timeline-search-match strong {
+  color: var(--ink);
 }
 
 .timeline-confidence-note {
