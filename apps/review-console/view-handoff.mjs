@@ -103,9 +103,7 @@ export function buildViewHandoffSummary({
     selectedSourceProofOverflowCopy: cleanedSelectedSourceProofOverflowCopy,
     selectedQueueContext: buildSelectedQueueContext(normalizedQueueContext),
     nextPendingEventId: cleanedNextPendingEventId,
-    nextPendingCopy: cleanedNextPendingHeadline
-      ? `Next pending in this view: ${cleanedNextPendingHeadline}`
-      : "",
+    nextPendingCopy: cleanedNextPendingHeadline ? `Next pending: ${cleanedNextPendingHeadline}` : "",
     recommendedPathCopy: buildRecommendedPathCopy({
       normalizedQueueContext,
       cleanedSelectedHeadline,
@@ -435,26 +433,28 @@ function buildSelectedQueueContext(queueContext) {
     pendingPosition,
     remainingPendingAfterSelection
   } = normalizedQueueContext;
-  const segments = [`Visible ${visiblePosition} of ${visibleCount} in this view`];
+  const segments = [`Visible ${visiblePosition} of ${visibleCount}`];
 
   if (pendingPosition === null) {
     segments.push(
       pendingCount === 0
-        ? "No pending events remain in this view"
-        : `${pendingCount} pending event${
-            pendingCount === 1 ? "" : "s"
-          } remain elsewhere in this view`
+        ? "No pending events remain"
+        : `${pendingCount} pending event${pendingCount === 1 ? "" : "s"} ${
+            pendingCount === 1 ? "remains" : "remain"
+          } elsewhere in this queue`
     );
   } else {
     segments.push(`Pending ${pendingPosition} of ${pendingCount}`);
     segments.push(
       remainingPendingAfterSelection === 0
         ? pendingCount === 1
-          ? "This is the only pending event in this view"
-          : "No later pending events remain in this view"
+          ? "Only pending event in this queue"
+          : "No later pending events"
         : `${remainingPendingAfterSelection} pending event${
             remainingPendingAfterSelection === 1 ? "" : "s"
-          } remain after this selection`
+          } ${
+            remainingPendingAfterSelection === 1 ? "remains" : "remain"
+          } after this one`
     );
   }
 
@@ -528,22 +528,22 @@ function buildRecommendedPathCopy({
 }) {
   if (normalizedQueueContext?.pendingPosition !== null) {
     if (normalizedQueueContext?.remainingPendingAfterSelection > 0 && cleanedNextPendingHeadline) {
-      return "Start here. Continue with next pending after this review to stay in the same queue slice.";
+      return "Start here, then continue with next pending.";
     }
 
     return cleanedSelectedHeadline
-      ? "Start here. The selected event is still pending in this view."
-      : "Start here. The current queue state is still pending in this view.";
+      ? "Start here. This event is still pending."
+      : "Start here. A pending item is still waiting in this queue.";
   }
 
   if (cleanedNextPendingHeadline) {
     return cleanedSelectedHeadline
-      ? "Start here for context, then continue with next pending to keep triage moving."
-      : "Continue with next pending first to keep triage moving in this queue slice.";
+      ? "Start here for context, then continue with next pending."
+      : "Continue with next pending first.";
   }
 
   if (cleanedSelectedHeadline) {
-    return "Start here for context. No pending events remain in this view.";
+    return "Start here for context. No pending events remain.";
   }
 
   return "";

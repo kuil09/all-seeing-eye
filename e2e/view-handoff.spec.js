@@ -185,10 +185,10 @@ test.describe("shareable view handoff", () => {
       "Confidence: high confidence 88%"
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
+      "Visible 1 of 1. Pending 1 of 1. Only pending event in this queue."
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Recommended path: Start here. The selected event is still pending in this view."
+      "Recommended path: Start here. This event is still pending."
     );
     await expect(handoffPreview).toContainText("Show reviewer context and evidence");
     await expect(handoffPreview).toContainText("5 review details");
@@ -232,10 +232,10 @@ test.describe("shareable view handoff", () => {
     );
     expect(copiedText).not.toContain("Review history: 1 review action");
     expect(copiedText).toContain(
-      "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
+      "- Queue context: Visible 1 of 1. Pending 1 of 1. Only pending event in this queue."
     );
     expect(copiedText).toContain(
-      "- Recommended path: Start here. The selected event is still pending in this view."
+      "- Recommended path: Start here. This event is still pending."
     );
     expect(copiedText).toContain("Reviewer context");
     expect(copiedText).toContain(
@@ -307,20 +307,20 @@ test.describe("shareable view handoff", () => {
     await harborCard.click();
     await expect(page.locator(".detail-shell h2").first()).toHaveText(reviewedHeadline);
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      `Next pending in this view: ${nextPendingHeadline}`
+      `Next pending: ${nextPendingHeadline}`
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Recommended path: Start here for context, then continue with next pending to keep triage moving."
+      "Recommended path: Start here for context, then continue with next pending."
     );
 
     await page.getByRole("button", { name: "Copy review note" }).click();
 
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain(
-      `- Next pending in this view: ${nextPendingHeadline}`
+      `- Next pending: ${nextPendingHeadline}`
     );
     expect(copiedText).toContain(
-      "- Recommended path: Start here for context, then continue with next pending to keep triage moving."
+      "- Recommended path: Start here for context, then continue with next pending."
     );
 
     const currentLinkLine = copiedText
