@@ -230,6 +230,52 @@ export function buildViewHandoffNote({
   return lines.join("\n");
 }
 
+export function buildViewHandoffPreviewItems(handoffSummary = {}) {
+  const previewItems = [];
+
+  if (normalizeLabel(handoffSummary.selectedConfidenceContext)) {
+    previewItems.push({
+      label: "Confidence drivers",
+      value: handoffSummary.selectedConfidenceContext
+    });
+  }
+
+  if (normalizeLabel(handoffSummary.selectedReviewContext)) {
+    previewItems.push({
+      label: "Review context",
+      value: handoffSummary.selectedReviewContext
+    });
+  }
+
+  if (
+    Array.isArray(handoffSummary.selectedSourceProofItems) &&
+    handoffSummary.selectedSourceProofItems.length
+  ) {
+    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
+      previewItems.push({
+        label: "Source proof",
+        value: sourceProofItem
+      });
+    }
+  }
+
+  if (normalizeLabel(handoffSummary.selectedSourceProofOverflowCopy)) {
+    previewItems.push({
+      label: "Source proof summary",
+      value: handoffSummary.selectedSourceProofOverflowCopy
+    });
+  }
+
+  if (normalizeLabel(handoffSummary.selectedSearchContext)) {
+    previewItems.push({
+      label: normalizeLabel(handoffSummary.selectedSearchLabel) || "Search rationale",
+      value: handoffSummary.selectedSearchContext
+    });
+  }
+
+  return previewItems;
+}
+
 function buildQueueLabel(filteredCount, totalCount, filterSummary) {
   if (totalCount === 0) {
     return "No events available";

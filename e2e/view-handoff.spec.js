@@ -169,6 +169,7 @@ test.describe("shareable view handoff", () => {
     );
 
     await page.getByRole("button", { name: /Saved drafts/i }).click();
+    const handoffPreview = page.locator(".view-handoff-preview");
     await expect(page.locator(".view-handoff-snapshot")).toContainText("Status: pending review");
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
@@ -176,19 +177,24 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Recommended path: Start with the selected event. It is still pending in this view."
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+    await expect(handoffPreview).toContainText("Preview expanded handoff context");
+    await expect(handoffPreview).toContainText("5 handoff context items");
+    await expect(page.locator(".view-handoff-preview-item").first()).not.toBeVisible();
+    await handoffPreview.locator("summary").click();
+    await expect(page.locator(".view-handoff-preview-item").first()).toBeVisible();
+    await expect(handoffPreview).toContainText(
       "Latest review was edit by bootstrap-fixture."
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+    await expect(handoffPreview).toContainText(
       "Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim."
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+    await expect(handoffPreview).toContainText(
       "Source proof: Members report cargo delays at Harbor North terminal"
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+    await expect(handoffPreview).toContainText(
       "Source proof summary: 1 more supporting source remains in provenance detail."
     );
-    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
+    await expect(handoffPreview).not.toContainText(
       "Source proof: Harbor North security review extends outbound inspections"
     );
     await page.getByRole("button", { name: "Copy handoff note" }).click();

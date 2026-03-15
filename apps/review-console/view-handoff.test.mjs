@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildViewHandoffNote,
+  buildViewHandoffPreviewItems,
   buildViewHandoffSummary
 } from "./view-handoff.mjs";
 
@@ -303,6 +304,64 @@ test("buildViewHandoffSummary marks confidence drivers as handoff-note-only cont
     summary.selectedConfidenceContext,
     "Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
   );
+});
+
+test("buildViewHandoffPreviewItems groups the extended handoff context for the card preview", () => {
+  const handoffSummary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    selectedConfidenceContext:
+      "Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms.",
+    selectedReviewContext:
+      "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability.",
+    selectedSourceProofItems: [
+      "Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
+    ],
+    selectedSourceProofOverflowCopy:
+      "1 more supporting source remains in provenance detail.",
+    selectedSearchMatches: [
+      {
+        label: "Source",
+        preview: "coastal-shipping-association",
+        detailSectionId: "detail-provenance"
+      },
+      {
+        label: "Participant",
+        preview: "Harbor North Port Authority",
+        detailSectionId: "detail-entities"
+      }
+    ],
+    activeSearchFocusTarget: "detail-provenance"
+  });
+
+  assert.deepEqual(buildViewHandoffPreviewItems(handoffSummary), [
+    {
+      label: "Confidence drivers",
+      value:
+        "Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
+    },
+    {
+      label: "Review context",
+      value:
+        "Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
+    },
+    {
+      label: "Source proof",
+      value:
+        "Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
+    },
+    {
+      label: "Source proof summary",
+      value: "1 more supporting source remains in provenance detail."
+    },
+    {
+      label: "Focused search match",
+      value:
+        "Source: coastal-shipping-association; Participant: Harbor North Port Authority"
+    }
+  ]);
 });
 
 test("buildViewHandoffNote produces a paste-ready note for the current link", () => {

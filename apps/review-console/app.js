@@ -74,6 +74,7 @@ import {
 } from "./timeline-search.mjs";
 import {
   buildViewHandoffNote,
+  buildViewHandoffPreviewItems,
   buildViewHandoffSummary
 } from "./view-handoff.mjs";
 import {
@@ -1147,6 +1148,7 @@ function renderViewHandoffPanel(handoffSummary) {
       ? " is-warning"
       : "";
   const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
+  const previewItems = buildViewHandoffPreviewItems(handoffSummary);
   const selectedContextChips = Array.isArray(handoffSummary.selectedContextItems)
     ? handoffSummary.selectedContextItems
         .map((item) => `<span class="chip">${escapeHtml(item)}</span>`)
@@ -1227,31 +1229,7 @@ function renderViewHandoffPanel(handoffSummary) {
               )}</p>`
             : ""
         }
-        ${
-          handoffSummary.selectedConfidenceContext
-            ? `<p class="meta-copy view-handoff-context-copy"><strong>Confidence drivers:</strong> ${escapeHtml(
-                handoffSummary.selectedConfidenceContext
-              )}</p>`
-            : ""
-        }
-        ${
-          handoffSummary.selectedReviewContext
-            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
-                handoffSummary.selectedReviewContext
-              )}</p>`
-            : ""
-        }
-        ${renderViewHandoffSourceProof(
-          handoffSummary.selectedSourceProofItems,
-          handoffSummary.selectedSourceProofOverflowCopy
-        )}
-        ${
-          handoffSummary.selectedSearchContext
-            ? `<p class="meta-copy view-handoff-context-copy"><strong>${escapeHtml(
-                handoffSummary.selectedSearchLabel
-              )}:</strong> ${escapeHtml(handoffSummary.selectedSearchContext)}</p>`
-            : ""
-        }
+        ${renderViewHandoffPreview(previewItems)}
         <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
         ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
       </div>
@@ -1259,39 +1237,33 @@ function renderViewHandoffPanel(handoffSummary) {
   `;
 }
 
-function renderViewHandoffSourceProof(sourceProofItems, sourceProofOverflowCopy = "") {
-  const normalizedSourceProofOverflowCopy = String(sourceProofOverflowCopy ?? "").trim();
-
-  if (
-    (!Array.isArray(sourceProofItems) || !sourceProofItems.length) &&
-    !normalizedSourceProofOverflowCopy
-  ) {
+function renderViewHandoffPreview(previewItems) {
+  if (!Array.isArray(previewItems) || !previewItems.length) {
     return "";
   }
 
+  const previewCountLabel = `${previewItems.length} handoff context item${
+    previewItems.length === 1 ? "" : "s"
+  }`;
+
   return `
-    <div class="view-handoff-proof-list">
-      ${sourceProofItems
+    <details class="view-handoff-preview">
+      <summary class="view-handoff-preview-summary">
+        Preview expanded handoff context
+        <span class="view-handoff-preview-count">${escapeHtml(previewCountLabel)}</span>
+      </summary>
+      <div class="view-handoff-preview-list">
+        ${previewItems
         .map(
           (item) => `
-            <p class="meta-copy view-handoff-context-copy view-handoff-proof">
-              <strong>Source proof:</strong> ${escapeHtml(item)}
+            <p class="meta-copy view-handoff-context-copy view-handoff-preview-item">
+              <strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.value)}
             </p>
           `
         )
         .join("")}
-      ${
-        normalizedSourceProofOverflowCopy
-          ? `
-            <p class="meta-copy view-handoff-context-copy view-handoff-proof">
-              <strong>Source proof summary:</strong> ${escapeHtml(
-                normalizedSourceProofOverflowCopy
-              )}
-            </p>
-          `
-          : ""
-      }
-    </div>
+      </div>
+    </details>
   `;
 }
 

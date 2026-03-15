@@ -265,15 +265,6 @@ a {
   margin: 0;
 }
 
-.view-handoff-proof-list {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.view-handoff-proof {
-  margin: 0;
-}
-
 .view-handoff-note {
   margin: 0;
   line-height: 1.45;
@@ -298,6 +289,49 @@ a {
   margin-top: 0.25rem;
   padding-top: 0.7rem;
   border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
+.view-handoff-preview {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.15rem 0 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(22, 37, 49, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.view-handoff-preview[open] {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.view-handoff-preview-summary {
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.view-handoff-preview-summary::-webkit-details-marker {
+  color: var(--muted);
+}
+
+.view-handoff-preview-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.view-handoff-preview-list {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.view-handoff-preview-item {
+  margin: 0;
 }
 
 .view-handoff-scope-group {
