@@ -154,7 +154,10 @@ export function buildViewHandoffNote({
     "Continue with next pending without saved-draft filter";
 
   const openNowLines = [`- ${selectedLabel}: ${selectedValue}`];
-  if (normalizeLabel(handoffSummary.recommendedPathCopy)) {
+  if (
+    normalizeLabel(handoffSummary.recommendedPathCopy) &&
+    !nextPendingLink
+  ) {
     openNowLines.push(`- Recommended path: ${handoffSummary.recommendedPathCopy}`);
   }
   appendHandoffNoteLink(

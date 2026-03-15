@@ -747,7 +747,6 @@ test("buildViewHandoffNote includes direct next pending links when the current s
       "",
       "Open now",
       "- Selected event: Port access restored after overnight channel sweep",
-      "- Recommended path: Start here for context, then continue with next pending.",
       "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed)",
       "- Start here without saved-draft filter: [Reopen selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed)",
       "- Continue with next pending: [Reopen next pending event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid)",

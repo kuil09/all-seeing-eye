@@ -338,7 +338,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       `- Next pending: ${nextPendingHeadline}`
     );
-    expect(copiedText).toContain(
+    expect(copiedText).not.toContain(
       "- Recommended path: Start here for context, then continue with next pending."
     );
 
