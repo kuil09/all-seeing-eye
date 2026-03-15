@@ -118,13 +118,27 @@ test("buildTimelineSearchMatches explains which hidden sections matched the quer
 
   assert.deepEqual(
     buildTimelineSearchMatches("coastal-shipping-association", timelineItem, detail),
-    [{ label: "Source", preview: "coastal-shipping-association" }]
+    [
+      {
+        label: "Source",
+        preview: "coastal-shipping-association",
+        detailSectionId: "detail-provenance"
+      }
+    ]
   );
   assert.deepEqual(buildTimelineSearchMatches("port authority", timelineItem, detail), [
-    { label: "Participant", preview: "Harbor North Port Authority" }
+    {
+      label: "Participant",
+      preview: "Harbor North Port Authority",
+      detailSectionId: "detail-entities"
+    }
   ]);
   assert.deepEqual(buildTimelineSearchMatches("waiting for one more source", timelineItem, detail), [
-    { label: "Review history", preview: "Waiting for one more source before approving." }
+    {
+      label: "Review history",
+      preview: "Waiting for one more source before approving.",
+      detailSectionId: "detail-review-history"
+    }
   ]);
 });
 

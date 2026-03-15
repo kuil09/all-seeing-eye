@@ -88,6 +88,7 @@ const initialUiState = createInitialUiState(window.location.search);
 const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
 const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
 const REVIEW_ACTIVITY_STORAGE_KEY = "all-seeing-eye.review-console.recent-activity.v1";
+const DETAIL_FOCUS_HIGHLIGHT_MS = 1800;
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -110,6 +111,8 @@ const state = {
   lastActionMessage: "",
   isSubmittingReviewAction: false
 };
+
+let detailFocusTimeoutId = 0;
 
 const elements = {
   activeFilterSummary: document.querySelector("#active-filter-summary"),
@@ -736,6 +739,39 @@ function renderTimelineSearchSummary(searchMatches) {
   `;
 }
 
+function renderDetailSearchFocus(searchMatches) {
+  return `
+    <article class="detail-note search-focus-card">
+      <div class="list-card-header">
+        <div>
+          <p class="section-kicker">Search focus</p>
+          <h3>Jump to matched detail</h3>
+        </div>
+        <p class="meta-copy">${searchMatches.length} match${searchMatches.length === 1 ? "" : "es"}</p>
+      </div>
+      <p class="detail-copy">
+        Use the matched field shortcuts to verify why this event stayed in the filtered queue.
+      </p>
+      <div class="queue-lane-row">
+        ${searchMatches
+          .map(
+            (match) => `
+              <button
+                type="button"
+                class="secondary-action search-focus-button"
+                data-search-focus-target="${escapeAttribute(match.detailSectionId)}"
+              >
+                <strong>${escapeHtml(match.label)}</strong>
+                <span>${escapeHtml(match.preview)}</span>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    </article>
+  `;
+}
+
 function renderTimelineDraftSummary(reviewDraftPreview) {
   return `
     <div class="timeline-review-summary timeline-draft-summary">
@@ -1006,6 +1042,15 @@ function renderDetail() {
   const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
   const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
   const noteSuggestions = buildReviewNoteSuggestions(detail);
+  const selectedTimelineItem =
+    filteredTimeline.find((item) => item.eventId === state.selectedEventId) ??
+    state.data.timeline.find((item) => item.eventId === state.selectedEventId) ??
+    detail.event;
+  const searchMatches = buildTimelineSearchMatches(
+    state.searchQuery,
+    selectedTimelineItem,
+    detail
+  );
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -1015,7 +1060,7 @@ function renderDetail() {
           ? `<div class="flash-note is-error">${escapeHtml(state.actionError)}</div>`
           : ""
       }
-      <section class="detail-hero">
+      <section id="detail-overview" class="detail-hero detail-section" tabindex="-1">
         <div class="detail-meta">
           <span>${formatDateTime(detail.event.eventTime)}</span>
           <div class="detail-chip-row">
@@ -1032,6 +1077,7 @@ function renderDetail() {
         </div>
         <div class="detail-grid">
           ${queueContext ? renderQueueContext(queueContext, queueNavigation) : ""}
+          ${searchMatches.length ? renderDetailSearchFocus(searchMatches) : ""}
           <article class="detail-note">
             <h3>Confidence rationale</h3>
             <p class="detail-copy">${escapeHtml(detail.event.confidence.rationale)}</p>
@@ -1047,15 +1093,20 @@ function renderDetail() {
       </section>
 
       <section class="list-grid">
-        ${renderListCard("Claims", detail.claims, renderClaim)}
-        ${renderListCard("Entities", detail.entities, renderEntity)}
-        ${renderListCard("Relationships", detail.relationships, (relationship) =>
-          renderRelationship(relationship, entityLookup)
+        ${renderListCard("Claims", detail.claims, renderClaim, { sectionId: "detail-claims" })}
+        ${renderListCard("Entities", detail.entities, renderEntity, {
+          sectionId: "detail-entities"
+        })}
+        ${renderListCard(
+          "Relationships",
+          detail.relationships,
+          (relationship) => renderRelationship(relationship, entityLookup),
+          { sectionId: "detail-relationships" }
         )}
-        ${renderReviewHistory(detail.reviewActions)}
+        ${renderReviewHistory(detail.reviewActions, { sectionId: "detail-review-history" })}
       </section>
 
-      <section class="source-grid">
+      <section id="detail-provenance" class="source-grid detail-section" tabindex="-1">
         <div class="list-card-header">
           <div>
             <p class="section-kicker">Provenance</p>
@@ -1086,7 +1137,7 @@ function renderDetail() {
         ${detail.sources.map((source) => renderSourceCard(source, detail.event.eventTime)).join("")}
       </section>
 
-      <section class="review-form">
+      <section id="detail-review-form" class="review-form detail-section" tabindex="-1">
         <h3>Local review action</h3>
         <p class="detail-copy">${escapeHtml(reviewActionHelpText)}</p>
         <p class="meta-copy">${escapeHtml(reviewActionRequirementText)}</p>
@@ -1161,6 +1212,17 @@ function renderDetail() {
     });
   });
 
+  document.querySelectorAll("[data-search-focus-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetSectionId = button.getAttribute("data-search-focus-target");
+      if (!targetSectionId) {
+        return;
+      }
+
+      focusDetailSection(targetSectionId);
+    });
+  });
+
   document.querySelectorAll("[data-review-action]").forEach((button) => {
     button.addEventListener("click", () => {
       const action = button.getAttribute("data-review-action");
@@ -1172,9 +1234,13 @@ function renderDetail() {
   });
 }
 
-function renderListCard(title, items, renderer) {
+function renderListCard(title, items, renderer, options = {}) {
+  const sectionIdAttribute = options.sectionId
+    ? ` id="${escapeAttribute(options.sectionId)}" class="list-card detail-section" tabindex="-1"`
+    : ' class="list-card"';
+
   return `
-    <section class="list-card">
+    <section${sectionIdAttribute}>
       <h3>${escapeHtml(title)}</h3>
       <ul>
         ${
@@ -1228,9 +1294,13 @@ function renderRelationship(relationship, entityLookup) {
   `;
 }
 
-function renderReviewHistory(reviewActions) {
+function renderReviewHistory(reviewActions, options = {}) {
+  const sectionIdAttribute = options.sectionId
+    ? ` id="${escapeAttribute(options.sectionId)}" class="list-card review-history detail-section" tabindex="-1"`
+    : ' class="list-card review-history"';
+
   return `
-    <section class="list-card review-history">
+    <section${sectionIdAttribute}>
       <h3>Review history</h3>
       <ul>
         ${
@@ -1998,6 +2068,33 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value);
+}
+
+function focusDetailSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (!section) {
+    return;
+  }
+
+  document.querySelectorAll(".detail-section.is-focus-target").forEach((element) => {
+    element.classList.remove("is-focus-target");
+  });
+
+  if (detailFocusTimeoutId) {
+    window.clearTimeout(detailFocusTimeoutId);
+    detailFocusTimeoutId = 0;
+  }
+
+  section.classList.add("is-focus-target");
+  section.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (typeof section.focus === "function") {
+    section.focus({ preventScroll: true });
+  }
+
+  detailFocusTimeoutId = window.setTimeout(() => {
+    section.classList.remove("is-focus-target");
+    detailFocusTimeoutId = 0;
+  }, DETAIL_FOCUS_HIGHLIGHT_MS);
 }
 
 function getActiveSavedView() {

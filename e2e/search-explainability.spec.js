@@ -24,4 +24,18 @@ test.describe("search explainability", () => {
       fullPage: true
     });
   });
+
+  test("selected matches can jump straight to the related detail section", async ({ page }) => {
+    await page.goto(FIXTURES_URL);
+
+    await page.locator("#search-input").fill("coastal-shipping-association");
+
+    const searchFocus = page.locator(".search-focus-card");
+    await expect(searchFocus).toBeVisible();
+    await expect(searchFocus).toContainText("Jump to matched detail");
+
+    await searchFocus.getByRole("button", { name: /Source/i }).click();
+
+    await expect(page.locator("#detail-provenance")).toHaveClass(/is-focus-target/);
+  });
 });

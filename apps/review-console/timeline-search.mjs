@@ -1,4 +1,12 @@
 const SEARCH_MATCH_PREVIEW_LIMIT = 96;
+const DETAIL_SECTION_IDS = Object.freeze({
+  Event: "detail-overview",
+  Claim: "detail-claims",
+  Participant: "detail-entities",
+  Relationship: "detail-relationships",
+  Source: "detail-provenance",
+  "Review history": "detail-review-history"
+});
 
 export function matchesTimelineSearchQuery(query, timelineItem, detail) {
   const normalizedQuery = normalizeSearchValue(query);
@@ -24,7 +32,8 @@ export function buildTimelineSearchMatches(query, timelineItem, detail) {
       ? [
           {
             label: section.label,
-            preview: formatMatchPreview(matchingValue)
+            preview: formatMatchPreview(matchingValue),
+            detailSectionId: section.detailSectionId
           }
         ]
       : [];
@@ -43,6 +52,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
   return [
     {
       label: "Event",
+      detailSectionId: DETAIL_SECTION_IDS.Event,
       values: collectSectionValues([
         timelineItem?.headline,
         timelineItem?.summary,
@@ -59,6 +69,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
     },
     {
       label: "Claim",
+      detailSectionId: DETAIL_SECTION_IDS.Claim,
       values: collectSectionValues(
         (detail?.claims ?? []).flatMap((claim) => [
           claim?.claimType,
@@ -69,6 +80,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
     },
     {
       label: "Participant",
+      detailSectionId: DETAIL_SECTION_IDS.Participant,
       values: collectSectionValues(
         (detail?.entities ?? []).flatMap((entity) => [
           entity?.canonicalName,
@@ -79,6 +91,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
     },
     {
       label: "Relationship",
+      detailSectionId: DETAIL_SECTION_IDS.Relationship,
       values: collectSectionValues(
         (detail?.relationships ?? []).flatMap((relationship) => [
           relationship?.relationshipType,
@@ -88,6 +101,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
     },
     {
       label: "Source",
+      detailSectionId: DETAIL_SECTION_IDS.Source,
       values: collectSectionValues(
         (detail?.sources ?? []).flatMap((source) => [
           source?.title,
@@ -99,6 +113,7 @@ function buildTimelineSearchSections(timelineItem, detail) {
     },
     {
       label: "Review history",
+      detailSectionId: DETAIL_SECTION_IDS["Review history"],
       values: collectSectionValues(
         (detail?.reviewActions ?? []).flatMap((reviewAction) => [
           reviewAction?.actorName,

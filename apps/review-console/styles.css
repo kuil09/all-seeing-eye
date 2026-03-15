@@ -593,6 +593,24 @@ a {
   color: var(--ink);
 }
 
+.search-focus-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.search-focus-button {
+  display: grid;
+  gap: 0.18rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.search-focus-button span {
+  max-width: 20rem;
+  color: var(--muted);
+  white-space: normal;
+}
+
 .timeline-confidence-note {
   font-size: 0.95rem;
 }
@@ -672,6 +690,20 @@ a {
 .detail-shell {
   display: grid;
   gap: 1rem;
+}
+
+.detail-section {
+  scroll-margin-top: 1rem;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.detail-section:focus {
+  outline: none;
+}
+
+.detail-section.is-focus-target {
+  border-color: rgba(31, 116, 100, 0.24);
+  box-shadow: 0 0 0 3px rgba(31, 116, 100, 0.12);
 }
 
 .detail-hero {
