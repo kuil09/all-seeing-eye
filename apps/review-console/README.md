@@ -58,7 +58,7 @@ recorded without notes for quick triage.
 - Shareable view now also breaks handoff scope into URL-carried state, saved-draft dependencies, and browser-local-only state such as unsaved draft-note text or active saved-view labels
 - Shareable view now also copies a paste-ready handoff note that bundles the current link, a portable link when needed, the included versus local-only scope cues, and the selected local draft snapshot when one exists
 - Shareable view now also surfaces a reviewer snapshot plus recent persisted review context for the selected event, so async handoff notes explain why this queue item needs attention before the next reviewer opens detail
-- Shareable view now also carries the selected event's active search-match rationale into the handoff card and copied note, so async reviewers can see why the event survived the current search-narrowed queue before opening detail
+- Shareable view now also carries the selected event's active search-match rationale into the handoff card and copied note, and copied links now restore the focused detail section when one is active, so async reviewers can reopen the exact matched subsection instead of rescanning detail
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
@@ -86,6 +86,6 @@ recorded without notes for quick triage.
 - Draft notes remain local to the browser until the corresponding review action is recorded
 - Saved views remain local to the browser and capture search, review-status, review-history, confidence, tag, saved-draft filters, and queue sort
 - Recent activity remains local to the browser and captures the last reviewed event, the latest analyst note, and the relaxed reopen filters plus queue sort needed to inspect it again quickly
-- URL-synced selected event, filters, source mode, and demo mode for reproducible refreshes
+- URL-synced selected event, active Search focus section, filters, source mode, and demo mode for reproducible refreshes
 - Filter controls plus explicit empty and error demo states
 - Default to local read API mode, with contract fixtures available as a fallback

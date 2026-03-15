@@ -24,6 +24,9 @@ export function buildViewHandoffSummary({
     selectedSearchMatches,
     activeSearchFocusTarget
   );
+  const hasFocusedDetailSection =
+    Boolean(normalizeLabel(activeSearchFocusTarget)) &&
+    Boolean(selectedSearchSummary.context);
   const sortLabel = normalizeSortLabel(filterSummary.sortLabel);
   const includedState = buildIncludedState({
     cleanedSelectedHeadline,
@@ -31,7 +34,8 @@ export function buildViewHandoffSummary({
     filterSummary,
     sortLabel,
     draftFilter,
-    totalCount
+    totalCount,
+    hasFocusedDetailSection
   });
   const localDependentState =
     draftFilter === "saved" ? ["Saved-draft filter"] : [];
@@ -175,7 +179,8 @@ function buildIncludedState({
   filterSummary,
   sortLabel,
   draftFilter,
-  totalCount
+  totalCount,
+  hasFocusedDetailSection
 }) {
   const activeFilters = Array.isArray(filterSummary.activeFilters)
     ? filterSummary.activeFilters.filter((label) => {
@@ -189,6 +194,7 @@ function buildIncludedState({
 
   return [
     cleanedSelectedHeadline ? "Selected event" : "Queue state",
+    hasFocusedDetailSection ? "Focused detail section" : "",
     ...activeFilters,
     sortLabel || (totalCount > 0 ? "Pending first sort" : ""),
     cleanedSourceLabel,

@@ -109,8 +109,10 @@ const state = {
   draftFilter: initialUiState.draftFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
-  activeSearchFocusEventId: null,
-  activeSearchFocusTarget: null,
+  activeSearchFocusEventId: initialUiState.activeSearchFocusTarget
+    ? initialUiState.selectedEventId
+    : null,
+  activeSearchFocusTarget: initialUiState.activeSearchFocusTarget,
   reviewDrafts: loadReviewDrafts(),
   recentReviewActivity: loadRecentReviewActivity(),
   savedViews: loadSavedViews(),
@@ -125,6 +127,10 @@ const state = {
 
 let detailFocusTimeoutId = 0;
 let shareViewFeedbackTimeoutId = 0;
+let pendingSearchFocusRestore = Boolean(
+  initialUiState.selectedEventId && initialUiState.activeSearchFocusTarget
+);
+let lastRestoredSearchFocusKey = "";
 
 const elements = {
   activeFilterSummary: document.querySelector("#active-filter-summary"),
@@ -544,6 +550,7 @@ function render() {
   renderRecentReviewActivity();
   renderTimeline();
   renderDetail();
+  restoreActiveSearchFocusFromUrl();
 }
 
 function renderToggles() {
@@ -2286,7 +2293,7 @@ function resetDemoMode() {
 function syncUrl() {
   clearShareViewFeedback();
   const url = new URL(window.location.href);
-  const nextSearch = buildUrlSearch(state);
+  const nextSearch = buildUrlSearch(buildShareableViewState());
   if (url.search === nextSearch) {
     return;
   }
@@ -2348,15 +2355,19 @@ async function copyViewHandoffNote() {
 function buildShareViewUrl({ portable = false } = {}) {
   const shareUrl = new URL(window.location.href);
   shareUrl.hash = "";
-  shareUrl.search = buildUrlSearch(
-    portable && state.draftFilter === DRAFT_FILTER_SAVED
-      ? {
-          ...state,
-          draftFilter: DRAFT_FILTER_ALL
-        }
-      : state
-  );
+  shareUrl.search = buildUrlSearch(buildShareableViewState({ portable }));
   return shareUrl;
+}
+
+function buildShareableViewState({ portable = false } = {}) {
+  return {
+    ...state,
+    draftFilter:
+      portable && state.draftFilter === DRAFT_FILTER_SAVED
+        ? DRAFT_FILTER_ALL
+        : state.draftFilter,
+    activeSearchFocusTarget: getActiveSearchFocusTarget(getSelectedSearchMatches())
+  };
 }
 
 function setShareViewFeedback(message, tone) {
@@ -2545,6 +2556,9 @@ function focusSearchMatch(targetSectionId) {
 
   state.activeSearchFocusEventId = state.selectedEventId;
   state.activeSearchFocusTarget = targetSectionId;
+  pendingSearchFocusRestore = false;
+  lastRestoredSearchFocusKey = buildSearchFocusKey(state.selectedEventId, targetSectionId);
+  syncUrl();
   render();
   focusDetailSection(targetSectionId);
   return true;
@@ -2562,6 +2576,39 @@ function cycleSelectedSearchFocus(direction) {
   }
 
   return focusSearchMatch(targetSectionId);
+}
+
+function restoreActiveSearchFocusFromUrl() {
+  const activeSearchFocusTarget = getActiveSearchFocusTarget(getSelectedSearchMatches());
+  const searchFocusKey = buildSearchFocusKey(
+    state.selectedEventId,
+    activeSearchFocusTarget
+  );
+  if (!searchFocusKey) {
+    return;
+  }
+
+  if (!pendingSearchFocusRestore && lastRestoredSearchFocusKey === searchFocusKey) {
+    return;
+  }
+
+  pendingSearchFocusRestore = false;
+  lastRestoredSearchFocusKey = searchFocusKey;
+  window.requestAnimationFrame(() => {
+    const currentSearchFocusKey = buildSearchFocusKey(
+      state.selectedEventId,
+      getActiveSearchFocusTarget(getSelectedSearchMatches())
+    );
+    if (currentSearchFocusKey !== searchFocusKey) {
+      return;
+    }
+
+    focusDetailSection(activeSearchFocusTarget);
+  });
+}
+
+function buildSearchFocusKey(eventId, targetSectionId) {
+  return eventId && targetSectionId ? `${eventId}:${targetSectionId}` : "";
 }
 
 function getActiveSavedView() {

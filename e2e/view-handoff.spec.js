@@ -25,9 +25,14 @@ test.describe("shareable view handoff", () => {
     const cards = page.locator("#timeline-list .timeline-card");
     await expect(cards.first()).toBeVisible();
 
-    await page.locator("#search-input").fill("harbor");
+    await page.locator("#search-input").fill("coastal-shipping-association");
     await page.locator("#sort-order").selectOption("lowest_confidence");
-    await cards.first().click();
+    const harborCard = page
+      .locator("#timeline-list .timeline-card")
+      .filter({ hasText: "Inspection surge reported at Harbor North cargo terminal" })
+      .first();
+    await harborCard.click();
+    await page.locator("[data-search-focus-target='detail-provenance']").click();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
     const copyButton = page.getByRole("button", { name: "Copy current view link" });
@@ -39,15 +44,21 @@ test.describe("shareable view handoff", () => {
     );
 
     const copiedText = await page.evaluate(() => window.__copiedText);
-    expect(copiedText).toContain("q=harbor");
+    expect(copiedText).toContain("q=coastal-shipping-association");
+    expect(copiedText).toContain("focus=detail-provenance");
     expect(copiedText).toContain("sort=lowest_confidence");
     expect(copiedText).toContain("source=fixtures");
     expect(copiedText).toContain("eventId=");
 
     await page.goto(copiedText);
     await expect(page.locator(".detail-shell h2").first()).toHaveText(selectedHeadline ?? "");
-    await expect(page.locator("#search-input")).toHaveValue("harbor");
+    await expect(page.locator("#search-input")).toHaveValue("coastal-shipping-association");
     await expect(page.locator("#sort-order")).toHaveValue("lowest_confidence");
+    await expect(page.locator("[data-search-focus-target='detail-provenance']")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await expect(page.locator("#detail-provenance.is-focus-target")).toBeVisible();
 
     await page.screenshot({
       path: "test-results/shareable-view-handoff.png",
@@ -78,6 +89,7 @@ test.describe("shareable view handoff", () => {
       .filter({ hasText: "Inspection surge reported at Harbor North cargo terminal" })
       .first();
     await expect(harborCard).toBeVisible();
+    await page.locator("#search-input").fill("coastal-shipping-association");
     await harborCard.click();
 
     const reviewNotes = page.locator("#review-notes");
@@ -90,6 +102,7 @@ test.describe("shareable view handoff", () => {
     );
 
     await page.getByRole("button", { name: /Saved drafts/i }).click();
+    await page.locator("[data-search-focus-target='detail-provenance']").click();
     await expect(page.getByRole("button", { name: "Copy portable link" })).toBeVisible();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
@@ -101,11 +114,16 @@ test.describe("shareable view handoff", () => {
 
     const copiedText = await page.evaluate(() => window.__copiedText);
     expect(copiedText).toContain("eventId=");
+    expect(copiedText).toContain("focus=detail-provenance");
     expect(copiedText).toContain("source=fixtures");
     expect(copiedText).not.toContain("drafts=saved");
 
     await page.goto(copiedText);
     await expect(page.locator(".detail-shell h2").first()).toHaveText(selectedHeadline ?? "");
+    await expect(page.locator("[data-search-focus-target='detail-provenance']")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     await expect(page.getByRole("button", { name: "Copy portable link" })).toHaveCount(0);
 
     await page.screenshot({
@@ -137,7 +155,9 @@ test.describe("shareable view handoff", () => {
       .filter({ hasText: "Inspection surge reported at Harbor North cargo terminal" })
       .first();
     await expect(harborCard).toBeVisible();
+    await page.locator("#search-input").fill("coastal-shipping-association");
     await harborCard.click();
+    await page.locator("[data-search-focus-target='detail-provenance']").click();
 
     const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
     const reviewNotes = page.locator("#review-notes");
@@ -168,9 +188,16 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
     );
+    expect(copiedText).toContain(
+      "- Focused search match: Source: coastal-shipping-association"
+    );
     expect(copiedText).toContain("- Current link: http://127.0.0.1:");
+    expect(copiedText).toContain("focus=detail-provenance");
     expect(copiedText).toContain("drafts=saved");
     expect(copiedText).toContain("- Portable link: http://127.0.0.1:");
+    expect(copiedText).toContain(
+      "- Included in link: Selected event; Focused detail section; Search: coastal-shipping-association; Pending first sort; Contract fixtures"
+    );
     expect(copiedText).toContain(
       "- Included in handoff note only: Selected draft note snapshot"
     );

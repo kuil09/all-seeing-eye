@@ -100,6 +100,13 @@ test("buildViewHandoffSummary prioritizes the active search focus in handoff con
     summary.selectedSearchContext,
     "Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)"
   );
+  assert.deepEqual(summary.includedState, [
+    "Selected event",
+    "Focused detail section",
+    "Search: harbor",
+    "Lowest confidence first",
+    "Contract fixtures"
+  ]);
 });
 
 test("buildViewHandoffSummary warns when saved-draft filtering depends on local state", () => {
@@ -260,7 +267,7 @@ test("buildViewHandoffNote includes active search rationale before the copied li
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
       "- Focused search match: Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)",
       "- Current link: http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures",
-      "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
+      "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     ].join("\n")
   );
