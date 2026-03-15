@@ -12,6 +12,7 @@ export function buildViewHandoffSummary({
   selectedContextItems = [],
   selectedReviewContext = "",
   queueContext = null,
+  nextPendingEventId = "",
   nextPendingHeadline = "",
   selectedSearchMatches = [],
   activeSearchFocusTarget = ""
@@ -22,6 +23,7 @@ export function buildViewHandoffSummary({
   const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
   const cleanedSelectedContextItems = normalizeLabels(selectedContextItems);
   const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
+  const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const selectedSearchSummary = buildSelectedSearchSummary(
     selectedSearchMatches,
@@ -74,6 +76,7 @@ export function buildViewHandoffSummary({
     selectedContextItems: cleanedSelectedContextItems,
     selectedReviewContext: cleanedSelectedReviewContext,
     selectedQueueContext: buildSelectedQueueContext(queueContext),
+    nextPendingEventId: cleanedNextPendingEventId,
     nextPendingCopy: cleanedNextPendingHeadline
       ? `Next pending in this view: ${cleanedNextPendingHeadline}`
       : "",
@@ -94,7 +97,9 @@ export function buildViewHandoffSummary({
 export function buildViewHandoffNote({
   handoffSummary = {},
   shareUrl = "",
-  portableShareUrl = ""
+  portableShareUrl = "",
+  nextPendingShareUrl = "",
+  portableNextPendingShareUrl = ""
 }) {
   const lines = ["Review console handoff", ""];
   const selectedLabel = normalizeLabel(handoffSummary.selectedLabel) || "Queue state";
@@ -103,6 +108,8 @@ export function buildViewHandoffNote({
   const contextLabel = normalizeLabel(handoffSummary.contextLabel);
   const currentLink = normalizeLabel(shareUrl);
   const portableLink = normalizeLabel(portableShareUrl);
+  const nextPendingLink = normalizeLabel(nextPendingShareUrl);
+  const portableNextPendingLink = normalizeLabel(portableNextPendingShareUrl);
   const portabilityNote = normalizeLabel(handoffSummary.portabilityNote);
 
   lines.push(`- ${selectedLabel}: ${selectedValue}`);
@@ -141,6 +148,20 @@ export function buildViewHandoffNote({
 
   if (portableLink && portableLink !== currentLink) {
     lines.push(`- Portable link: ${portableLink} (saved-draft filter removed)`);
+  }
+
+  if (nextPendingLink && nextPendingLink !== currentLink) {
+    lines.push(`- Next pending link: ${nextPendingLink}`);
+  }
+
+  if (
+    portableNextPendingLink &&
+    portableNextPendingLink !== nextPendingLink &&
+    portableNextPendingLink !== portableLink
+  ) {
+    lines.push(
+      `- Portable next pending link: ${portableNextPendingLink} (saved-draft filter removed)`
+    );
   }
 
   appendHandoffNoteScope(lines, "Included in link", handoffSummary.includedState);

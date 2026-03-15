@@ -213,4 +213,63 @@ test.describe("shareable view handoff", () => {
       "- Draft snapshot: Portable handoff should keep this event selected."
     );
   });
+
+  test("copy handoff note includes a direct next-pending link when the selected event is already reviewed", async ({
+    page
+  }) => {
+    await page.addInitScript(() => {
+      window.__copiedText = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText(text) {
+            window.__copiedText = text;
+            return Promise.resolve();
+          }
+        }
+      });
+    });
+
+    await page.goto(FIXTURES_URL);
+
+    const reviewedHeadline = "Inspection surge reported at Harbor North cargo terminal";
+    const nextPendingHeadline = "Storm-related outage affects East Grid substation 7";
+    const harborCard = page
+      .locator("#timeline-list .timeline-card")
+      .filter({ hasText: reviewedHeadline })
+      .first();
+
+    await expect(harborCard).toBeVisible();
+    await harborCard.click();
+    await page.locator("[data-review-action='approve']").click();
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
+
+    await harborCard.click();
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(reviewedHeadline);
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      `Next pending in this view: ${nextPendingHeadline}`
+    );
+
+    await page.getByRole("button", { name: "Copy handoff note" }).click();
+
+    const copiedText = await page.evaluate(() => window.__copiedText);
+    expect(copiedText).toContain(
+      `- Next pending in this view: ${nextPendingHeadline}`
+    );
+
+    const currentLinkLine = copiedText
+      .split("\n")
+      .find((line) => line.startsWith("- Current link: "));
+    const nextPendingLinkLine = copiedText
+      .split("\n")
+      .find((line) => line.startsWith("- Next pending link: "));
+
+    expect(currentLinkLine).toBeTruthy();
+    expect(nextPendingLinkLine).toBeTruthy();
+    expect(nextPendingLinkLine).not.toBe(currentLinkLine);
+
+    const nextPendingLink = nextPendingLinkLine.replace("- Next pending link: ", "");
+    await page.goto(nextPendingLink);
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
+  });
 });

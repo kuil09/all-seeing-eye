@@ -134,6 +134,7 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
       pendingPosition: null,
       remainingPendingAfterSelection: 2
     },
+    nextPendingEventId: "evt-east-grid",
     nextPendingHeadline: "Storm-related outage affects East Grid substation 7",
     filterSummary: {
       activeFilters: ["Status: approved"],
@@ -147,6 +148,7 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     summary.selectedQueueContext,
     "Visible 2 of 4 in this view. 2 pending events remain elsewhere in this view."
   );
+  assert.equal(summary.nextPendingEventId, "evt-east-grid");
   assert.equal(
     summary.nextPendingCopy,
     "Next pending in this view: Storm-related outage affects East Grid substation 7"
@@ -374,6 +376,62 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
       "- Draft snapshot: Portable handoff should keep this event selected.",
       "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency. Copy handoff note includes the current draft snapshot for reviewer context."
+    ].join("\n")
+  );
+});
+
+test("buildViewHandoffNote includes direct next pending links when the current selection is context only", () => {
+  const handoffSummary = buildViewHandoffSummary({
+    selectedHeadline: "Port access restored after overnight channel sweep",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Local read API",
+    queueContext: {
+      visibleCount: 2,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: null,
+      remainingPendingAfterSelection: 1
+    },
+    filterSummary: {
+      activeFilters: ["Search: outage", "Drafts: saved"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: null
+    },
+    draftFilter: "saved",
+    nextPendingEventId: "evt-east-grid",
+    nextPendingHeadline: "Storm-related outage affects East Grid substation 7"
+  });
+
+  const handoffNote = buildViewHandoffNote({
+    handoffSummary,
+    shareUrl:
+      "http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed",
+    portableShareUrl:
+      "http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed",
+    nextPendingShareUrl:
+      "http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid",
+    portableNextPendingShareUrl:
+      "http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid"
+  });
+
+  assert.equal(
+    handoffNote,
+    [
+      "Review console handoff",
+      "",
+      "- Selected event: Port access restored after overnight channel sweep",
+      "- Queue: 2 of 7 events visible · Local read API",
+      "- Queue context: Visible 1 of 2 in this view. 1 pending event remain elsewhere in this view.",
+      "- Next pending in this view: Storm-related outage affects East Grid substation 7",
+      "- Current link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed",
+      "- Portable link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed (saved-draft filter removed)",
+      "- Next pending link: http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid",
+      "- Portable next pending link: http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid (saved-draft filter removed)",
+      "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
+      "- Needs local browser state: Saved-draft filter",
+      "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."
     ].join("\n")
   );
 });

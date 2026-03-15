@@ -979,6 +979,9 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
   const filterSummary = getCurrentFilterSummary();
   const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
   const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
+  const nextPendingEventId =
+    queueNavigation?.nextPendingEventId ??
+    resolveNextPendingEventId(filteredTimeline, state.selectedEventId);
   const selectedTimelineItem = state.selectedEventId
     ? filteredTimeline.find((item) => item.eventId === state.selectedEventId) ??
       state.data.timeline.find((item) => item.eventId === state.selectedEventId) ??
@@ -1000,10 +1003,10 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
     filterSummary,
     queueContext,
+    nextPendingEventId,
     nextPendingHeadline:
-      filteredTimeline.find((item) => item.eventId === queueNavigation?.nextPendingEventId)
-        ?.headline ??
-      state.data.details[queueNavigation?.nextPendingEventId]?.event?.headline ??
+      filteredTimeline.find((item) => item.eventId === nextPendingEventId)?.headline ??
+      state.data.details[nextPendingEventId]?.event?.headline ??
       "",
     draftFilter: state.draftFilter,
     demoMode: state.demoMode,
@@ -2352,10 +2355,26 @@ async function copyViewHandoffNote() {
   const portableShareUrl = handoffSummary.showPortableCopyAction
     ? buildShareViewUrl({ portable: true })
     : null;
+  const nextPendingShareUrl = handoffSummary.nextPendingEventId
+    ? buildShareViewUrl({
+        eventIdOverride: handoffSummary.nextPendingEventId,
+        activeSearchFocusTargetOverride: null
+      })
+    : null;
+  const portableNextPendingShareUrl =
+    handoffSummary.showPortableCopyAction && handoffSummary.nextPendingEventId
+      ? buildShareViewUrl({
+          portable: true,
+          eventIdOverride: handoffSummary.nextPendingEventId,
+          activeSearchFocusTargetOverride: null
+        })
+      : null;
   const handoffNote = buildViewHandoffNote({
     handoffSummary,
     shareUrl: shareUrl.toString(),
-    portableShareUrl: portableShareUrl?.toString() ?? ""
+    portableShareUrl: portableShareUrl?.toString() ?? "",
+    nextPendingShareUrl: nextPendingShareUrl?.toString() ?? "",
+    portableNextPendingShareUrl: portableNextPendingShareUrl?.toString() ?? ""
   });
 
   try {
@@ -2374,21 +2393,42 @@ async function copyViewHandoffNote() {
   }
 }
 
-function buildShareViewUrl({ portable = false } = {}) {
+function buildShareViewUrl({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride
+} = {}) {
   const shareUrl = new URL(window.location.href);
   shareUrl.hash = "";
-  shareUrl.search = buildUrlSearch(buildShareableViewState({ portable }));
+  shareUrl.search = buildUrlSearch(
+    buildShareableViewState({
+      portable,
+      eventIdOverride,
+      activeSearchFocusTargetOverride
+    })
+  );
   return shareUrl;
 }
 
-function buildShareableViewState({ portable = false } = {}) {
+function buildShareableViewState({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride
+} = {}) {
+  const selectedEventId = eventIdOverride ?? state.selectedEventId;
+
   return {
     ...state,
+    selectedEventId,
     draftFilter:
       portable && state.draftFilter === DRAFT_FILTER_SAVED
         ? DRAFT_FILTER_ALL
         : state.draftFilter,
-    activeSearchFocusTarget: getActiveSearchFocusTarget(getSelectedSearchMatches())
+    activeSearchFocusTarget:
+      activeSearchFocusTargetOverride ??
+      (selectedEventId === state.selectedEventId
+        ? getActiveSearchFocusTarget(getSelectedSearchMatches())
+        : null)
   };
 }
 
