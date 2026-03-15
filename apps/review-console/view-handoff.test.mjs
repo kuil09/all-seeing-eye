@@ -80,6 +80,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
   assert.equal(summary.showPortableCopyAction, false);
   assert.equal(summary.selectedSearchLabel, "");
   assert.equal(summary.selectedSearchContext, "");
+  assert.deepEqual(summary.noteOnlyState, ["Reviewer context below"]);
   assert.equal(
     summary.portabilityNote,
     "Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
@@ -123,6 +124,7 @@ test("buildViewHandoffSummary prioritizes the active search focus in handoff con
     summary.selectedSearchContext,
     "Source: coastal-shipping-association; Participant: Harbor North Port Authority (+1 more match)"
   );
+  assert.deepEqual(summary.noteOnlyState, ["Reviewer context below"]);
   assert.deepEqual(summary.includedState, [
     "Selected event",
     "Focused detail section",
@@ -225,7 +227,7 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
     "Local read API"
   ]);
   assert.deepEqual(summary.localDependentState, []);
-  assert.deepEqual(summary.noteOnlyState, ["Selected draft note snapshot"]);
+  assert.deepEqual(summary.noteOnlyState, ["Reviewer context below"]);
   assert.deepEqual(summary.localOnlyState, [
     "Draft note text",
     "Saved view label: Ports needing edits"
@@ -254,7 +256,7 @@ test("buildViewHandoffSummary marks source proof as handoff-note-only context", 
     ]
   });
 
-  assert.deepEqual(summary.noteOnlyState, ["Supporting source snapshots"]);
+  assert.deepEqual(summary.noteOnlyState, ["Evidence appendix below"]);
   assert.deepEqual(summary.selectedSourceProofItems, [
     "Harbor North security review extends outbound inspections (regional-port-bulletin, 35m before event): Outbound containers are subject to enhanced screening through the morning shift.",
     "Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
@@ -299,7 +301,7 @@ test("buildViewHandoffSummary marks confidence drivers as handoff-note-only cont
       "Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
   });
 
-  assert.deepEqual(summary.noteOnlyState, ["Confidence driver snapshot"]);
+  assert.deepEqual(summary.noteOnlyState, ["Reviewer context below"]);
   assert.equal(
     summary.selectedConfidenceContext,
     "Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
@@ -431,7 +433,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Handoff scope",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
-      "- Included in handoff note only: Confidence driver snapshot; Supporting source snapshots",
+      "- Included in handoff note only: Reviewer context below; Evidence appendix below",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     ].join("\n")
   );
@@ -493,6 +495,7 @@ test("buildViewHandoffNote keeps active search rationale in reviewer context", (
       "",
       "Handoff scope",
       "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
+      "- Included in handoff note only: Reviewer context below",
       "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     ].join("\n")
   );
@@ -551,7 +554,7 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "",
       "Handoff scope",
       "- Included in link: Selected event; Search: outage; Pending first sort; Local read API",
-      "- Included in handoff note only: Selected draft note snapshot",
+      "- Included in handoff note only: Reviewer context below",
       "- Needs local browser state: Saved-draft filter",
       "- Stays local: Draft note text; Saved view label: Ports needing edits",
       "- Portability note: Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency. Copy handoff note includes the current draft snapshot for reviewer context."

@@ -248,7 +248,7 @@ test.describe("shareable view handoff", () => {
       "- Included in link: Selected event; Focused detail section; Search: coastal-shipping-association; Pending first sort; Contract fixtures"
     );
     expect(copiedText).toContain(
-      "- Included in handoff note only: Confidence driver snapshot; Supporting source snapshots; Selected draft note snapshot"
+      "- Included in handoff note only: Reviewer context below; Evidence appendix below"
     );
     expect(copiedText).toContain("- Needs local browser state: Saved-draft filter");
     expect(copiedText).toContain("- Stays local: Draft note text");

@@ -38,6 +38,14 @@ export function buildViewHandoffSummary({
     selectedSearchMatches,
     activeSearchFocusTarget
   );
+  const hasReviewerContext =
+    Boolean(cleanedSelectedConfidenceContext) ||
+    Boolean(cleanedSelectedReviewContext) ||
+    Boolean(selectedSearchSummary.context) ||
+    Boolean(cleanedSelectedDraftPreview);
+  const hasEvidenceAppendix =
+    cleanedSelectedSourceProofItems.length > 0 ||
+    Boolean(cleanedSelectedSourceProofOverflowCopy);
   const hasFocusedDetailSection =
     Boolean(normalizeLabel(activeSearchFocusTarget)) &&
     Boolean(selectedSearchSummary.context);
@@ -55,9 +63,8 @@ export function buildViewHandoffSummary({
     draftFilter === "saved" ? ["Saved-draft filter"] : [];
   const localOnlyState = [];
   const noteOnlyState = [
-    cleanedSelectedConfidenceContext ? "Confidence driver snapshot" : "",
-    cleanedSelectedSourceProofItems.length ? "Supporting source snapshots" : "",
-    cleanedSelectedDraftPreview ? "Selected draft note snapshot" : ""
+    hasReviewerContext ? "Reviewer context below" : "",
+    hasEvidenceAppendix ? "Evidence appendix below" : ""
   ].filter(Boolean);
 
   if (hasSelectedDraft) {
