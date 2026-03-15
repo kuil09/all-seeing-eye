@@ -313,10 +313,13 @@ test.describe("shareable view handoff", () => {
 
     await harborCard.click();
     await expect(page.locator(".detail-shell h2").first()).toHaveText(reviewedHeadline);
+    await expect(page.locator(".view-handoff-card .saved-view-copy")).toHaveText(
+      "Copy this context, or hand off the next pending event below."
+    );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       `Next pending: ${nextPendingHeadline}`
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
       "Recommended path: Start here for context, then continue with next pending."
     );
     await expect(

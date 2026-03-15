@@ -165,7 +165,7 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
   assert.equal(summary.showNextPendingCopyAction, true);
   assert.equal(
     summary.helperCopy,
-    "Copy this queue context or jump the next reviewer straight to the next pending event."
+    "Copy this context, or hand off the next pending event below."
   );
   assert.deepEqual(summary.selectedContextItems, [
     "Confidence: medium confidence 61%",

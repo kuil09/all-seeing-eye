@@ -91,7 +91,7 @@ export function buildViewHandoffSummary({
       .filter(Boolean)
       .join(" · "),
     helperCopy: showNextPendingCopyAction
-      ? "Copy this queue context or jump the next reviewer straight to the next pending event."
+      ? "Copy this context, or hand off the next pending event below."
       : cleanedSelectedHeadline
         ? "Copy the next reviewer's starting point for this queue slice and selected event."
         : "Copy the next reviewer's starting point for this queue slice.",

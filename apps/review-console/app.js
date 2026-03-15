@@ -1241,6 +1241,7 @@ function renderViewHandoffPanel(handoffSummary) {
         }
         ${
           handoffSummary.recommendedPathCopy
+          && !handoffSummary.showNextPendingCopyAction
             ? `<p class="meta-copy view-handoff-context-copy"><strong>Recommended path:</strong> ${escapeHtml(
                 handoffSummary.recommendedPathCopy
               )}</p>`
