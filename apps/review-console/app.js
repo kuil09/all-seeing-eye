@@ -71,6 +71,7 @@ import {
   matchesTimelineSearchQuery,
   resolveAdjacentSearchFocusTarget
 } from "./timeline-search.mjs";
+import { buildViewHandoffSummary } from "./view-handoff.mjs";
 import {
   buildUrlSearch,
   createInitialUiState,
@@ -109,6 +110,8 @@ const state = {
   recentReviewActivity: loadRecentReviewActivity(),
   savedViews: loadSavedViews(),
   savedViewName: "",
+  shareViewMessage: "",
+  shareViewMessageTone: "",
   loadError: "",
   actionError: "",
   lastActionMessage: "",
@@ -116,6 +119,7 @@ const state = {
 };
 
 let detailFocusTimeoutId = 0;
+let shareViewFeedbackTimeoutId = 0;
 
 const elements = {
   activeFilterSummary: document.querySelector("#active-filter-summary"),
@@ -143,7 +147,8 @@ const elements = {
   tagFilter: document.querySelector("#tag-filter"),
   timelineHeading: document.querySelector("#timeline-heading"),
   timelineList: document.querySelector("#timeline-list"),
-  timelineMeta: document.querySelector("#timeline-meta")
+  timelineMeta: document.querySelector("#timeline-meta"),
+  viewHandoffPanel: document.querySelector("#view-handoff-panel")
 };
 
 syncControlsFromState();
@@ -246,6 +251,12 @@ function bindEvents() {
     const clearFiltersButton = event.target.closest("[data-clear-filters]");
     if (clearFiltersButton) {
       clearActiveFilters();
+      return;
+    }
+
+    const copyViewLinkButton = event.target.closest("[data-copy-view-link]");
+    if (copyViewLinkButton) {
+      void copyCurrentViewLink();
       return;
     }
 
@@ -888,11 +899,21 @@ function renderQueueContext(queueContext, queueNavigation) {
 function renderFilterSummary(filteredTimeline) {
   if (!state.data) {
     elements.activeFilterSummary.innerHTML = "";
+    elements.viewHandoffPanel.innerHTML = "";
     return;
   }
 
   const totalCount = state.data.timeline.length;
   const filterSummary = getCurrentFilterSummary();
+  const handoffSummary = buildViewHandoffSummary({
+    selectedHeadline: state.data.details[state.selectedEventId]?.event?.headline ?? "",
+    filteredCount: filteredTimeline.length,
+    totalCount,
+    sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
+    filterSummary,
+    draftFilter: state.draftFilter,
+    demoMode: state.demoMode
+  });
   const laneScopeTimeline = getTimelineSlice({
     includeReviewStatusFilter: false,
     includeConfidenceFilter: false,
@@ -929,6 +950,36 @@ function renderFilterSummary(filteredTimeline) {
     }
     ${renderQueueDistribution(queueDistribution)}
     ${renderAttentionLanes(attentionLanes)}
+  `;
+  elements.viewHandoffPanel.innerHTML = renderViewHandoffPanel(handoffSummary);
+}
+
+function renderViewHandoffPanel(handoffSummary) {
+  const feedbackToneClass = state.shareViewMessage
+    ? ` is-${escapeAttribute(state.shareViewMessageTone || "success")}`
+    : handoffSummary.isWarning
+      ? " is-warning"
+      : "";
+  const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
+
+  return `
+    <section class="view-handoff-card" aria-label="Shareable view">
+      <div class="saved-view-header">
+        <div>
+          <p class="section-kicker">Shareable view</p>
+          <p class="saved-view-copy">${escapeHtml(handoffSummary.helperCopy)}</p>
+        </div>
+        <button type="button" class="secondary-action" data-copy-view-link>
+          Copy current view link
+        </button>
+      </div>
+      <div class="view-handoff-snapshot">
+        <p class="view-handoff-label">${escapeHtml(handoffSummary.selectedLabel)}</p>
+        <strong class="view-handoff-title">${escapeHtml(handoffSummary.selectedValue)}</strong>
+        <p class="meta-copy">${escapeHtml(handoffSummary.contextLabel)}</p>
+        <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
+      </div>
+    </section>
   `;
 }
 
@@ -2057,6 +2108,7 @@ function resetDemoMode() {
 }
 
 function syncUrl() {
+  clearShareViewFeedback();
   const url = new URL(window.location.href);
   const nextSearch = buildUrlSearch(state);
   if (url.search === nextSearch) {
@@ -2064,6 +2116,52 @@ function syncUrl() {
   }
   url.search = nextSearch;
   window.history.replaceState({}, "", url);
+}
+
+async function copyCurrentViewLink() {
+  const shareUrl = new URL(window.location.href);
+  shareUrl.hash = "";
+
+  try {
+    await copyTextToClipboard(shareUrl.toString());
+    setShareViewFeedback("Copied current view link.", "success");
+  } catch (error) {
+    setShareViewFeedback(
+      "Copy failed. Use the browser address bar to share this view.",
+      "error"
+    );
+  }
+}
+
+function setShareViewFeedback(message, tone) {
+  if (shareViewFeedbackTimeoutId) {
+    window.clearTimeout(shareViewFeedbackTimeoutId);
+  }
+
+  state.shareViewMessage = message;
+  state.shareViewMessageTone = tone;
+  render();
+
+  shareViewFeedbackTimeoutId = window.setTimeout(() => {
+    shareViewFeedbackTimeoutId = 0;
+    state.shareViewMessage = "";
+    state.shareViewMessageTone = "";
+    render();
+  }, 2200);
+}
+
+function clearShareViewFeedback() {
+  if (shareViewFeedbackTimeoutId) {
+    window.clearTimeout(shareViewFeedbackTimeoutId);
+    shareViewFeedbackTimeoutId = 0;
+  }
+
+  if (!state.shareViewMessage && !state.shareViewMessageTone) {
+    return;
+  }
+
+  state.shareViewMessage = "";
+  state.shareViewMessageTone = "";
 }
 
 function validateReviewAction(action) {
@@ -2131,6 +2229,36 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value);
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  fallbackCopyTextToClipboard(text);
+}
+
+function fallbackCopyTextToClipboard(text) {
+  const copyTarget = document.createElement("textarea");
+  copyTarget.value = text;
+  copyTarget.setAttribute("readonly", "readonly");
+  copyTarget.className = "hidden";
+  copyTarget.style.position = "fixed";
+  copyTarget.style.inset = "0";
+  copyTarget.style.opacity = "0";
+  document.body.append(copyTarget);
+  copyTarget.focus();
+  copyTarget.select();
+
+  const copySucceeded =
+    typeof document.execCommand === "function" ? document.execCommand("copy") : false;
+  copyTarget.remove();
+
+  if (!copySucceeded) {
+    throw new Error("Copy failed");
+  }
 }
 
 function focusDetailSection(sectionId) {

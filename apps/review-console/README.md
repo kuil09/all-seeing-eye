@@ -53,6 +53,7 @@ recorded without notes for quick triage.
 - Filter summary now also surfaces one-click status and confidence lanes with queue counts, so analysts can jump across likely triage slices without opening each dropdown first
 - Filter controls now include review-history state so previously reviewed or untouched events can be isolated without relying on status alone
 - Filter summary now also surfaces one-click analyst attention lanes for saved local drafts, pending revisits, reviewed-before items, and pending confidence slices, so unfinished notes and follow-up buckets can be reopened without restacking filters
+- Shareable view now exposes a one-click copyable URL for the current queue slice and selected event, while warning when saved-draft filtering depends on browser-local state
 - Analysts can save recurring filter combinations as local saved views and reapply or delete them without rebuilding the queue state manually
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
