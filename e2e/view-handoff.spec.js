@@ -187,8 +187,8 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Visible 1 of 1. Pending 1 of 1. Only pending event in this queue."
     );
-    await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Recommended path: Start here. This event is still pending."
+    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
+      "Recommended path:"
     );
     await expect(handoffPreview).toContainText("Show reviewer context and evidence");
     await expect(handoffPreview).toContainText("5 review details");
@@ -243,9 +243,7 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain(
       "- Queue context: Visible 1 of 1. Pending 1 of 1. Only pending event in this queue."
     );
-    expect(copiedText).toContain(
-      "- Recommended path: Start here. This event is still pending."
-    );
+    expect(copiedText).not.toContain("- Recommended path:");
     expect(copiedText).toContain("Reviewer context");
     expect(copiedText).toContain(
       "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."

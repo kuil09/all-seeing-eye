@@ -68,10 +68,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     "Visible 1 of 2. Pending 1 of 1. Only pending event in this queue."
   );
   assert.equal(summary.nextPendingCopy, "");
-  assert.equal(
-    summary.recommendedPathCopy,
-    "Start here. This event is still pending."
-  );
+  assert.equal(summary.recommendedPathCopy, "");
   assert.deepEqual(summary.localDependentState, []);
   assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
@@ -214,6 +211,30 @@ test("buildViewHandoffSummary keeps the next-step copy compact when more pending
     summary.recommendedPathCopy,
     "Start here, then continue with next pending."
   );
+});
+
+test("buildViewHandoffSummary drops redundant recommended-path copy when the selected event is the only pending step", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    queueContext: {
+      visibleCount: 2,
+      visiblePosition: 1,
+      pendingCount: 1,
+      pendingPosition: 1,
+      remainingPendingAfterSelection: 0
+    },
+    filterSummary: {
+      activeFilters: ["Search: harbor"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    }
+  });
+
+  assert.equal(summary.recommendedPathCopy, "");
 });
 
 test("buildViewHandoffSummary keeps review-history count when detailed review context is unavailable", () => {
@@ -562,7 +583,6 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
-      "- Recommended path: Start here. This event is still pending.",
       "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
       "",
       "Queue snapshot",
@@ -629,7 +649,6 @@ test("buildViewHandoffNote keeps active search rationale in reviewer context", (
       "",
       "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
-      "- Recommended path: Start here. This event is still pending.",
       "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
       "",
       "Queue snapshot",
@@ -684,7 +703,6 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "",
       "Open now",
       "- Selected event: Storm-related outage affects East Grid substation 7",
-      "- Recommended path: Start here. This event is still pending.",
       "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1)",
       "- Start here without saved-draft filter: [Reopen selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1)",
       "",

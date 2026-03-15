@@ -537,7 +537,7 @@ function buildRecommendedPathCopy({
     }
 
     return cleanedSelectedHeadline
-      ? "Start here. This event is still pending."
+      ? ""
       : "Start here. A pending item is still waiting in this queue.";
   }
 
