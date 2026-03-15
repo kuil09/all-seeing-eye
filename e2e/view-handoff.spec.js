@@ -110,4 +110,52 @@ test.describe("shareable view handoff", () => {
       fullPage: true
     });
   });
+
+  test("copy handoff note includes current and portable links plus scope cues", async ({
+    page
+  }) => {
+    await page.addInitScript(() => {
+      window.__copiedText = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText(text) {
+            window.__copiedText = text;
+            return Promise.resolve();
+          }
+        }
+      });
+    });
+
+    await page.goto(FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
+    const reviewNotes = page.locator("#review-notes");
+    await reviewNotes.fill("Portable handoff should keep this event selected.");
+
+    await page.waitForFunction(
+      (key) => !!window.localStorage.getItem(key),
+      "all-seeing-eye.review-console.drafts.v1"
+    );
+
+    await page.getByRole("button", { name: /Saved drafts/i }).click();
+    await page.getByRole("button", { name: "Copy handoff note" }).click();
+
+    await expect(page.locator(".view-handoff-note.is-success")).toContainText(
+      "Copied handoff note with current and portable links."
+    );
+
+    const copiedText = await page.evaluate(() => window.__copiedText);
+    expect(copiedText).toContain("Review console handoff");
+    expect(copiedText).toContain(`- Selected event: ${selectedHeadline ?? ""}`);
+    expect(copiedText).toContain("- Current link: http://127.0.0.1:");
+    expect(copiedText).toContain("drafts=saved");
+    expect(copiedText).toContain("- Portable link: http://127.0.0.1:");
+    expect(copiedText).toContain("- Needs local browser state: Saved-draft filter");
+    expect(copiedText).toContain("- Stays local: Draft note text");
+  });
 });

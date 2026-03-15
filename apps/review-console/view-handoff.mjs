@@ -58,6 +58,49 @@ export function buildViewHandoffSummary({
   };
 }
 
+export function buildViewHandoffNote({
+  handoffSummary = {},
+  shareUrl = "",
+  portableShareUrl = ""
+}) {
+  const lines = ["Review console handoff", ""];
+  const selectedLabel = normalizeLabel(handoffSummary.selectedLabel) || "Queue state";
+  const selectedValue =
+    normalizeLabel(handoffSummary.selectedValue) || "No visible event is selected";
+  const contextLabel = normalizeLabel(handoffSummary.contextLabel);
+  const currentLink = normalizeLabel(shareUrl);
+  const portableLink = normalizeLabel(portableShareUrl);
+  const portabilityNote = normalizeLabel(handoffSummary.portabilityNote);
+
+  lines.push(`- ${selectedLabel}: ${selectedValue}`);
+
+  if (contextLabel) {
+    lines.push(`- Queue: ${contextLabel}`);
+  }
+
+  if (currentLink) {
+    lines.push(`- Current link: ${currentLink}`);
+  }
+
+  if (portableLink && portableLink !== currentLink) {
+    lines.push(`- Portable link: ${portableLink} (saved-draft filter removed)`);
+  }
+
+  appendHandoffNoteScope(lines, "Included in link", handoffSummary.includedState);
+  appendHandoffNoteScope(
+    lines,
+    "Needs local browser state",
+    handoffSummary.localDependentState
+  );
+  appendHandoffNoteScope(lines, "Stays local", handoffSummary.localOnlyState);
+
+  if (portabilityNote) {
+    lines.push(`- Portability note: ${portabilityNote}`);
+  }
+
+  return lines.join("\n");
+}
+
 function buildQueueLabel(filteredCount, totalCount, filterSummary) {
   if (totalCount === 0) {
     return "No events available";
@@ -143,6 +186,18 @@ function normalizeLabel(label) {
   }
 
   return label.trim();
+}
+
+function appendHandoffNoteScope(lines, label, items) {
+  const normalizedItems = Array.isArray(items)
+    ? items.map((item) => normalizeLabel(String(item))).filter(Boolean)
+    : [];
+
+  if (!normalizedItems.length) {
+    return;
+  }
+
+  lines.push(`- ${label}: ${normalizedItems.join("; ")}`);
 }
 
 function joinLabelList(labels) {

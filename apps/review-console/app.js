@@ -71,7 +71,10 @@ import {
   matchesTimelineSearchQuery,
   resolveAdjacentSearchFocusTarget
 } from "./timeline-search.mjs";
-import { buildViewHandoffSummary } from "./view-handoff.mjs";
+import {
+  buildViewHandoffNote,
+  buildViewHandoffSummary
+} from "./view-handoff.mjs";
 import {
   buildUrlSearch,
   createInitialUiState,
@@ -264,6 +267,12 @@ function bindEvents() {
     const copyPortableViewLinkButton = event.target.closest("[data-copy-portable-view-link]");
     if (copyPortableViewLinkButton) {
       void copyCurrentViewLink({ portable: true });
+      return;
+    }
+
+    const copyHandoffNoteButton = event.target.closest("[data-copy-handoff-note]");
+    if (copyHandoffNoteButton) {
+      void copyViewHandoffNote();
       return;
     }
 
@@ -911,19 +920,8 @@ function renderFilterSummary(filteredTimeline) {
   }
 
   const totalCount = state.data.timeline.length;
-  const activeSavedView = getActiveSavedView();
   const filterSummary = getCurrentFilterSummary();
-  const handoffSummary = buildViewHandoffSummary({
-    selectedHeadline: state.data.details[state.selectedEventId]?.event?.headline ?? "",
-    filteredCount: filteredTimeline.length,
-    totalCount,
-    sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
-    filterSummary,
-    draftFilter: state.draftFilter,
-    demoMode: state.demoMode,
-    hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
-    activeSavedViewLabel: activeSavedView?.label ?? ""
-  });
+  const handoffSummary = getViewHandoffSummary(filteredTimeline);
   const laneScopeTimeline = getTimelineSlice({
     includeReviewStatusFilter: false,
     includeConfidenceFilter: false,
@@ -962,6 +960,27 @@ function renderFilterSummary(filteredTimeline) {
     ${renderAttentionLanes(attentionLanes)}
   `;
   elements.viewHandoffPanel.innerHTML = renderViewHandoffPanel(handoffSummary);
+}
+
+function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
+  if (!state.data) {
+    return null;
+  }
+
+  const activeSavedView = getActiveSavedView();
+  const filterSummary = getCurrentFilterSummary();
+
+  return buildViewHandoffSummary({
+    selectedHeadline: state.data.details[state.selectedEventId]?.event?.headline ?? "",
+    filteredCount: filteredTimeline.length,
+    totalCount: state.data.timeline.length,
+    sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
+    filterSummary,
+    draftFilter: state.draftFilter,
+    demoMode: state.demoMode,
+    hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
+    activeSavedViewLabel: activeSavedView?.label ?? ""
+  });
 }
 
 function renderViewHandoffPanel(handoffSummary) {
@@ -1007,6 +1026,9 @@ function renderViewHandoffPanel(handoffSummary) {
               `
               : ""
           }
+          <button type="button" class="secondary-action" data-copy-handoff-note>
+            Copy handoff note
+          </button>
         </div>
       </div>
       <div class="view-handoff-snapshot">
@@ -2191,6 +2213,38 @@ async function copyCurrentViewLink({ portable = false } = {}) {
   } catch (error) {
     setShareViewFeedback(
       "Copy failed. Use the browser address bar to share this view.",
+      "error"
+    );
+  }
+}
+
+async function copyViewHandoffNote() {
+  const handoffSummary = getViewHandoffSummary();
+  if (!handoffSummary) {
+    return;
+  }
+
+  const shareUrl = buildShareViewUrl();
+  const portableShareUrl = handoffSummary.showPortableCopyAction
+    ? buildShareViewUrl({ portable: true })
+    : null;
+  const handoffNote = buildViewHandoffNote({
+    handoffSummary,
+    shareUrl: shareUrl.toString(),
+    portableShareUrl: portableShareUrl?.toString() ?? ""
+  });
+
+  try {
+    await copyTextToClipboard(handoffNote);
+    setShareViewFeedback(
+      portableShareUrl
+        ? "Copied handoff note with current and portable links."
+        : "Copied handoff note.",
+      "success"
+    );
+  } catch (error) {
+    setShareViewFeedback(
+      "Copy failed. Use the links and scope summary below to share this view.",
       "error"
     );
   }
