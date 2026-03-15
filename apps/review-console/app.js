@@ -1230,7 +1230,13 @@ function renderViewHandoffPanel(handoffSummary) {
             : ""
         }
         ${renderViewHandoffPreview(previewItems)}
-        <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
+        ${
+          feedbackCopy
+            ? `<p class="view-handoff-note${feedbackToneClass}">${escapeHtml(
+                feedbackCopy
+              )}</p>`
+            : ""
+        }
         ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
       </div>
     </section>
