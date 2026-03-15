@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "checkpoint:first": "./scripts/run_first_checkpoint.sh",
     "pipeline:seed": "node ./services/pipeline/cli.mjs seed-demo",
     "pipeline:stats": "node ./services/pipeline/cli.mjs stats",
     "pipeline:smoke": "./scripts/smoke_pipeline.sh",

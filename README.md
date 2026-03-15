@@ -53,6 +53,7 @@ scripts/                    Local validation commands
 Run the bootstrap checks locally:
 
 ```bash
+npm run checkpoint:first
 ./scripts/validate_sql.sh
 ./scripts/validate_json.sh
 ./scripts/smoke_pipeline.sh
@@ -60,6 +61,9 @@ Run the bootstrap checks locally:
 ./scripts/smoke_review_console.sh
 ./scripts/smoke_review_console_sqlite.sh
 ```
+
+The March 18, 2026 first integration checkpoint runbook lives at
+`docs/operations/first-integration-checkpoint.md`.
 
 ## Next Integration Dates
 
