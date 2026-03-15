@@ -36,7 +36,8 @@ export function buildViewHandoffSummary({
   const normalizedQueueContext = normalizeQueueContext(queueContext);
   const cleanedSelectedSnapshotItems = buildSelectedSnapshotItems(
     cleanedSelectedContextItems,
-    normalizedQueueContext
+    normalizedQueueContext,
+    Boolean(cleanedSelectedReviewContext)
   );
   const selectedSearchSummary = buildSelectedSearchSummary(
     selectedSearchMatches,
@@ -455,7 +456,11 @@ function buildSelectedQueueContext(queueContext) {
   return `${segments.join(". ")}.`;
 }
 
-function buildSelectedSnapshotItems(selectedContextItems, normalizedQueueContext) {
+function buildSelectedSnapshotItems(
+  selectedContextItems,
+  normalizedQueueContext,
+  hasSelectedReviewContext = false
+) {
   if (!Array.isArray(selectedContextItems) || !selectedContextItems.length) {
     return [];
   }
@@ -466,16 +471,19 @@ function buildSelectedSnapshotItems(selectedContextItems, normalizedQueueContext
         return false;
       }
 
+      if (/^Review history:\s*/i.test(item) && hasSelectedReviewContext) {
+        return false;
+      }
+
       if (!/^Status:\s*pending review$/i.test(item)) {
         return true;
       }
 
       return !normalizedQueueContext || normalizedQueueContext.pendingPosition === null;
     })
-    .sort(
-      (left, right) =>
-        getSelectedSnapshotPriority(left, normalizedQueueContext) -
-        getSelectedSnapshotPriority(right, normalizedQueueContext)
+    .sort((left, right) =>
+      getSelectedSnapshotPriority(left, normalizedQueueContext) -
+      getSelectedSnapshotPriority(right, normalizedQueueContext)
     );
 }
 

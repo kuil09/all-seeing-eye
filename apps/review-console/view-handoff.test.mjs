@@ -53,8 +53,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
   ]);
   assert.deepEqual(summary.selectedContextItems, [
     "Confidence: high confidence 88%",
-    "Provenance: 2 sources across 2 feeds",
-    "Review history: 1 review action"
+    "Provenance: 2 sources across 2 feeds"
   ]);
   assert.equal(
     summary.selectedConfidenceContext,
@@ -179,6 +178,29 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     summary.recommendedPathCopy,
     "Use the current link for context, then open Next pending link to continue triage on the actionable event."
   );
+});
+
+test("buildViewHandoffSummary keeps review-history count when detailed review context is unavailable", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    selectedContextItems: [
+      "Confidence: high confidence 88%",
+      "Review history: 1 review action"
+    ],
+    filterSummary: {
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    }
+  });
+
+  assert.deepEqual(summary.selectedContextItems, [
+    "Confidence: high confidence 88%",
+    "Review history: 1 review action"
+  ]);
 });
 
 test("buildViewHandoffSummary keeps pending status when queue context is unavailable", () => {
@@ -484,7 +506,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Queue snapshot",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
-      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
+      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds",
       "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "",
       "Reviewer context",

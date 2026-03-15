@@ -220,7 +220,7 @@ test.describe("shareable view handoff", () => {
     );
     expect(copiedText).toContain("Queue snapshot");
     expect(copiedText).toContain(
-      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
+      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds"
     );
     expect(copiedText).toContain(
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
