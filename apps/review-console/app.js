@@ -60,6 +60,7 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
+import { buildSourceProofSnapshots } from "./source-proof-snapshot.mjs";
 import {
   DEFAULT_TIMELINE_SORT,
   SORT_PENDING_FIRST,
@@ -1013,7 +1014,9 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
     hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
     activeSavedViewLabel: activeSavedView?.label ?? "",
     selectedContextItems: selectedContext.items,
+    selectedConfidenceContext: selectedContext.confidenceContext,
     selectedReviewContext: selectedContext.reviewContext,
+    selectedSourceProofItems: selectedContext.sourceProofItems,
     selectedSearchMatches,
     activeSearchFocusTarget: getActiveSearchFocusTarget(selectedSearchMatches),
     selectedDraftPreview: buildReviewDraftPreview(
@@ -1025,14 +1028,27 @@ function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
 
 function buildSelectedHandoffContext(detail) {
   if (!detail?.event) {
-    return { items: [], reviewContext: "" };
+    return {
+      items: [],
+      confidenceContext: "",
+      reviewContext: "",
+      sourceProofItems: []
+    };
   }
 
+  const confidenceSummary = buildConfidenceSummary(
+    detail.event.confidence,
+    detail.claims ?? []
+  );
   const provenanceSummary = buildSourceProvenanceSummary(
     detail.sources ?? [],
     detail.event.eventTime
   );
   const reviewHistorySummary = buildReviewHistorySummary(detail.reviewActions ?? []);
+  const sourceProofItems = buildSourceProofSnapshots(
+    detail.sources ?? [],
+    detail.event.eventTime
+  );
 
   return {
     items: [
@@ -1047,8 +1063,38 @@ function buildSelectedHandoffContext(detail) {
         ? `Review history: ${formatReviewActionCount(reviewHistorySummary.actionCount)}`
         : "Review history: No prior review"
     ].filter(Boolean),
-    reviewContext: buildSelectedReviewContext(reviewHistorySummary)
+    confidenceContext: buildSelectedConfidenceContext(confidenceSummary),
+    reviewContext: buildSelectedReviewContext(reviewHistorySummary),
+    sourceProofItems
   };
+}
+
+function buildSelectedConfidenceContext(confidenceSummary) {
+  if (!confidenceSummary) {
+    return "";
+  }
+
+  const signalCopy = Array.isArray(confidenceSummary.claimSignals)
+    ? confidenceSummary.claimSignals
+        .map((signal) => String(signal ?? "").trim())
+        .filter((signal) => signal && signal !== "No claim coverage yet")
+        .join(", ")
+    : "";
+  const rationaleCopy =
+    confidenceSummary.rationalePreview === "Confidence rationale is not available yet."
+      ? ""
+      : String(confidenceSummary.rationalePreview ?? "").trim();
+  const segments = [];
+
+  if (signalCopy) {
+    segments.push(`Signals: ${signalCopy}`);
+  }
+
+  if (rationaleCopy) {
+    segments.push(`Rationale: ${rationaleCopy}`);
+  }
+
+  return segments.join(". ");
 }
 
 function buildSelectedReviewContext(reviewHistorySummary) {
@@ -1149,12 +1195,20 @@ function renderViewHandoffPanel(handoffSummary) {
             : ""
         }
         ${
+          handoffSummary.selectedConfidenceContext
+            ? `<p class="meta-copy view-handoff-context-copy"><strong>Confidence drivers:</strong> ${escapeHtml(
+                handoffSummary.selectedConfidenceContext
+              )}</p>`
+            : ""
+        }
+        ${
           handoffSummary.selectedReviewContext
             ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
                 handoffSummary.selectedReviewContext
               )}</p>`
             : ""
         }
+        ${renderViewHandoffSourceProof(handoffSummary.selectedSourceProofItems)}
         ${
           handoffSummary.selectedSearchContext
             ? `<p class="meta-copy view-handoff-context-copy"><strong>${escapeHtml(
@@ -1166,6 +1220,26 @@ function renderViewHandoffPanel(handoffSummary) {
         ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
       </div>
     </section>
+  `;
+}
+
+function renderViewHandoffSourceProof(sourceProofItems) {
+  if (!Array.isArray(sourceProofItems) || !sourceProofItems.length) {
+    return "";
+  }
+
+  return `
+    <div class="view-handoff-proof-list">
+      ${sourceProofItems
+        .map(
+          (item) => `
+            <p class="meta-copy view-handoff-context-copy view-handoff-proof">
+              <strong>Source proof:</strong> ${escapeHtml(item)}
+            </p>
+          `
+        )
+        .join("")}
+    </div>
   `;
 }
 

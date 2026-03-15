@@ -10,7 +10,9 @@ export function buildViewHandoffSummary({
   activeSavedViewLabel = "",
   selectedDraftPreview = "",
   selectedContextItems = [],
+  selectedConfidenceContext = "",
   selectedReviewContext = "",
+  selectedSourceProofItems = [],
   queueContext = null,
   nextPendingEventId = "",
   nextPendingHeadline = "",
@@ -22,7 +24,9 @@ export function buildViewHandoffSummary({
   const cleanedSavedViewLabel = normalizeLabel(activeSavedViewLabel);
   const cleanedSelectedDraftPreview = normalizeLabel(selectedDraftPreview);
   const cleanedSelectedContextItems = normalizeLabels(selectedContextItems);
+  const cleanedSelectedConfidenceContext = normalizeLabel(selectedConfidenceContext);
   const cleanedSelectedReviewContext = normalizeLabel(selectedReviewContext);
+  const cleanedSelectedSourceProofItems = normalizeLabels(selectedSourceProofItems);
   const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const selectedSearchSummary = buildSelectedSearchSummary(
@@ -45,9 +49,11 @@ export function buildViewHandoffSummary({
   const localDependentState =
     draftFilter === "saved" ? ["Saved-draft filter"] : [];
   const localOnlyState = [];
-  const noteOnlyState = cleanedSelectedDraftPreview
-    ? ["Selected draft note snapshot"]
-    : [];
+  const noteOnlyState = [
+    cleanedSelectedConfidenceContext ? "Confidence driver snapshot" : "",
+    cleanedSelectedSourceProofItems.length ? "Supporting source snapshots" : "",
+    cleanedSelectedDraftPreview ? "Selected draft note snapshot" : ""
+  ].filter(Boolean);
 
   if (hasSelectedDraft) {
     localOnlyState.push("Draft note text");
@@ -74,7 +80,9 @@ export function buildViewHandoffSummary({
     noteOnlyState,
     selectedDraftPreview: cleanedSelectedDraftPreview,
     selectedContextItems: cleanedSelectedContextItems,
+    selectedConfidenceContext: cleanedSelectedConfidenceContext,
     selectedReviewContext: cleanedSelectedReviewContext,
+    selectedSourceProofItems: cleanedSelectedSourceProofItems,
     selectedQueueContext: buildSelectedQueueContext(queueContext),
     nextPendingEventId: cleanedNextPendingEventId,
     nextPendingCopy: cleanedNextPendingHeadline
@@ -126,12 +134,25 @@ export function buildViewHandoffNote({
     lines.push(`- Queue context: ${handoffSummary.selectedQueueContext}`);
   }
 
+  if (normalizeLabel(handoffSummary.selectedConfidenceContext)) {
+    lines.push(`- Confidence drivers: ${handoffSummary.selectedConfidenceContext}`);
+  }
+
   if (normalizeLabel(handoffSummary.nextPendingCopy)) {
     lines.push(`- ${handoffSummary.nextPendingCopy}`);
   }
 
   if (normalizeLabel(handoffSummary.selectedReviewContext)) {
     lines.push(`- Review context: ${handoffSummary.selectedReviewContext}`);
+  }
+
+  if (
+    Array.isArray(handoffSummary.selectedSourceProofItems) &&
+    handoffSummary.selectedSourceProofItems.length
+  ) {
+    for (const sourceProofItem of handoffSummary.selectedSourceProofItems) {
+      lines.push(`- Source proof: ${sourceProofItem}`);
+    }
   }
 
   if (normalizeLabel(handoffSummary.selectedSearchContext)) {

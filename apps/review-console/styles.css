@@ -265,6 +265,15 @@ a {
   margin: 0;
 }
 
+.view-handoff-proof-list {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.view-handoff-proof {
+  margin: 0;
+}
+
 .view-handoff-note {
   margin: 0;
   line-height: 1.45;

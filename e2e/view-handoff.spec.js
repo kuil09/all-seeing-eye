@@ -176,6 +176,15 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Latest review was edit by bootstrap-fixture."
     );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim."
+    );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Source proof: Harbor North security review extends outbound inspections"
+    );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Source proof: Members report cargo delays at Harbor North terminal"
+    );
     await page.getByRole("button", { name: "Copy handoff note" }).click();
 
     await expect(page.locator(".view-handoff-note.is-success")).toContainText(
@@ -192,7 +201,16 @@ test.describe("shareable view handoff", () => {
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
     expect(copiedText).toContain(
+      "- Confidence drivers: Signals: 2 asserted claims, 1 uncertain claim. Rationale: Two independent curated sources report matching inspection activity and delay symptoms."
+    );
+    expect(copiedText).toContain(
       "- Review context: Latest review was edit by bootstrap-fixture. Note: Initial synthesized headline shortened for timeline readability."
+    );
+    expect(copiedText).toContain(
+      "- Source proof: Harbor North security review extends outbound inspections (regional-port-bulletin, 35m before event): Outbound containers are subject to enhanced screening through the morning shift."
+    );
+    expect(copiedText).toContain(
+      "- Source proof: Members report cargo delays at Harbor North terminal (coastal-shipping-association, 10m after event): Shippers reported three to five hour processing delays tied to elevated inspection activity."
     );
     expect(copiedText).toContain(
       "- Focused search match: Source: coastal-shipping-association"
@@ -205,7 +223,7 @@ test.describe("shareable view handoff", () => {
       "- Included in link: Selected event; Focused detail section; Search: coastal-shipping-association; Pending first sort; Contract fixtures"
     );
     expect(copiedText).toContain(
-      "- Included in handoff note only: Selected draft note snapshot"
+      "- Included in handoff note only: Confidence driver snapshot; Supporting source snapshots; Selected draft note snapshot"
     );
     expect(copiedText).toContain("- Needs local browser state: Saved-draft filter");
     expect(copiedText).toContain("- Stays local: Draft note text");
