@@ -22,6 +22,7 @@ export function buildViewHandoffSummary({
       ? "Copy a URL that reopens this queue slice and selected event for async review handoff."
       : "Copy a URL that reopens this queue slice for async review handoff.",
     portabilityNote: buildPortabilityNote({ draftFilter, demoMode }),
+    showPortableCopyAction: draftFilter === "saved",
     isWarning: draftFilter === "saved" || demoMode !== "normal"
   };
 }
@@ -49,7 +50,7 @@ function normalizeSortLabel(sortLabel) {
 
 function buildPortabilityNote({ draftFilter, demoMode }) {
   if (draftFilter === "saved") {
-    return "Saved-draft filtering depends on browser-local storage, so another analyst may reopen an empty queue.";
+    return "Saved-draft filtering depends on browser-local storage, so another analyst may reopen an empty queue. Use Copy portable link to remove this local-only filter.";
   }
 
   if (demoMode !== "normal") {

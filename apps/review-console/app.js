@@ -79,6 +79,7 @@ import {
   DEMO_ERROR,
   DEMO_NORMAL,
   DRAFT_FILTER_ALL,
+  DRAFT_FILTER_SAVED,
   HISTORY_FILTER_ALL,
   HISTORY_FILTER_REVIEWED,
   reconcileSelectedEventId,
@@ -257,6 +258,12 @@ function bindEvents() {
     const copyViewLinkButton = event.target.closest("[data-copy-view-link]");
     if (copyViewLinkButton) {
       void copyCurrentViewLink();
+      return;
+    }
+
+    const copyPortableViewLinkButton = event.target.closest("[data-copy-portable-view-link]");
+    if (copyPortableViewLinkButton) {
+      void copyCurrentViewLink({ portable: true });
       return;
     }
 
@@ -969,9 +976,24 @@ function renderViewHandoffPanel(handoffSummary) {
           <p class="section-kicker">Shareable view</p>
           <p class="saved-view-copy">${escapeHtml(handoffSummary.helperCopy)}</p>
         </div>
-        <button type="button" class="secondary-action" data-copy-view-link>
-          Copy current view link
-        </button>
+        <div class="action-row view-handoff-actions">
+          <button type="button" class="secondary-action" data-copy-view-link>
+            Copy current view link
+          </button>
+          ${
+            handoffSummary.showPortableCopyAction
+              ? `
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-copy-portable-view-link
+                >
+                  Copy portable link
+                </button>
+              `
+              : ""
+          }
+        </div>
       </div>
       <div class="view-handoff-snapshot">
         <p class="view-handoff-label">${escapeHtml(handoffSummary.selectedLabel)}</p>
@@ -2118,19 +2140,37 @@ function syncUrl() {
   window.history.replaceState({}, "", url);
 }
 
-async function copyCurrentViewLink() {
-  const shareUrl = new URL(window.location.href);
-  shareUrl.hash = "";
+async function copyCurrentViewLink({ portable = false } = {}) {
+  const shareUrl = buildShareViewUrl({ portable });
 
   try {
     await copyTextToClipboard(shareUrl.toString());
-    setShareViewFeedback("Copied current view link.", "success");
+    setShareViewFeedback(
+      portable
+        ? "Copied portable link without saved-draft filtering."
+        : "Copied current view link.",
+      "success"
+    );
   } catch (error) {
     setShareViewFeedback(
       "Copy failed. Use the browser address bar to share this view.",
       "error"
     );
   }
+}
+
+function buildShareViewUrl({ portable = false } = {}) {
+  const shareUrl = new URL(window.location.href);
+  shareUrl.hash = "";
+  shareUrl.search = buildUrlSearch(
+    portable && state.draftFilter === DRAFT_FILTER_SAVED
+      ? {
+          ...state,
+          draftFilter: DRAFT_FILTER_ALL
+        }
+      : state
+  );
+  return shareUrl;
 }
 
 function setShareViewFeedback(message, tone) {

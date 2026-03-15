@@ -26,6 +26,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     "2 of 7 events visible · Contract fixtures · Lowest confidence first"
   );
   assert.equal(summary.isWarning, false);
+  assert.equal(summary.showPortableCopyAction, false);
   assert.equal(
     summary.portabilityNote,
     "Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
@@ -49,8 +50,9 @@ test("buildViewHandoffSummary warns when saved-draft filtering depends on local 
   assert.equal(summary.selectedValue, "No event is selected");
   assert.equal(summary.contextLabel, "1 of 7 events visible · Local read API");
   assert.equal(summary.isWarning, true);
+  assert.equal(summary.showPortableCopyAction, true);
   assert.equal(
     summary.portabilityNote,
-    "Saved-draft filtering depends on browser-local storage, so another analyst may reopen an empty queue."
+    "Saved-draft filtering depends on browser-local storage, so another analyst may reopen an empty queue. Use Copy portable link to remove this local-only filter."
   );
 });

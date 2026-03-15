@@ -54,4 +54,60 @@ test.describe("shareable view handoff", () => {
       fullPage: true
     });
   });
+
+  test("portable link removes saved-draft filtering while keeping the selected event", async ({
+    page
+  }) => {
+    await page.addInitScript(() => {
+      window.__copiedText = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText(text) {
+            window.__copiedText = text;
+            return Promise.resolve();
+          }
+        }
+      });
+    });
+
+    await page.goto(FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    const reviewNotes = page.locator("#review-notes");
+    await expect(reviewNotes).toBeVisible();
+    await reviewNotes.fill("Portable handoff should keep this event selected.");
+
+    await page.waitForFunction(
+      (key) => !!window.localStorage.getItem(key),
+      "all-seeing-eye.review-console.drafts.v1"
+    );
+
+    await page.getByRole("button", { name: /Saved drafts/i }).click();
+    await expect(page.getByRole("button", { name: "Copy portable link" })).toBeVisible();
+
+    const selectedHeadline = await page.locator(".detail-shell h2").first().textContent();
+    await page.getByRole("button", { name: "Copy portable link" }).click();
+
+    await expect(page.locator(".view-handoff-note.is-success")).toContainText(
+      "Copied portable link without saved-draft filtering."
+    );
+
+    const copiedText = await page.evaluate(() => window.__copiedText);
+    expect(copiedText).toContain("eventId=");
+    expect(copiedText).toContain("source=fixtures");
+    expect(copiedText).not.toContain("drafts=saved");
+
+    await page.goto(copiedText);
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(selectedHeadline ?? "");
+    await expect(page.getByRole("button", { name: "Copy portable link" })).toHaveCount(0);
+
+    await page.screenshot({
+      path: "test-results/shareable-view-portable-link.png",
+      fullPage: true
+    });
+  });
 });
