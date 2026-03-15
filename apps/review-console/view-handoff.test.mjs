@@ -25,6 +25,13 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     summary.contextLabel,
     "2 of 7 events visible · Contract fixtures · Lowest confidence first"
   );
+  assert.deepEqual(summary.includedState, [
+    "Selected event",
+    "Lowest confidence first",
+    "Contract fixtures"
+  ]);
+  assert.deepEqual(summary.localDependentState, []);
+  assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, false);
   assert.equal(summary.showPortableCopyAction, false);
   assert.equal(
@@ -49,10 +56,51 @@ test("buildViewHandoffSummary warns when saved-draft filtering depends on local 
   assert.equal(summary.selectedLabel, "Queue state");
   assert.equal(summary.selectedValue, "No event is selected");
   assert.equal(summary.contextLabel, "1 of 7 events visible · Local read API");
+  assert.deepEqual(summary.includedState, [
+    "Queue state",
+    "Pending first sort",
+    "Local read API"
+  ]);
+  assert.deepEqual(summary.localDependentState, ["Saved-draft filter"]);
+  assert.deepEqual(summary.localOnlyState, []);
   assert.equal(summary.isWarning, true);
   assert.equal(summary.showPortableCopyAction, true);
   assert.equal(
     summary.portabilityNote,
-    "Saved-draft filtering depends on browser-local storage, so another analyst may reopen an empty queue. Use Copy portable link to remove this local-only filter."
+    "Saved-draft filtering stays in the copied current link, but it only reproduces on browsers that already have matching local drafts. Use Copy portable link to remove this dependency."
+  );
+});
+
+test("buildViewHandoffSummary calls out local-only draft notes and saved-view labels", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Storm-related outage affects East Grid substation 7",
+    filteredCount: 3,
+    totalCount: 7,
+    sourceLabel: "Local read API",
+    filterSummary: {
+      activeFilters: ["Search: outage"],
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: null
+    },
+    hasSelectedDraft: true,
+    activeSavedViewLabel: "Ports needing edits"
+  });
+
+  assert.deepEqual(summary.includedState, [
+    "Selected event",
+    "Search: outage",
+    "Pending first sort",
+    "Local read API"
+  ]);
+  assert.deepEqual(summary.localDependentState, []);
+  assert.deepEqual(summary.localOnlyState, [
+    "Draft note text",
+    "Saved view label: Ports needing edits"
+  ]);
+  assert.equal(summary.isWarning, true);
+  assert.equal(
+    summary.portabilityNote,
+    'The copied URL reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only.'
   );
 });

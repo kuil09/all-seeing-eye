@@ -911,6 +911,7 @@ function renderFilterSummary(filteredTimeline) {
   }
 
   const totalCount = state.data.timeline.length;
+  const activeSavedView = getActiveSavedView();
   const filterSummary = getCurrentFilterSummary();
   const handoffSummary = buildViewHandoffSummary({
     selectedHeadline: state.data.details[state.selectedEventId]?.event?.headline ?? "",
@@ -919,7 +920,9 @@ function renderFilterSummary(filteredTimeline) {
     sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
     filterSummary,
     draftFilter: state.draftFilter,
-    demoMode: state.demoMode
+    demoMode: state.demoMode,
+    hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
+    activeSavedViewLabel: activeSavedView?.label ?? ""
   });
   const laneScopeTimeline = getTimelineSlice({
     includeReviewStatusFilter: false,
@@ -968,6 +971,17 @@ function renderViewHandoffPanel(handoffSummary) {
       ? " is-warning"
       : "";
   const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
+  const scopeGroups = [
+    renderViewHandoffScopeGroup("Included in link", handoffSummary.includedState),
+    renderViewHandoffScopeGroup(
+      "Needs local browser state",
+      handoffSummary.localDependentState,
+      "warning"
+    ),
+    renderViewHandoffScopeGroup("Stays local", handoffSummary.localOnlyState, "local")
+  ]
+    .filter(Boolean)
+    .join("");
 
   return `
     <section class="view-handoff-card" aria-label="Shareable view">
@@ -1000,8 +1014,31 @@ function renderViewHandoffPanel(handoffSummary) {
         <strong class="view-handoff-title">${escapeHtml(handoffSummary.selectedValue)}</strong>
         <p class="meta-copy">${escapeHtml(handoffSummary.contextLabel)}</p>
         <p class="view-handoff-note${feedbackToneClass}">${escapeHtml(feedbackCopy)}</p>
+        ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
       </div>
     </section>
+  `;
+}
+
+function renderViewHandoffScopeGroup(label, items, tone = "") {
+  if (!Array.isArray(items) || !items.length) {
+    return "";
+  }
+
+  const toneClass = tone ? ` is-${escapeAttribute(tone)}` : "";
+
+  return `
+    <div class="view-handoff-scope-group">
+      <p class="view-handoff-label">${escapeHtml(label)}</p>
+      <div class="chip-row">
+        ${items
+          .map(
+            (item) =>
+              `<span class="chip view-handoff-chip${toneClass}">${escapeHtml(item)}</span>`
+          )
+          .join("")}
+      </div>
+    </div>
   `;
 }
 

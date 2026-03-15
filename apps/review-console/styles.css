@@ -275,6 +275,29 @@ a {
   color: var(--rose);
 }
 
+.view-handoff-scope {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.25rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(22, 37, 49, 0.08);
+}
+
+.view-handoff-scope-group {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.view-handoff-chip.is-warning {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.view-handoff-chip.is-local {
+  background: rgba(22, 37, 49, 0.08);
+  color: var(--muted);
+}
+
 .saved-view-panel {
   display: grid;
   gap: 0.75rem;
