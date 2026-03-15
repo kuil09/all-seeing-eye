@@ -70,7 +70,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
   assert.equal(summary.nextPendingCopy, "");
   assert.equal(
     summary.recommendedPathCopy,
-    "Start with the selected event. It is still pending in this view."
+    "Start here. The selected event is still pending in this view."
   );
   assert.deepEqual(summary.localDependentState, []);
   assert.deepEqual(summary.localOnlyState, []);
@@ -79,10 +79,7 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
   assert.equal(summary.selectedSearchLabel, "");
   assert.equal(summary.selectedSearchContext, "");
   assert.deepEqual(summary.noteOnlyState, ["Reviewer context below"]);
-  assert.equal(
-    summary.portabilityNote,
-    "Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
-  );
+  assert.equal(summary.portabilityNote, "");
 });
 
 test("buildViewHandoffSummary prioritizes the active search focus in handoff context", () => {
@@ -176,7 +173,7 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
   );
   assert.equal(
     summary.recommendedPathCopy,
-    "Use the current link for context, then open Next pending link to continue triage on the actionable event."
+    "Start here for context, then continue with next pending to keep triage moving."
   );
 });
 
@@ -322,6 +319,31 @@ test("buildViewHandoffSummary calls out local-only draft notes and saved-view la
   assert.equal(
     summary.portabilityNote,
     'The copied URL reopens this queue, but draft note text and saved view label "Ports needing edits" stay in this browser only. Copy handoff note includes the current draft snapshot for reviewer context.'
+  );
+});
+
+test("buildViewHandoffSummary keeps portability note when demo mode changes the replayed state", () => {
+  const summary = buildViewHandoffSummary({
+    filteredCount: 0,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    filterSummary: {
+      hasActiveFilters: false,
+      demoModeLabel: "Empty demo",
+      sortLabel: null
+    },
+    demoMode: "empty"
+  });
+
+  assert.deepEqual(summary.includedState, [
+    "Queue state",
+    "Pending first sort",
+    "Contract fixtures",
+    "Empty demo"
+  ]);
+  assert.equal(
+    summary.portabilityNote,
+    "Demo mode stays in the URL so the next viewer reopens this QA state instead of the normal queue."
   );
 });
 
@@ -501,8 +523,8 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
-      "- Recommended path: Start with the selected event. It is still pending in this view.",
-      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
+      "- Recommended path: Start here. The selected event is still pending in this view.",
+      "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
       "",
       "Queue snapshot",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
@@ -519,8 +541,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Handoff scope",
       "- Included in link: Selected event; Search: harbor; Lowest confidence first; Contract fixtures",
-      "- Included in handoff note only: Reviewer context below; Evidence appendix below",
-      "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
+      "- Included in handoff note only: Reviewer context below; Evidence appendix below"
     ].join("\n")
   );
 });
@@ -570,8 +591,8 @@ test("buildViewHandoffNote keeps active search rationale in reviewer context", (
       "",
       "Open now",
       "- Selected event: Inspection surge reported at Harbor North cargo terminal",
-      "- Recommended path: Start with the selected event. It is still pending in this view.",
-      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
+      "- Recommended path: Start here. The selected event is still pending in this view.",
+      "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=harbor&sort=lowest_confidence&source=fixtures)",
       "",
       "Queue snapshot",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
@@ -581,8 +602,7 @@ test("buildViewHandoffNote keeps active search rationale in reviewer context", (
       "",
       "Handoff scope",
       "- Included in link: Selected event; Focused detail section; Search: harbor; Lowest confidence first; Contract fixtures",
-      "- Included in handoff note only: Reviewer context below",
-      "- Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
+      "- Included in handoff note only: Reviewer context below"
     ].join("\n")
   );
 });
@@ -627,9 +647,9 @@ test("buildViewHandoffNote includes portable and local-only scope details when n
       "",
       "Open now",
       "- Selected event: Storm-related outage affects East Grid substation 7",
-      "- Recommended path: Start with the selected event. It is still pending in this view.",
-      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1)",
-      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1)",
+      "- Recommended path: Start here. The selected event is still pending in this view.",
+      "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-1)",
+      "- Start here without saved-draft filter: [Reopen selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-1)",
       "",
       "Queue snapshot",
       "- Queue: 1 of 7 events visible · Local read API",
@@ -691,11 +711,11 @@ test("buildViewHandoffNote includes direct next pending links when the current s
       "",
       "Open now",
       "- Selected event: Port access restored after overnight channel sweep",
-      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event.",
-      "- Current view: [Open selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed)",
-      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed)",
-      "- Next pending view: [Open next pending event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid)",
-      "- Portable next pending view: [Open next pending event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid)",
+      "- Recommended path: Start here for context, then continue with next pending to keep triage moving.",
+      "- Start here: [Reopen selected event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-reviewed)",
+      "- Start here without saved-draft filter: [Reopen selected event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-reviewed)",
+      "- Continue with next pending: [Reopen next pending event](http://127.0.0.1:4173/apps/review-console/?q=outage&drafts=saved&eventId=evt-east-grid)",
+      "- Continue with next pending without saved-draft filter: [Reopen next pending event without saved-draft filter](http://127.0.0.1:4173/apps/review-console/?q=outage&eventId=evt-east-grid)",
       "",
       "Queue snapshot",
       "- Queue: 2 of 7 events visible · Local read API",

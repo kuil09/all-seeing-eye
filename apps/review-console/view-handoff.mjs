@@ -142,6 +142,11 @@ export function buildViewHandoffNote({
   const nextPendingLink = normalizeLabel(nextPendingShareUrl);
   const portableNextPendingLink = normalizeLabel(portableNextPendingShareUrl);
   const portabilityNote = normalizeLabel(handoffSummary.portabilityNote);
+  const currentLinkLabel = "Start here";
+  const portableLinkLabel = "Start here without saved-draft filter";
+  const nextPendingLinkLabel = "Continue with next pending";
+  const portableNextPendingLinkLabel =
+    "Continue with next pending without saved-draft filter";
 
   const openNowLines = [`- ${selectedLabel}: ${selectedValue}`];
   if (normalizeLabel(handoffSummary.recommendedPathCopy)) {
@@ -149,28 +154,28 @@ export function buildViewHandoffNote({
   }
   appendHandoffNoteLink(
     openNowLines,
-    "Current view",
+    currentLinkLabel,
     currentLink,
     selectedLabel === "Selected event"
-      ? "Open selected event"
-      : "Open current queue state"
+      ? "Reopen selected event"
+      : "Reopen current queue state"
   );
   if (portableLink && portableLink !== currentLink) {
     appendHandoffNoteLink(
       openNowLines,
-      "Portable view",
+      portableLinkLabel,
       portableLink,
       selectedLabel === "Selected event"
-        ? "Open selected event without saved-draft filter"
-        : "Open current queue state without saved-draft filter"
+        ? "Reopen selected event without saved-draft filter"
+        : "Reopen current queue state without saved-draft filter"
     );
   }
   if (nextPendingLink && nextPendingLink !== currentLink) {
     appendHandoffNoteLink(
       openNowLines,
-      "Next pending view",
+      nextPendingLinkLabel,
       nextPendingLink,
-      "Open next pending event"
+      "Reopen next pending event"
     );
   }
   if (
@@ -180,9 +185,9 @@ export function buildViewHandoffNote({
   ) {
     appendHandoffNoteLink(
       openNowLines,
-      "Portable next pending view",
+      portableNextPendingLinkLabel,
       portableNextPendingLink,
-      "Open next pending event without saved-draft filter"
+      "Reopen next pending event without saved-draft filter"
     );
   }
   appendHandoffNoteSection(lines, "Open now", openNowLines);
@@ -400,7 +405,7 @@ function buildPortabilityNote({
     return "Demo mode stays in the URL so the next viewer reopens this QA state instead of the normal queue.";
   }
 
-  return "Selected event, filters, queue sort, source mode, and demo mode stay in the URL.";
+  return "";
 }
 
 function normalizeLabel(label) {
@@ -523,22 +528,22 @@ function buildRecommendedPathCopy({
 }) {
   if (normalizedQueueContext?.pendingPosition !== null) {
     if (normalizedQueueContext?.remainingPendingAfterSelection > 0 && cleanedNextPendingHeadline) {
-      return "Start with the selected event. Next pending link continues the same queue slice after this review.";
+      return "Start here. Continue with next pending after this review to stay in the same queue slice.";
     }
 
     return cleanedSelectedHeadline
-      ? "Start with the selected event. It is still pending in this view."
-      : "Continue with the current queue state. The selected event is still pending in this view.";
+      ? "Start here. The selected event is still pending in this view."
+      : "Start here. The current queue state is still pending in this view.";
   }
 
   if (cleanedNextPendingHeadline) {
     return cleanedSelectedHeadline
-      ? "Use the current link for context, then open Next pending link to continue triage on the actionable event."
-      : "Open Next pending link first to continue triage in this queue slice.";
+      ? "Start here for context, then continue with next pending to keep triage moving."
+      : "Continue with next pending first to keep triage moving in this queue slice.";
   }
 
   if (cleanedSelectedHeadline) {
-    return "Use the current link for context. No pending events remain in this view.";
+    return "Start here for context. No pending events remain in this view.";
   }
 
   return "";

@@ -24,6 +24,7 @@ test.describe("shareable view handoff", () => {
 
     const cards = page.locator("#timeline-list .timeline-card");
     await expect(cards.first()).toBeVisible();
+    await expect(page.locator(".view-handoff-note")).toHaveCount(0);
 
     await page.locator("#search-input").fill("coastal-shipping-association");
     await page.locator("#sort-order").selectOption("lowest_confidence");
@@ -173,6 +174,9 @@ test.describe("shareable view handoff", () => {
     await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
       "Status: pending review"
     );
+    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
+      "Review history: 1 review action"
+    );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Confidence: high confidence 88%"
     );
@@ -180,7 +184,7 @@ test.describe("shareable view handoff", () => {
       "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Recommended path: Start with the selected event. It is still pending in this view."
+      "Recommended path: Start here. The selected event is still pending in this view."
     );
     await expect(handoffPreview).toContainText("Preview expanded handoff context");
     await expect(handoffPreview).toContainText("5 handoff context items");
@@ -212,21 +216,22 @@ test.describe("shareable view handoff", () => {
     expect(copiedText).toContain("Review console handoff");
     expect(copiedText).toContain("Open now");
     expect(copiedText).toContain(`- Selected event: ${selectedHeadline ?? ""}`);
-    expect(copiedText).toContain("- Current view: [Open selected event](http://127.0.0.1:");
+    expect(copiedText).toContain("- Start here: [Reopen selected event](http://127.0.0.1:");
     expect(copiedText).toContain("focus=detail-provenance");
     expect(copiedText).toContain("drafts=saved");
     expect(copiedText).toContain(
-      "- Portable view: [Open selected event without saved-draft filter](http://127.0.0.1:"
+      "- Start here without saved-draft filter: [Reopen selected event without saved-draft filter](http://127.0.0.1:"
     );
     expect(copiedText).toContain("Queue snapshot");
     expect(copiedText).toContain(
       "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds"
     );
+    expect(copiedText).not.toContain("Review history: 1 review action");
     expect(copiedText).toContain(
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
     expect(copiedText).toContain(
-      "- Recommended path: Start with the selected event. It is still pending in this view."
+      "- Recommended path: Start here. The selected event is still pending in this view."
     );
     expect(copiedText).toContain("Reviewer context");
     expect(copiedText).toContain(
@@ -254,6 +259,9 @@ test.describe("shareable view handoff", () => {
     );
     expect(copiedText).toContain(
       "- Included in handoff note only: Reviewer context below; Evidence appendix below"
+    );
+    expect(copiedText).not.toContain(
+      "Portability note: Selected event, filters, queue sort, source mode, and demo mode stay in the URL."
     );
     expect(copiedText).toContain("- Needs local browser state: Saved-draft filter");
     expect(copiedText).toContain("- Stays local: Draft note text");
@@ -298,7 +306,7 @@ test.describe("shareable view handoff", () => {
       `Next pending in this view: ${nextPendingHeadline}`
     );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
-      "Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event."
+      "Recommended path: Start here for context, then continue with next pending to keep triage moving."
     );
 
     await page.getByRole("button", { name: "Copy handoff note" }).click();
@@ -308,15 +316,15 @@ test.describe("shareable view handoff", () => {
       `- Next pending in this view: ${nextPendingHeadline}`
     );
     expect(copiedText).toContain(
-      "- Recommended path: Use the current link for context, then open Next pending link to continue triage on the actionable event."
+      "- Recommended path: Start here for context, then continue with next pending to keep triage moving."
     );
 
     const currentLinkLine = copiedText
       .split("\n")
-      .find((line) => line.startsWith("- Current view: "));
+      .find((line) => line.startsWith("- Start here: "));
     const nextPendingLinkLine = copiedText
       .split("\n")
-      .find((line) => line.startsWith("- Next pending view: "));
+      .find((line) => line.startsWith("- Continue with next pending: "));
 
     expect(currentLinkLine).toBeTruthy();
     expect(nextPendingLinkLine).toBeTruthy();
