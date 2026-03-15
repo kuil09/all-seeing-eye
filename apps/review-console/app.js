@@ -68,7 +68,8 @@ import {
 import { buildTimelineEntitySummary } from "./timeline-entity-summary.mjs";
 import {
   buildTimelineSearchMatches,
-  matchesTimelineSearchQuery
+  matchesTimelineSearchQuery,
+  resolveAdjacentSearchFocusTarget
 } from "./timeline-search.mjs";
 import {
   buildUrlSearch,
@@ -102,6 +103,8 @@ const state = {
   draftFilter: initialUiState.draftFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
+  activeSearchFocusEventId: null,
+  activeSearchFocusTarget: null,
   reviewDrafts: loadReviewDrafts(),
   recentReviewActivity: loadRecentReviewActivity(),
   savedViews: loadSavedViews(),
@@ -739,7 +742,9 @@ function renderTimelineSearchSummary(searchMatches) {
   `;
 }
 
-function renderDetailSearchFocus(searchMatches) {
+function renderDetailSearchFocus(searchMatches, activeSearchFocusTarget) {
+  const showCycleControls = searchMatches.length > 1;
+
   return `
     <article class="detail-note search-focus-card">
       <div class="list-card-header">
@@ -752,14 +757,42 @@ function renderDetailSearchFocus(searchMatches) {
       <p class="detail-copy">
         Use the matched field shortcuts to verify why this event stayed in the filtered queue.
       </p>
+      ${
+        showCycleControls
+          ? `
+            <div class="search-focus-controls">
+              <div class="action-row">
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-search-focus-cycle="previous"
+                >
+                  Previous match
+                </button>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-search-focus-cycle="next"
+                >
+                  Next match
+                </button>
+              </div>
+              <p class="meta-copy">Use <kbd>[</kbd> and <kbd>]</kbd> to cycle matched sections.</p>
+            </div>
+          `
+          : ""
+      }
       <div class="queue-lane-row">
         ${searchMatches
           .map(
             (match) => `
               <button
                 type="button"
-                class="secondary-action search-focus-button"
+                class="secondary-action search-focus-button${
+                  activeSearchFocusTarget === match.detailSectionId ? " is-active" : ""
+                }"
                 data-search-focus-target="${escapeAttribute(match.detailSectionId)}"
+                aria-pressed="${activeSearchFocusTarget === match.detailSectionId ? "true" : "false"}"
               >
                 <strong>${escapeHtml(match.label)}</strong>
                 <span>${escapeHtml(match.preview)}</span>
@@ -1051,6 +1084,7 @@ function renderDetail() {
     selectedTimelineItem,
     detail
   );
+  const activeSearchFocusTarget = getActiveSearchFocusTarget(searchMatches);
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
@@ -1077,7 +1111,11 @@ function renderDetail() {
         </div>
         <div class="detail-grid">
           ${queueContext ? renderQueueContext(queueContext, queueNavigation) : ""}
-          ${searchMatches.length ? renderDetailSearchFocus(searchMatches) : ""}
+          ${
+            searchMatches.length
+              ? renderDetailSearchFocus(searchMatches, activeSearchFocusTarget)
+              : ""
+          }
           <article class="detail-note">
             <h3>Confidence rationale</h3>
             <p class="detail-copy">${escapeHtml(detail.event.confidence.rationale)}</p>
@@ -1219,7 +1257,18 @@ function renderDetail() {
         return;
       }
 
-      focusDetailSection(targetSectionId);
+      focusSearchMatch(targetSectionId);
+    });
+  });
+
+  document.querySelectorAll("[data-search-focus-cycle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const direction = button.getAttribute("data-search-focus-cycle");
+      if (!direction) {
+        return;
+      }
+
+      cycleSelectedSearchFocus(direction);
     });
   });
 
@@ -1436,6 +1485,20 @@ function handleKeyboardShortcut(event) {
     event.preventDefault();
     elements.searchInput.focus();
     elements.searchInput.select();
+    return;
+  }
+
+  if (
+    shortcut.command === "focus_previous_search_match" ||
+    shortcut.command === "focus_next_search_match"
+  ) {
+    const direction =
+      shortcut.command === "focus_previous_search_match" ? "previous" : "next";
+    if (!cycleSelectedSearchFocus(direction)) {
+      return;
+    }
+
+    event.preventDefault();
     return;
   }
 
@@ -2095,6 +2158,56 @@ function focusDetailSection(sectionId) {
     section.classList.remove("is-focus-target");
     detailFocusTimeoutId = 0;
   }, DETAIL_FOCUS_HIGHLIGHT_MS);
+}
+
+function getSelectedSearchMatches() {
+  if (!state.data || !state.selectedEventId || !state.searchQuery) {
+    return [];
+  }
+
+  const timelineItem = state.data.timeline.find((item) => item.eventId === state.selectedEventId);
+  const detail = state.data.details[state.selectedEventId];
+  if (!timelineItem || !detail) {
+    return [];
+  }
+
+  return buildTimelineSearchMatches(state.searchQuery, timelineItem, detail);
+}
+
+function getActiveSearchFocusTarget(searchMatches) {
+  if (state.activeSearchFocusEventId !== state.selectedEventId) {
+    return null;
+  }
+
+  return searchMatches.some((match) => match.detailSectionId === state.activeSearchFocusTarget)
+    ? state.activeSearchFocusTarget
+    : null;
+}
+
+function focusSearchMatch(targetSectionId) {
+  if (!targetSectionId || !state.selectedEventId) {
+    return false;
+  }
+
+  state.activeSearchFocusEventId = state.selectedEventId;
+  state.activeSearchFocusTarget = targetSectionId;
+  render();
+  focusDetailSection(targetSectionId);
+  return true;
+}
+
+function cycleSelectedSearchFocus(direction) {
+  const searchMatches = getSelectedSearchMatches();
+  const targetSectionId = resolveAdjacentSearchFocusTarget(
+    searchMatches,
+    getActiveSearchFocusTarget(searchMatches),
+    direction
+  );
+  if (!targetSectionId) {
+    return false;
+  }
+
+  return focusSearchMatch(targetSectionId);
 }
 
 function getActiveSavedView() {

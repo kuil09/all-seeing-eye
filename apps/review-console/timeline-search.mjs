@@ -48,6 +48,30 @@ export function buildTimelineSearchText(timelineItem, detail) {
   );
 }
 
+export function resolveAdjacentSearchFocusTarget(
+  searchMatches,
+  currentDetailSectionId,
+  direction = "next"
+) {
+  if (!Array.isArray(searchMatches) || searchMatches.length === 0) {
+    return null;
+  }
+
+  const step = direction === "previous" ? -1 : 1;
+  const currentIndex = searchMatches.findIndex(
+    (match) => match.detailSectionId === currentDetailSectionId
+  );
+
+  if (currentIndex === -1) {
+    return step > 0
+      ? searchMatches[0].detailSectionId
+      : searchMatches[searchMatches.length - 1].detailSectionId;
+  }
+
+  const nextIndex = (currentIndex + step + searchMatches.length) % searchMatches.length;
+  return searchMatches[nextIndex]?.detailSectionId ?? null;
+}
+
 function buildTimelineSearchSections(timelineItem, detail) {
   return [
     {

@@ -598,11 +598,21 @@ a {
   gap: 0.75rem;
 }
 
+.search-focus-controls {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .search-focus-button {
   display: grid;
   gap: 0.18rem;
   align-items: flex-start;
   text-align: left;
+}
+
+.search-focus-button.is-active {
+  border-color: rgba(31, 116, 100, 0.24);
+  box-shadow: 0 0 0 3px rgba(31, 116, 100, 0.12);
 }
 
 .search-focus-button span {

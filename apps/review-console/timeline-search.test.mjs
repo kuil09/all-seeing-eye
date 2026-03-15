@@ -4,7 +4,8 @@ import test from "node:test";
 import {
   buildTimelineSearchMatches,
   buildTimelineSearchText,
-  matchesTimelineSearchQuery
+  matchesTimelineSearchQuery,
+  resolveAdjacentSearchFocusTarget
 } from "./timeline-search.mjs";
 
 test("matchesTimelineSearchQuery treats empty input as a match", () => {
@@ -154,6 +155,44 @@ test("buildTimelineSearchText normalizes whitespace and casing across fields", (
   );
 
   assert.equal(searchText, "storm outage infrastructure east grid operator");
+});
+
+test("resolveAdjacentSearchFocusTarget cycles across matched detail sections", () => {
+  const searchMatches = [
+    {
+      label: "Claim",
+      preview: "Container processing delays reached three to five hours.",
+      detailSectionId: "detail-claims"
+    },
+    {
+      label: "Participant",
+      preview: "Harbor North Port Authority",
+      detailSectionId: "detail-entities"
+    },
+    {
+      label: "Source",
+      preview: "coastal-shipping-association",
+      detailSectionId: "detail-provenance"
+    }
+  ];
+
+  assert.equal(
+    resolveAdjacentSearchFocusTarget(searchMatches, "detail-claims", "next"),
+    "detail-entities"
+  );
+  assert.equal(
+    resolveAdjacentSearchFocusTarget(searchMatches, "detail-provenance", "next"),
+    "detail-claims"
+  );
+  assert.equal(
+    resolveAdjacentSearchFocusTarget(searchMatches, "detail-claims", "previous"),
+    "detail-provenance"
+  );
+  assert.equal(
+    resolveAdjacentSearchFocusTarget(searchMatches, "detail-review-history", "previous"),
+    "detail-provenance"
+  );
+  assert.equal(resolveAdjacentSearchFocusTarget([], null, "next"), null);
 });
 
 test("matchesTimelineSearchQuery returns false when the query is absent", () => {

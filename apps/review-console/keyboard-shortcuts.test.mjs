@@ -11,6 +11,8 @@ test("shortcut hints document the analyst queue workflow order", () => {
     REVIEW_CONSOLE_SHORTCUT_HINTS,
     [
       { key: "/", label: "Focus search" },
+      { key: "[", label: "Previous search match" },
+      { key: "]", label: "Next search match" },
       { key: "J", label: "Next visible" },
       { key: "K", label: "Previous visible" },
       { key: "N", label: "Next pending" },
@@ -22,6 +24,12 @@ test("shortcut hints document the analyst queue workflow order", () => {
 });
 
 test("resolveKeyboardShortcut maps queue navigation keys", () => {
+  assert.deepEqual(resolveKeyboardShortcut(createKeyboardEvent("[")), {
+    command: "focus_previous_search_match"
+  });
+  assert.deepEqual(resolveKeyboardShortcut(createKeyboardEvent("]")), {
+    command: "focus_next_search_match"
+  });
   assert.deepEqual(resolveKeyboardShortcut(createKeyboardEvent("j")), {
     command: "select_next_visible"
   });

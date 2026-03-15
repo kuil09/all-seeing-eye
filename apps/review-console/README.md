@@ -63,7 +63,7 @@ recorded without notes for quick triage.
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
 - When search is active, timeline cards now explain why they matched by surfacing the first matching event, claim, participant, source, or review-history fields directly on the card
-- Selected events now surface a Search focus card that jumps directly to the matched overview, claims, entities, relationships, provenance, or review-history section in detail
+- Selected events now surface a Search focus card that jumps directly to the matched overview, claims, entities, relationships, provenance, or review-history section in detail, with previous/next match cycling available through buttons or `[` and `]`
 - When URL state is stale or missing, the detail view re-centers on the first pending event instead of an already-reviewed row
 - Detail view surfaces queue context so analysts can see visible position plus remaining pending work under the current filters
 - Detail view includes previous/next visible controls plus a next-pending jump so analysts can keep moving inside the filtered queue without returning to the left rail

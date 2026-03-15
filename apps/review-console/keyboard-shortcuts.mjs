@@ -3,6 +3,8 @@ const EDITABLE_TARGET_SELECTOR =
 
 export const REVIEW_CONSOLE_SHORTCUT_HINTS = Object.freeze([
   { key: "/", label: "Focus search" },
+  { key: "[", label: "Previous search match" },
+  { key: "]", label: "Next search match" },
   { key: "J", label: "Next visible" },
   { key: "K", label: "Previous visible" },
   { key: "N", label: "Next pending" },
@@ -27,6 +29,14 @@ export function resolveKeyboardShortcut(event) {
 
   if (normalizedKey === "/") {
     return { command: "focus_search" };
+  }
+
+  if (normalizedKey === "[") {
+    return { command: "focus_previous_search_match" };
+  }
+
+  if (normalizedKey === "]") {
+    return { command: "focus_next_search_match" };
   }
 
   if (normalizedKey === "j") {
