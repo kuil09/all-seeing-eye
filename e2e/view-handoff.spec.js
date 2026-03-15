@@ -170,7 +170,12 @@ test.describe("shareable view handoff", () => {
 
     await page.getByRole("button", { name: /Saved drafts/i }).click();
     const handoffPreview = page.locator(".view-handoff-preview");
-    await expect(page.locator(".view-handoff-snapshot")).toContainText("Status: pending review");
+    await expect(page.locator(".view-handoff-snapshot")).not.toContainText(
+      "Status: pending review"
+    );
+    await expect(page.locator(".view-handoff-snapshot")).toContainText(
+      "Confidence: high confidence 88%"
+    );
     await expect(page.locator(".view-handoff-snapshot")).toContainText(
       "Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."
     );
@@ -215,7 +220,7 @@ test.describe("shareable view handoff", () => {
     );
     expect(copiedText).toContain("Queue snapshot");
     expect(copiedText).toContain(
-      "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
+      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action"
     );
     expect(copiedText).toContain(
       "- Queue context: Visible 1 of 1 in this view. Pending 1 of 1. This is the only pending event in this view."

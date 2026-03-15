@@ -34,6 +34,10 @@ export function buildViewHandoffSummary({
   const cleanedNextPendingEventId = normalizeLabel(nextPendingEventId);
   const cleanedNextPendingHeadline = normalizeLabel(nextPendingHeadline);
   const normalizedQueueContext = normalizeQueueContext(queueContext);
+  const cleanedSelectedSnapshotItems = buildSelectedSnapshotItems(
+    cleanedSelectedContextItems,
+    normalizedQueueContext
+  );
   const selectedSearchSummary = buildSelectedSearchSummary(
     selectedSearchMatches,
     activeSearchFocusTarget
@@ -91,7 +95,7 @@ export function buildViewHandoffSummary({
     localOnlyState,
     noteOnlyState,
     selectedDraftPreview: cleanedSelectedDraftPreview,
-    selectedContextItems: cleanedSelectedContextItems,
+    selectedContextItems: cleanedSelectedSnapshotItems,
     selectedConfidenceContext: cleanedSelectedConfidenceContext,
     selectedReviewContext: cleanedSelectedReviewContext,
     selectedSourceProofItems: cleanedSelectedSourceProofItems,
@@ -449,6 +453,20 @@ function buildSelectedQueueContext(queueContext) {
   }
 
   return `${segments.join(". ")}.`;
+}
+
+function buildSelectedSnapshotItems(selectedContextItems, normalizedQueueContext) {
+  if (!Array.isArray(selectedContextItems) || !selectedContextItems.length) {
+    return [];
+  }
+
+  return selectedContextItems.filter((item) => {
+    if (!/^Status:\s*pending review$/i.test(item)) {
+      return true;
+    }
+
+    return !normalizedQueueContext || normalizedQueueContext.pendingPosition === null;
+  });
 }
 
 function buildRecommendedPathCopy({

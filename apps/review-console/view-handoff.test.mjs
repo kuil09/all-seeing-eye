@@ -52,7 +52,6 @@ test("buildViewHandoffSummary describes the selected event and queue context", (
     "Contract fixtures"
   ]);
   assert.deepEqual(summary.selectedContextItems, [
-    "Status: pending review",
     "Confidence: high confidence 88%",
     "Provenance: 2 sources across 2 feeds",
     "Review history: 1 review action"
@@ -140,6 +139,11 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     filteredCount: 4,
     totalCount: 7,
     sourceLabel: "Local read API",
+    selectedContextItems: [
+      "Status: approved",
+      "Confidence: medium confidence 61%",
+      "Provenance: 1 source across 1 feed"
+    ],
     queueContext: {
       visibleCount: 4,
       visiblePosition: 2,
@@ -162,6 +166,11 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     "Visible 2 of 4 in this view. 2 pending events remain elsewhere in this view."
   );
   assert.equal(summary.nextPendingEventId, "evt-east-grid");
+  assert.deepEqual(summary.selectedContextItems, [
+    "Status: approved",
+    "Confidence: medium confidence 61%",
+    "Provenance: 1 source across 1 feed"
+  ]);
   assert.equal(
     summary.nextPendingCopy,
     "Next pending in this view: Storm-related outage affects East Grid substation 7"
@@ -170,6 +179,29 @@ test("buildViewHandoffSummary carries the next pending event when the selection 
     summary.recommendedPathCopy,
     "Use the current link for context, then open Next pending link to continue triage on the actionable event."
   );
+});
+
+test("buildViewHandoffSummary keeps pending status when queue context is unavailable", () => {
+  const summary = buildViewHandoffSummary({
+    selectedHeadline: "Inspection surge reported at Harbor North cargo terminal",
+    filteredCount: 2,
+    totalCount: 7,
+    sourceLabel: "Contract fixtures",
+    selectedContextItems: [
+      "Status: pending review",
+      "Confidence: high confidence 88%"
+    ],
+    filterSummary: {
+      hasActiveFilters: true,
+      demoModeLabel: "",
+      sortLabel: "Sort: Lowest confidence first"
+    }
+  });
+
+  assert.deepEqual(summary.selectedContextItems, [
+    "Status: pending review",
+    "Confidence: high confidence 88%"
+  ]);
 });
 
 test("buildViewHandoffSummary warns when saved-draft filtering depends on local state", () => {
@@ -420,7 +452,7 @@ test("buildViewHandoffNote produces a paste-ready note for the current link", ()
       "",
       "Queue snapshot",
       "- Queue: 2 of 7 events visible · Contract fixtures · Lowest confidence first",
-      "- Reviewer snapshot: Status: pending review; Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
+      "- Reviewer snapshot: Confidence: high confidence 88%; Provenance: 2 sources across 2 feeds; Review history: 1 review action",
       "- Queue context: Visible 1 of 2 in this view. Pending 1 of 1. This is the only pending event in this view.",
       "",
       "Reviewer context",
