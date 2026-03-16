@@ -80,6 +80,10 @@ test.describe("review action submission and queue auto-advance", () => {
     await page.locator('[data-review-action="edit"]').click();
 
     const reopenButton = page.locator('[data-reopen-last-reviewed]');
+    const flashNote = page.locator(".flash-note");
+    await expect(flashNote.locator(".flash-note-recovery")).toHaveText(
+      `Restores note: ${DRAFT_TEXT}`
+    );
     await expect(reopenButton).toBeVisible();
     await expect(reopenButton).toHaveText("Reopen reviewed event for context");
 
@@ -111,6 +115,7 @@ test.describe("review action submission and queue auto-advance", () => {
     await expect(flashNote.locator(".flash-note-context")).toHaveText(
       "Reopens: Sort: Lowest confidence first"
     );
+    await expect(flashNote).not.toContainText("Restores note:");
     await expect(page.locator('[data-reopen-last-reviewed]')).toBeVisible();
   });
 });

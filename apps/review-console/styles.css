@@ -1062,6 +1062,10 @@ a {
   margin: 0;
 }
 
+.flash-note-recovery {
+  margin: 0;
+}
+
 .flash-note-action {
   flex-shrink: 0;
   border-color: rgba(31, 116, 100, 0.22);

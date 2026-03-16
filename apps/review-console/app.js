@@ -101,6 +101,7 @@ const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
 const REVIEW_ACTIVITY_STORAGE_KEY = "all-seeing-eye.review-console.recent-activity.v1";
 const DETAIL_FOCUS_HIGHLIGHT_MS = 1800;
 const HANDOFF_DRAFT_PREVIEW_MAX_LENGTH = 240;
+const FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH = 120;
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -1982,6 +1983,14 @@ function buildReopenContextCopy(reopenFilters) {
   return labels.length ? `Reopens: ${labels.join(" · ")}` : "";
 }
 
+function buildFlashNoteRecoveryCopy(reviewActivityEntry) {
+  const restoredNotePreview = buildReviewDraftPreview(reviewActivityEntry?.notes, {
+    maxLength: FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH
+  });
+
+  return restoredNotePreview ? `Restores note: ${restoredNotePreview}` : "";
+}
+
 function handleKeyboardShortcut(event) {
   const shortcut = resolveKeyboardShortcut(event);
   if (!shortcut) {
@@ -2200,6 +2209,7 @@ function renderActionFlashNote() {
 
   const reviewActivityEntry = getLastActionRecoveryEntry();
   const reopenContextCopy = buildReopenContextCopy(reviewActivityEntry?.reopenFilters);
+  const restoredNoteCopy = buildFlashNoteRecoveryCopy(reviewActivityEntry);
   return `
     <div class="flash-note${reviewActivityEntry ? " has-action" : ""}">
       <div class="flash-note-body">
@@ -2207,6 +2217,11 @@ function renderActionFlashNote() {
         ${
           reopenContextCopy
             ? `<p class="meta-copy flash-note-context">${escapeHtml(reopenContextCopy)}</p>`
+            : ""
+        }
+        ${
+          restoredNoteCopy
+            ? `<p class="meta-copy flash-note-recovery">${escapeHtml(restoredNoteCopy)}</p>`
             : ""
         }
       </div>
