@@ -357,4 +357,74 @@ test.describe("shareable view handoff", () => {
     await page.goto(nextPendingLink);
     await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
   });
+
+  test("direct next-pending handoff uses a portable link when saved drafts are local-only", async ({
+    page
+  }) => {
+    await page.addInitScript(() => {
+      window.__copiedText = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText(text) {
+            window.__copiedText = text;
+            return Promise.resolve();
+          }
+        }
+      });
+    });
+
+    await page.goto(FIXTURES_URL);
+
+    const reviewedHeadline = "Inspection surge reported at Harbor North cargo terminal";
+    const nextPendingHeadline = "Storm-related outage affects East Grid substation 7";
+    const harborCard = page
+      .locator("#timeline-list .timeline-card")
+      .filter({ hasText: reviewedHeadline })
+      .first();
+
+    await expect(harborCard).toBeVisible();
+    await harborCard.click();
+    await page.locator("[data-review-action='approve']").click();
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
+    await page.locator("#review-notes").fill("Pending draft should stay local.");
+    await harborCard.click();
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(reviewedHeadline);
+    await page.locator("#review-notes").fill("Context draft should stay local.");
+
+    await page.waitForFunction(
+      (key) => {
+        const raw = window.localStorage.getItem(key);
+        return (
+          typeof raw === "string" &&
+          raw.includes("Context draft should stay local.") &&
+          raw.includes("Pending draft should stay local.")
+        );
+      },
+      "all-seeing-eye.review-console.drafts.v1"
+    );
+
+    await page.getByRole("button", { name: /Saved drafts/i }).click();
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(reviewedHeadline);
+    await expect(
+      page.getByRole("button", { name: "Copy next pending link without saved drafts" })
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: "Copy next pending link without saved drafts" })
+      .click();
+    await expect(page.locator(".view-handoff-note.is-success")).toContainText(
+      "Copied next pending link without saved drafts."
+    );
+
+    const copiedNextPendingLink = await page.evaluate(() => window.__copiedText);
+    expect(copiedNextPendingLink).toContain("eventId=");
+    expect(copiedNextPendingLink).not.toContain("drafts=saved");
+
+    await page.goto(copiedNextPendingLink);
+    await expect(page.locator(".detail-shell h2").first()).toHaveText(nextPendingHeadline);
+    await expect(
+      page.getByRole("button", { name: "Copy start link without saved drafts" })
+    ).toHaveCount(0);
+  });
 });

@@ -1206,7 +1206,11 @@ function renderViewHandoffPanel(handoffSummary) {
                   class="secondary-action"
                   data-copy-next-pending-link
                 >
-                  Copy next pending link
+                  ${
+                    handoffSummary.showPortableCopyAction
+                      ? "Copy next pending link without saved drafts"
+                      : "Copy next pending link"
+                  }
                 </button>
               `
               : ""
@@ -2484,11 +2488,17 @@ async function copyNextPendingViewLink() {
     return;
   }
 
+  const portable = handoffSummary.showPortableCopyAction;
   await copyCurrentViewLink({
+    portable,
     eventIdOverride: handoffSummary.nextPendingEventId,
     activeSearchFocusTargetOverride: null,
-    successMessage: "Copied next pending link.",
-    errorMessage: "Copy failed. Use Copy review note to share the next pending handoff."
+    successMessage: portable
+      ? "Copied next pending link without saved drafts."
+      : "Copied next pending link.",
+    errorMessage: portable
+      ? "Copy failed. Use Copy review note to share the portable next pending handoff."
+      : "Copy failed. Use Copy review note to share the next pending handoff."
   });
 }
 
