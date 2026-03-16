@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 const FIXTURES_URL = "/apps/review-console/?source=fixtures";
+const SORTED_FIXTURES_URL = `${FIXTURES_URL}&sort=lowest_confidence`;
 const DRAFT_TEXT = "Recheck the earlier source summary before finalizing this event.";
 
 test.describe("review action submission and queue auto-advance", () => {
@@ -94,5 +95,22 @@ test.describe("review action submission and queue auto-advance", () => {
       path: "test-results/reopen-last-reviewed-from-flash-note.png",
       fullPage: true
     });
+  });
+
+  test("success flash note shows the queue lens it will restore", async ({ page }) => {
+    await page.goto(SORTED_FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    await page.locator('[data-review-action="approve"]').click();
+
+    const flashNote = page.locator(".flash-note");
+    await expect(flashNote).toBeVisible();
+    await expect(flashNote.locator(".flash-note-context")).toHaveText(
+      "Reopens: Sort: Lowest confidence first"
+    );
+    await expect(page.locator('[data-reopen-last-reviewed]')).toBeVisible();
   });
 });

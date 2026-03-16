@@ -79,3 +79,29 @@ export function buildFilterSummary({
     demoModeLabel: demoMode === "normal" ? null : DEMO_MODE_LABELS[demoMode] ?? demoMode
   };
 }
+
+export function buildCondensedFilterSummaryLabels(filterSummary, { maxLabels = 3 } = {}) {
+  const normalizedMaxLabels =
+    Number.isInteger(maxLabels) && maxLabels > 0 ? maxLabels : 3;
+  const labels = [];
+
+  if (filterSummary?.savedViewLabel) {
+    labels.push(filterSummary.savedViewLabel);
+  }
+
+  if (Array.isArray(filterSummary?.activeFilters)) {
+    labels.push(...filterSummary.activeFilters.filter((label) => typeof label === "string" && label));
+  }
+
+  if (filterSummary?.sortLabel) {
+    labels.push(filterSummary.sortLabel);
+  }
+
+  if (labels.length <= normalizedMaxLabels) {
+    return labels;
+  }
+
+  const visibleLabels = labels.slice(0, Math.max(1, normalizedMaxLabels - 1));
+  const remainingCount = labels.length - visibleLabels.length;
+  return [...visibleLabels, `+${remainingCount} more`];
+}

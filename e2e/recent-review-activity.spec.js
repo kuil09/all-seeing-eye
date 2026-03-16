@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 const FIXTURES_URL = "/apps/review-console/?source=fixtures";
+const FILTERED_FIXTURES_URL = `${FIXTURES_URL}&q=harbor&sort=lowest_confidence`;
 
 test.describe("recent review activity recovery", () => {
   test("activity card appears after a review action and shows correct status", async ({
@@ -88,5 +89,21 @@ test.describe("recent review activity recovery", () => {
       path: "test-results/recent-activity-is-active.png",
       fullPage: true
     });
+  });
+
+  test("activity card shows the queue lens it will restore", async ({ page }) => {
+    await page.goto(FILTERED_FIXTURES_URL);
+
+    const firstCard = page.locator("#timeline-list .timeline-card").first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    await page.locator('[data-review-action="approve"]').click();
+    await expect(page.locator(".flash-note")).toBeVisible();
+
+    const activityCard = page.locator("#recent-review-activity .recent-activity-card").first();
+    await expect(activityCard.locator(".recent-activity-context")).toHaveText(
+      "Reopens: Search: harbor · Sort: Lowest confidence first"
+    );
   });
 });

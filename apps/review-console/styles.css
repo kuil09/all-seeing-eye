@@ -451,6 +451,10 @@ a {
   line-height: 1.45;
 }
 
+.recent-activity-context {
+  margin: 0;
+}
+
 .recent-activity-copy {
   margin: 0;
   color: var(--muted);
@@ -1044,9 +1048,18 @@ a {
   gap: 0.85rem;
 }
 
+.flash-note-body {
+  display: grid;
+  gap: 0.3rem;
+  flex: 1;
+}
+
 .flash-note-copy {
   margin: 0;
-  flex: 1;
+}
+
+.flash-note-context {
+  margin: 0;
 }
 
 .flash-note-action {

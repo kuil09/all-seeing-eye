@@ -12,7 +12,10 @@ import {
   createEntityLookup,
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
-import { buildFilterSummary } from "./filter-summary.mjs";
+import {
+  buildCondensedFilterSummaryLabels,
+  buildFilterSummary
+} from "./filter-summary.mjs";
 import {
   REVIEW_CONSOLE_SHORTCUT_HINTS,
   resolveKeyboardShortcut
@@ -1853,6 +1856,7 @@ function renderKeyboardShortcutHint(shortcut) {
 function renderRecentReviewActivityButton(entry) {
   const notePreview = buildReviewDraftPreview(entry.notes);
   const queueContextChips = renderRecentReviewActivityQueueContext(entry.queueContext);
+  const reopenContextCopy = buildReopenContextCopy(entry.reopenFilters);
 
   return `
     <button
@@ -1868,6 +1872,11 @@ function renderRecentReviewActivityButton(entry) {
       </div>
       <strong>${escapeHtml(entry.headline)}</strong>
       ${queueContextChips ? `<div class="chip-row">${queueContextChips}</div>` : ""}
+      ${
+        reopenContextCopy
+          ? `<p class="meta-copy recent-activity-context">${escapeHtml(reopenContextCopy)}</p>`
+          : ""
+      }
       ${
         notePreview
           ? `<p class="recent-activity-note-preview">${escapeHtml(notePreview)}</p>`
@@ -1949,6 +1958,28 @@ function buildRecentReviewActivityCopy(queueContext, hasNotePreview, nextPending
   }
 
   return `Reopen this reviewed event for context.${restoreNoteSentence}`;
+}
+
+function buildReopenContextCopy(reopenFilters) {
+  if (!reopenFilters || typeof reopenFilters !== "object") {
+    return "";
+  }
+
+  const matchingSavedView = findMatchingSavedView(state.savedViews, reopenFilters);
+  const filterSummary = buildFilterSummary({
+    savedViewLabel: matchingSavedView?.label ?? "",
+    searchQuery: reopenFilters.searchQuery,
+    reviewStatusFilter: reopenFilters.reviewStatusFilter,
+    confidenceFilter: reopenFilters.confidenceFilter,
+    historyFilter: reopenFilters.historyFilter,
+    tagFilter: reopenFilters.tagFilter,
+    draftFilter: reopenFilters.draftFilter,
+    sortOrder: reopenFilters.sortOrder,
+    demoMode: DEMO_NORMAL
+  });
+  const labels = buildCondensedFilterSummaryLabels(filterSummary);
+
+  return labels.length ? `Reopens: ${labels.join(" · ")}` : "";
 }
 
 function handleKeyboardShortcut(event) {
@@ -2168,9 +2199,17 @@ function renderActionFlashNote() {
   }
 
   const reviewActivityEntry = getLastActionRecoveryEntry();
+  const reopenContextCopy = buildReopenContextCopy(reviewActivityEntry?.reopenFilters);
   return `
     <div class="flash-note${reviewActivityEntry ? " has-action" : ""}">
-      <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
+      <div class="flash-note-body">
+        <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
+        ${
+          reopenContextCopy
+            ? `<p class="meta-copy flash-note-context">${escapeHtml(reopenContextCopy)}</p>`
+            : ""
+        }
+      </div>
       ${
         reviewActivityEntry
           ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen reviewed event for context</button>'
