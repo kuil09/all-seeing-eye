@@ -80,6 +80,7 @@ test.describe("review action submission and queue auto-advance", () => {
 
     const reopenButton = page.locator('[data-reopen-last-reviewed]');
     await expect(reopenButton).toBeVisible();
+    await expect(reopenButton).toHaveText("Reopen last reviewed event for context");
 
     const currentHeadline = await page.locator(".detail-shell h2").first().textContent();
     expect(currentHeadline).not.toBe(firstHeadline);

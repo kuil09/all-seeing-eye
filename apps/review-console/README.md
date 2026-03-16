@@ -70,8 +70,8 @@ recorded without notes for quick triage.
 - Review-note drafts stay attached to each event in local browser storage while analysts move around the queue or refresh the page, and timeline cards show when a local draft note is waiting
 - Review forms now expose one-click quick note starters for confidence rationale, source posture, prior review notes, and edit/reject note skeletons so required analyst notes start from grounded evidence instead of a blank field
 - Keyboard shortcuts now keep the detail workflow moving without leaving the keyboard: `/` focuses search, `J`/`K` move across visible rows, `N` jumps to the next pending item, and `A`/`E`/`X` trigger review actions when analysts are not typing in inputs
-- Recent activity keeps the last local review decisions visible in the controls panel, previews the latest analyst note, and restores that note into the draft editor when the event is reopened, so auto-advance does not strand the last decision or its rationale
-- Success flash notes now offer a one-click reopen path for the event that was just reviewed, so analysts can immediately verify or revise the last decision without leaving the detail surface
+- Recent activity keeps the last local review decisions visible in the controls panel, previews the latest analyst note, shows the reopen queue position in the relaxed view, names the next pending headline when the card is now context only, and restores that note into the draft editor when the event is reopened, so auto-advance does not strand the last decision or its rationale
+- Success flash notes now offer a one-click `Reopen last reviewed event for context` path for the event that was just reviewed, so analysts can immediately verify or revise the last decision without losing the next-pending queue handoff
 - Timeline cards surface key participant roles before detail is opened, while avoiding duplicate location labels
 - Timeline cards surface source posture and timing windows before detail is opened
 - Timeline cards surface confidence drivers with claim-polarity chips and a short rationale preview before detail is opened
@@ -79,7 +79,7 @@ recorded without notes for quick triage.
 - Selected events now surface a Search focus card that jumps directly to the matched overview, claims, entities, relationships, provenance, or review-history section in detail, with previous/next match cycling available through buttons or `[` and `]`
 - When URL state is stale or missing, the detail view re-centers on the first pending event instead of an already-reviewed row
 - Detail view surfaces queue context so analysts can see visible position plus remaining pending work under the current filters
-- Detail view includes previous/next visible controls plus a next-pending jump so analysts can keep moving inside the filtered queue without returning to the left rail
+- Detail view includes previous/next visible controls plus a next-pending jump that now names the target headline when one exists, so analysts can keep moving inside the filtered queue without returning to the left rail
 - Search matches timeline copy plus claim text, entity names and roles, source titles and feed keys, and recorded analyst notes
 - Event detail with confidence rationale, claims, entities, relationships, and source provenance
 - Supporting source cards show event-relative publish timing for faster provenance inspection

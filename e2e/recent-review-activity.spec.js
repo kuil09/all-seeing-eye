@@ -16,6 +16,7 @@ test.describe("recent review activity recovery", () => {
     // Submit approve action
     await page.locator('[data-review-action="approve"]').click();
     await expect(page.locator(".flash-note")).toBeVisible();
+    const nextHeadline = await page.locator(".detail-shell h2").first().textContent();
 
     // Recent activity panel must show a card for the reviewed event
     const activityCard = page.locator("#recent-review-activity .recent-activity-card").first();
@@ -24,6 +25,7 @@ test.describe("recent review activity recovery", () => {
     // The pill must reflect the outcome status
     const statusPill = activityCard.locator(".pill");
     await expect(statusPill).toBeVisible();
+    await expect(activityCard).toContainText(`Next pending: ${nextHeadline ?? ""}`);
 
     await page.screenshot({
       path: "test-results/recent-activity-card-appears.png",

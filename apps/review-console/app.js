@@ -884,6 +884,7 @@ function renderQueueContext(queueContext, queueNavigation) {
     queueContext.pendingPosition === null
       ? null
       : `Pending ${queueContext.pendingPosition} of ${queueContext.pendingCount}`;
+  const nextPendingMetaCopy = buildQueueNavigationMetaCopy(queueNavigation);
   const remainingPendingLabel =
     queueContext.pendingPosition === null
       ? queueContext.pendingCount === 0
@@ -922,12 +923,28 @@ function renderQueueContext(queueContext, queueNavigation) {
               ${renderQueueNavigationButton("Next visible", queueNavigation.nextVisibleEventId)}
               ${renderQueueNavigationButton("Next pending", queueNavigation.nextPendingEventId)}
             </div>
-            <p class="meta-copy">Next pending skips reviewed rows inside the current filtered view.</p>
+            ${
+              nextPendingMetaCopy
+                ? `<p class="meta-copy">${escapeHtml(nextPendingMetaCopy)}</p>`
+                : ""
+            }
           `
           : ""
       }
     </article>
   `;
+}
+
+function buildQueueNavigationMetaCopy(queueNavigation) {
+  if (!queueNavigation?.nextPendingEventId) {
+    return "";
+  }
+
+  if (queueNavigation.nextPendingHeadline) {
+    return `Next pending opens ${queueNavigation.nextPendingHeadline} and skips reviewed rows in this filtered view.`;
+  }
+
+  return "Next pending skips reviewed rows inside the current filtered view.";
 }
 
 function renderFilterSummary(filteredTimeline) {
@@ -1361,12 +1378,15 @@ function renderRecentReviewActivity() {
   }
 
   elements.recentReviewActivity.innerHTML = state.recentReviewActivity
-    .map((entry) =>
-      renderRecentReviewActivityButton({
+    .map((entry) => {
+      const queueState = getRecentReviewActivityQueueState(entry);
+      return renderRecentReviewActivityButton({
         ...entry,
-        isActive: entry.eventId === state.selectedEventId
-      })
-    )
+        isActive: entry.eventId === state.selectedEventId,
+        queueContext: queueState.queueContext,
+        nextPendingHeadline: queueState.nextPendingHeadline
+      });
+    })
     .join("");
 }
 
@@ -1832,6 +1852,7 @@ function renderKeyboardShortcutHint(shortcut) {
 
 function renderRecentReviewActivityButton(entry) {
   const notePreview = buildReviewDraftPreview(entry.notes);
+  const queueContextChips = renderRecentReviewActivityQueueContext(entry.queueContext);
 
   return `
     <button
@@ -1846,20 +1867,88 @@ function renderRecentReviewActivityButton(entry) {
         <span class="meta-copy">${escapeHtml(formatDateTime(entry.createdAt))}</span>
       </div>
       <strong>${escapeHtml(entry.headline)}</strong>
+      ${queueContextChips ? `<div class="chip-row">${queueContextChips}</div>` : ""}
       ${
         notePreview
           ? `<p class="recent-activity-note-preview">${escapeHtml(notePreview)}</p>`
           : ""
       }
       <p class="recent-activity-copy">
-        ${
-          notePreview
-            ? "Reopen this event with filters relaxed and the last analyst note restored into the draft editor."
-            : "Reopen this event with status, history, and draft filters relaxed."
-        }
+        ${escapeHtml(
+          buildRecentReviewActivityCopy(
+            entry.queueContext,
+            Boolean(notePreview),
+            entry.nextPendingHeadline
+          )
+        )}
       </p>
     </button>
   `;
+}
+
+function getRecentReviewActivityQueueState(reviewActivityEntry) {
+  if (!state.data || !reviewActivityEntry?.eventId || !reviewActivityEntry.reopenFilters) {
+    return {
+      queueContext: null,
+      nextPendingHeadline: ""
+    };
+  }
+
+  const reopenedTimeline = getTimelineSlice({}, reviewActivityEntry.reopenFilters);
+  const queueNavigation = buildReviewQueueNavigation(reopenedTimeline, reviewActivityEntry.eventId);
+
+  return {
+    queueContext: buildReviewQueueContext(reopenedTimeline, reviewActivityEntry.eventId),
+    nextPendingHeadline: queueNavigation?.nextPendingHeadline ?? ""
+  };
+}
+
+function renderRecentReviewActivityQueueContext(queueContext) {
+  if (!queueContext) {
+    return "";
+  }
+
+  const chips = [
+    `<span class="chip">Visible ${queueContext.visiblePosition} of ${queueContext.visibleCount}</span>`
+  ];
+
+  if (queueContext.pendingPosition !== null) {
+    chips.push(
+      `<span class="chip">Pending ${queueContext.pendingPosition} of ${queueContext.pendingCount}</span>`
+    );
+  } else if (queueContext.pendingCount === 0) {
+    chips.push('<span class="chip">Queue cleared</span>');
+  } else {
+    chips.push(`<span class="chip">${queueContext.pendingCount} pending elsewhere</span>`);
+  }
+
+  return chips.join("");
+}
+
+function buildRecentReviewActivityCopy(queueContext, hasNotePreview, nextPendingHeadline = "") {
+  const restoreNoteSentence = hasNotePreview ? " Restore the last analyst note." : "";
+
+  if (!queueContext) {
+    return hasNotePreview
+      ? "Reopen this event in the relaxed view and restore the last analyst note."
+      : "Reopen this event in the relaxed view with status, history, and draft filters relaxed.";
+  }
+
+  if (queueContext.pendingPosition !== null) {
+    return `Reopen this event as pending ${queueContext.pendingPosition} of ${queueContext.pendingCount} in the relaxed view.${restoreNoteSentence}`;
+  }
+
+  if (queueContext.pendingCount === 0) {
+    return `Reopen this event after the queue cleared in the relaxed view.${restoreNoteSentence}`;
+  }
+
+  if (nextPendingHeadline) {
+    return `Reopen this event for context in the relaxed view. Next pending: ${nextPendingHeadline}.${restoreNoteSentence}`;
+  }
+
+  return `Reopen this event with ${queueContext.pendingCount} pending event${
+    queueContext.pendingCount === 1 ? "" : "s"
+  } elsewhere in the relaxed view.${restoreNoteSentence}`;
 }
 
 function handleKeyboardShortcut(event) {
@@ -2084,7 +2173,7 @@ function renderActionFlashNote() {
       <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
       ${
         reviewActivityEntry
-          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen last reviewed event</button>'
+          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen last reviewed event for context</button>'
           : ""
       }
     </div>

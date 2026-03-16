@@ -60,9 +60,13 @@ test("resolveNextPendingEventId returns null when no other pending events remain
 test("buildReviewQueueNavigation exposes wrapped previous and next visible rows plus the next pending row", () => {
   const navigation = buildReviewQueueNavigation(
     [
-      { eventId: "evt_1", reviewStatus: "pending_review" },
-      { eventId: "evt_2", reviewStatus: "approved" },
-      { eventId: "evt_3", reviewStatus: "pending_review" }
+      {
+        eventId: "evt_1",
+        headline: "North harbor patrols tightened after overnight inspections",
+        reviewStatus: "pending_review"
+      },
+      { eventId: "evt_2", headline: "Second event", reviewStatus: "approved" },
+      { eventId: "evt_3", headline: "Third event", reviewStatus: "pending_review" }
     ],
     "evt_1"
   );
@@ -70,20 +74,22 @@ test("buildReviewQueueNavigation exposes wrapped previous and next visible rows 
   assert.deepEqual(navigation, {
     previousVisibleEventId: "evt_3",
     nextVisibleEventId: "evt_2",
-    nextPendingEventId: "evt_3"
+    nextPendingEventId: "evt_3",
+    nextPendingHeadline: "Third event"
   });
 });
 
 test("buildReviewQueueNavigation returns null navigation targets for a single visible row", () => {
   const navigation = buildReviewQueueNavigation(
-    [{ eventId: "evt_1", reviewStatus: "pending_review" }],
+    [{ eventId: "evt_1", headline: "Only event", reviewStatus: "pending_review" }],
     "evt_1"
   );
 
   assert.deepEqual(navigation, {
     previousVisibleEventId: null,
     nextVisibleEventId: null,
-    nextPendingEventId: null
+    nextPendingEventId: null,
+    nextPendingHeadline: ""
   });
 });
 
@@ -97,4 +103,21 @@ test("buildReviewQueueNavigation returns null when the selected row is not prese
   );
 
   assert.equal(navigation, null);
+});
+
+test("buildReviewQueueNavigation leaves the next pending headline empty when the target has no headline", () => {
+  const navigation = buildReviewQueueNavigation(
+    [
+      { eventId: "evt_1", headline: "First event", reviewStatus: "approved" },
+      { eventId: "evt_2", reviewStatus: "pending_review" }
+    ],
+    "evt_1"
+  );
+
+  assert.deepEqual(navigation, {
+    previousVisibleEventId: "evt_2",
+    nextVisibleEventId: "evt_2",
+    nextPendingEventId: "evt_2",
+    nextPendingHeadline: ""
+  });
 });
