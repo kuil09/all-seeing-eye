@@ -1919,7 +1919,9 @@ function renderRecentReviewActivityQueueContext(queueContext) {
   } else if (queueContext.pendingCount === 0) {
     chips.push('<span class="chip">Queue cleared</span>');
   } else {
-    chips.push(`<span class="chip">${queueContext.pendingCount} pending elsewhere</span>`);
+    chips.push(
+      `<span class="chip">${queueContext.pendingCount} pending elsewhere</span>`
+    );
   }
 
   return chips.join("");
@@ -1930,25 +1932,23 @@ function buildRecentReviewActivityCopy(queueContext, hasNotePreview, nextPending
 
   if (!queueContext) {
     return hasNotePreview
-      ? "Reopen this event in the relaxed view and restore the last analyst note."
-      : "Reopen this event in the relaxed view with status, history, and draft filters relaxed.";
+      ? "Reopen this event and restore the last analyst note."
+      : "Reopen this event in the broader review context.";
   }
 
   if (queueContext.pendingPosition !== null) {
-    return `Reopen this event as pending ${queueContext.pendingPosition} of ${queueContext.pendingCount} in the relaxed view.${restoreNoteSentence}`;
+    return `Reopen this pending event.${restoreNoteSentence}`;
   }
 
   if (queueContext.pendingCount === 0) {
-    return `Reopen this event after the queue cleared in the relaxed view.${restoreNoteSentence}`;
+    return `Reopen this reviewed event after the queue cleared.${restoreNoteSentence}`;
   }
 
   if (nextPendingHeadline) {
-    return `Reopen this event for context in the relaxed view. Next pending: ${nextPendingHeadline}.${restoreNoteSentence}`;
+    return `Reopen this reviewed event for context. Next pending: ${nextPendingHeadline}.${restoreNoteSentence}`;
   }
 
-  return `Reopen this event with ${queueContext.pendingCount} pending event${
-    queueContext.pendingCount === 1 ? "" : "s"
-  } elsewhere in the relaxed view.${restoreNoteSentence}`;
+  return `Reopen this reviewed event for context.${restoreNoteSentence}`;
 }
 
 function handleKeyboardShortcut(event) {
@@ -2173,7 +2173,7 @@ function renderActionFlashNote() {
       <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
       ${
         reviewActivityEntry
-          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen last reviewed event for context</button>'
+          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen reviewed event for context</button>'
           : ""
       }
     </div>

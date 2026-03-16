@@ -25,7 +25,9 @@ test.describe("recent review activity recovery", () => {
     // The pill must reflect the outcome status
     const statusPill = activityCard.locator(".pill");
     await expect(statusPill).toBeVisible();
-    await expect(activityCard).toContainText(`Next pending: ${nextHeadline ?? ""}`);
+    await expect(activityCard).toContainText(
+      `Reopen this reviewed event for context. Next pending: ${nextHeadline ?? ""}`
+    );
 
     await page.screenshot({
       path: "test-results/recent-activity-card-appears.png",
