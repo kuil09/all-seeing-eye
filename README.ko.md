@@ -2,32 +2,32 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
-Local first-slice analyst workflow for turning curated RSS items into reviewable events with provenance, confidence, and review history.
+엄선된 RSS 항목을 출처, 신뢰도, 리뷰 이력이 포함된 검토 가능한 이벤트로 전환하는 로컬 퍼스트 1차 슬라이스 분석 워크플로 저장소입니다.
 
-## Scope
+## 범위
 
-The current repository scope is fixed to:
+현재 저장소의 고정 범위는 다음과 같습니다.
 
 `curated RSS -> local synthesis -> SQLite -> read API -> timeline-first review console`
 
-Out of scope for this slice:
+이번 슬라이스의 범위 밖:
 
-- direct SNS ingestion
-- map-centric workflows
-- multi-tenant auth or deployment surfaces
-- hosted LLM dependencies
+- 직접적인 SNS 수집
+- 지도 중심 워크플로
+- 멀티테넌트 인증 또는 배포 표면
+- 호스팅된 LLM 의존성
 
-## What Is Implemented
+## 현재 구현된 내용
 
-- curated fixture seeding into SQLite
-- live curated RSS polling against an explicit allowlist
-- persisted ingest-run history with per-feed success and failure context
-- deterministic local synthesis for events, claims, entities, relationships, provenance, and confidence
-- local read API for timeline, event detail, and review actions
-- analyst review console with queue filters, search, drafts, saved views, handoff links, recent review recovery, and keyboard shortcuts
-- fixture-backed and SQLite-backed smoke validation paths
+- 큐레이션된 fixture 데이터를 SQLite로 시드하는 경로
+- 명시적 allowlist를 사용하는 실시간 curated RSS polling
+- 피드별 성공/실패 문맥이 남는 ingest run 이력 저장
+- 이벤트, claim, entity, relationship, provenance, confidence를 위한 결정적 로컬 synthesis
+- 타임라인, 이벤트 상세, 리뷰 액션을 제공하는 로컬 read API
+- 큐 필터, 검색, 드래프트, 저장된 뷰, handoff 링크, 최근 리뷰 복구, 키보드 단축키를 갖춘 analyst review console
+- fixture 기반과 SQLite 기반의 smoke validation 경로
 
-## Repository Map
+## 저장소 구조
 
 ```text
 apps/review-console/        Analyst review application
@@ -43,47 +43,47 @@ services/read-api/          Local read-only API
 scripts/                    Local validation and dev entrypoints
 ```
 
-## Quick Start
+## 빠른 시작
 
-Seed the demo database:
+데모 데이터베이스를 시드합니다.
 
 ```bash
 node services/pipeline/cli.mjs seed-demo
 ```
 
-Inspect the current database snapshot:
+현재 데이터베이스 상태를 점검합니다.
 
 ```bash
 node services/pipeline/cli.mjs stats
 node services/pipeline/cli.mjs ingest-runs
 ```
 
-Serve the read API:
+Read API를 실행합니다.
 
 ```bash
 ./scripts/serve_read_api.sh
 ```
 
-Serve the analyst review console:
+Analyst review console을 실행합니다.
 
 ```bash
 npm run review-console:dev
 ```
 
-Open:
+열어볼 경로:
 
 - `http://127.0.0.1:4310/api/timeline`
 - `http://127.0.0.1:4173/apps/review-console/`
 
-To point the console and API at SQLite-backed data instead of fixture mode:
+fixture 모드 대신 SQLite 기반 데이터로 console과 API를 연결하려면:
 
 ```bash
 READ_API_DB_PATH=data/all-seeing-eye.sqlite npm run review-console:dev
 ```
 
-## Validation
+## 검증
 
-Repository smoke checks:
+저장소 smoke check:
 
 ```bash
 ./scripts/validate_sql.sh
@@ -94,7 +94,7 @@ Repository smoke checks:
 ./scripts/smoke_review_console_sqlite.sh
 ```
 
-Focused npm entrypoints:
+집중 실행용 npm 진입점:
 
 ```bash
 npm run pipeline:smoke
@@ -104,25 +104,25 @@ npm run review-console:smoke
 npm run review-console:smoke:sqlite
 ```
 
-## Live Curated RSS Path
+## 실시간 Curated RSS 경로
 
-Poll an approved allowlist and persist ingest history:
+승인된 allowlist를 polling하고 ingest 이력을 저장합니다.
 
 ```bash
 node services/pipeline/cli.mjs poll-curated \
   --allowlist ./path/to/approved-curated-feed-allowlist.json
 ```
 
-The repository includes a shape example at:
+저장소에는 형상 예제가 포함되어 있습니다.
 
 - `fixtures/curated-feed-allowlist.example.json`
 
-Use the operator runbook before checkpoint or handoff runs:
+체크포인트나 handoff 전에 참고할 운영 문서:
 
 - `docs/operations/curated-rss-runbook.md`
 - `docs/operations/pipeline-observability.md`
 
-## Key Docs
+## 핵심 문서
 
 - `docs/architecture/first-slice-architecture.md`
 - `services/pipeline/README.md`
@@ -131,9 +131,9 @@ Use the operator runbook before checkpoint or handoff runs:
 - `docs/operations/review-console-validation-bundle.md`
 - `notes/2026-03-17-nit-105-mainline-publication-path-recovery.md`
 
-## Current Limits
+## 현재 한계
 
-- live curated polling currently creates one deterministic event candidate and one event-fact claim per fetched item
-- live feeds do not yet produce richer multi-entity or relationship extraction
-- review-console saved views, drafts, and recent activity remain browser-local
-- the first slice is optimized for local reproducibility, not hosted operations
+- 실시간 curated polling은 현재 각 fetched item마다 결정적 이벤트 후보 1개와 event-fact claim 1개를 생성합니다
+- 실시간 피드에서는 아직 더 풍부한 multi-entity 또는 relationship 추출을 하지 않습니다
+- review console의 saved view, draft, recent activity는 브라우저 로컬 상태에 남습니다
+- 이 슬라이스는 호스팅 운영보다 로컬 재현성에 최적화되어 있습니다

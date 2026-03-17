@@ -2,32 +2,32 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
-Local first-slice analyst workflow for turning curated RSS items into reviewable events with provenance, confidence, and review history.
+選別された RSS 項目を、出典・信頼度・レビュー履歴付きのレビュー可能なイベントへ変換する、ローカルファーストの first-slice analyst workflow リポジトリです。
 
-## Scope
+## スコープ
 
-The current repository scope is fixed to:
+現在のリポジトリの固定スコープは次のとおりです。
 
 `curated RSS -> local synthesis -> SQLite -> read API -> timeline-first review console`
 
-Out of scope for this slice:
+このスライスの対象外:
 
-- direct SNS ingestion
-- map-centric workflows
-- multi-tenant auth or deployment surfaces
-- hosted LLM dependencies
+- 直接的な SNS 取り込み
+- 地図中心のワークフロー
+- マルチテナント認証またはデプロイ面
+- ホスト型 LLM 依存
 
-## What Is Implemented
+## 実装済みの内容
 
-- curated fixture seeding into SQLite
-- live curated RSS polling against an explicit allowlist
-- persisted ingest-run history with per-feed success and failure context
-- deterministic local synthesis for events, claims, entities, relationships, provenance, and confidence
-- local read API for timeline, event detail, and review actions
-- analyst review console with queue filters, search, drafts, saved views, handoff links, recent review recovery, and keyboard shortcuts
-- fixture-backed and SQLite-backed smoke validation paths
+- curated fixture を SQLite に seed する経路
+- 明示的な allowlist を使う live curated RSS polling
+- feed ごとの成功・失敗コンテキストを保持する ingest run 履歴
+- event、claim、entity、relationship、provenance、confidence を生成する決定論的な local synthesis
+- timeline、event detail、review action を返す local read API
+- queue filter、search、draft、saved view、handoff link、recent review recovery、keyboard shortcut を備えた analyst review console
+- fixture-backed と SQLite-backed の smoke validation 経路
 
-## Repository Map
+## リポジトリ構成
 
 ```text
 apps/review-console/        Analyst review application
@@ -43,47 +43,47 @@ services/read-api/          Local read-only API
 scripts/                    Local validation and dev entrypoints
 ```
 
-## Quick Start
+## クイックスタート
 
-Seed the demo database:
+デモ用データベースを seed します。
 
 ```bash
 node services/pipeline/cli.mjs seed-demo
 ```
 
-Inspect the current database snapshot:
+現在のデータベース状態を確認します。
 
 ```bash
 node services/pipeline/cli.mjs stats
 node services/pipeline/cli.mjs ingest-runs
 ```
 
-Serve the read API:
+Read API を起動します。
 
 ```bash
 ./scripts/serve_read_api.sh
 ```
 
-Serve the analyst review console:
+Analyst review console を起動します。
 
 ```bash
 npm run review-console:dev
 ```
 
-Open:
+開く URL:
 
 - `http://127.0.0.1:4310/api/timeline`
 - `http://127.0.0.1:4173/apps/review-console/`
 
-To point the console and API at SQLite-backed data instead of fixture mode:
+fixture mode ではなく SQLite-backed data を使う場合:
 
 ```bash
 READ_API_DB_PATH=data/all-seeing-eye.sqlite npm run review-console:dev
 ```
 
-## Validation
+## 検証
 
-Repository smoke checks:
+リポジトリ smoke check:
 
 ```bash
 ./scripts/validate_sql.sh
@@ -94,7 +94,7 @@ Repository smoke checks:
 ./scripts/smoke_review_console_sqlite.sh
 ```
 
-Focused npm entrypoints:
+用途別の npm entrypoint:
 
 ```bash
 npm run pipeline:smoke
@@ -104,25 +104,25 @@ npm run review-console:smoke
 npm run review-console:smoke:sqlite
 ```
 
-## Live Curated RSS Path
+## Live Curated RSS パス
 
-Poll an approved allowlist and persist ingest history:
+承認済み allowlist を poll して ingest 履歴を保存します。
 
 ```bash
 node services/pipeline/cli.mjs poll-curated \
   --allowlist ./path/to/approved-curated-feed-allowlist.json
 ```
 
-The repository includes a shape example at:
+リポジトリには形式例があります。
 
 - `fixtures/curated-feed-allowlist.example.json`
 
-Use the operator runbook before checkpoint or handoff runs:
+チェックポイントや handoff 前に参照する運用ドキュメント:
 
 - `docs/operations/curated-rss-runbook.md`
 - `docs/operations/pipeline-observability.md`
 
-## Key Docs
+## 主要ドキュメント
 
 - `docs/architecture/first-slice-architecture.md`
 - `services/pipeline/README.md`
@@ -131,9 +131,9 @@ Use the operator runbook before checkpoint or handoff runs:
 - `docs/operations/review-console-validation-bundle.md`
 - `notes/2026-03-17-nit-105-mainline-publication-path-recovery.md`
 
-## Current Limits
+## 現在の制約
 
-- live curated polling currently creates one deterministic event candidate and one event-fact claim per fetched item
-- live feeds do not yet produce richer multi-entity or relationship extraction
-- review-console saved views, drafts, and recent activity remain browser-local
-- the first slice is optimized for local reproducibility, not hosted operations
+- live curated polling は現在、取得した item ごとに決定論的な event candidate 1 件と event-fact claim 1 件を生成します
+- live feed からは、まだより豊かな multi-entity や relationship 抽出は行いません
+- review console の saved view、draft、recent activity はブラウザローカルに残ります
+- このスライスは hosted operations より local reproducibility を優先しています
