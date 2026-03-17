@@ -54,6 +54,7 @@ Run the bootstrap checks locally:
 
 ```bash
 npm run checkpoint:first
+npm run publication:check
 ./scripts/validate_sql.sh
 ./scripts/validate_json.sh
 ./scripts/smoke_pipeline.sh
@@ -64,6 +65,22 @@ npm run checkpoint:first
 
 The March 18, 2026 first integration checkpoint runbook lives at
 `docs/operations/first-integration-checkpoint.md`.
+
+## Publication Safety
+
+Before citing or promoting a workspace as shared progress, run:
+
+```bash
+npm run publication:check
+```
+
+Only workspaces reporting `shared-baseline` or `promotion-candidate` are
+publishable. If the check reports `local-only-dirty`, `drifted-from-main`, or
+`diverged-from-main`, replay the intended changes onto a fresh branch from
+`origin/main` first.
+
+See `notes/2026-03-17-nit-105-mainline-publication-path-recovery.md` for the
+governing decision trail.
 
 ## Next Integration Dates
 

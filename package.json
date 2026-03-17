@@ -7,6 +7,7 @@
     "pipeline:seed": "node ./services/pipeline/cli.mjs seed-demo",
     "pipeline:stats": "node ./services/pipeline/cli.mjs stats",
     "pipeline:smoke": "./scripts/smoke_pipeline.sh",
+    "publication:check": "./scripts/check_mainline_publication.sh",
     "read-api:dev": "./scripts/serve_read_api.sh",
     "read-api:smoke": "./scripts/smoke_read_api.sh",
     "review-action:policy:test": "node --test ./packages/contracts/review-action-policy.test.mjs",
