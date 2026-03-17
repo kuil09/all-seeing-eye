@@ -2,32 +2,32 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
-Local first-slice analyst workflow for turning curated RSS items into reviewable events with provenance, confidence, and review history.
+这是一个本地优先的 first-slice analyst workflow 仓库，用于把经过筛选的 RSS 条目转换为可审阅事件，并保留来源、置信度和审阅历史。
 
-## Scope
+## 范围
 
-The current repository scope is fixed to:
+当前仓库的固定范围如下：
 
 `curated RSS -> local synthesis -> SQLite -> read API -> timeline-first review console`
 
-Out of scope for this slice:
+本阶段不包含：
 
-- direct SNS ingestion
-- map-centric workflows
-- multi-tenant auth or deployment surfaces
-- hosted LLM dependencies
+- 直接的 SNS 摄取
+- 以地图为中心的工作流
+- 多租户认证或部署面
+- 托管式 LLM 依赖
 
-## What Is Implemented
+## 已实现内容
 
-- curated fixture seeding into SQLite
-- live curated RSS polling against an explicit allowlist
-- persisted ingest-run history with per-feed success and failure context
-- deterministic local synthesis for events, claims, entities, relationships, provenance, and confidence
-- local read API for timeline, event detail, and review actions
-- analyst review console with queue filters, search, drafts, saved views, handoff links, recent review recovery, and keyboard shortcuts
-- fixture-backed and SQLite-backed smoke validation paths
+- 将 curated fixture seed 到 SQLite 的路径
+- 基于显式 allowlist 的实时 curated RSS polling
+- 保存每个 feed 成功/失败上下文的 ingest run 历史
+- 为 event、claim、entity、relationship、provenance、confidence 提供确定性的本地 synthesis
+- 提供 timeline、event detail、review action 的本地 read API
+- 包含 queue filter、search、draft、saved view、handoff link、recent review recovery、keyboard shortcut 的 analyst review console
+- 基于 fixture 和基于 SQLite 的 smoke validation 路径
 
-## Repository Map
+## 仓库结构
 
 ```text
 apps/review-console/        Analyst review application
@@ -43,47 +43,47 @@ services/read-api/          Local read-only API
 scripts/                    Local validation and dev entrypoints
 ```
 
-## Quick Start
+## 快速开始
 
-Seed the demo database:
+为演示数据库执行 seed：
 
 ```bash
 node services/pipeline/cli.mjs seed-demo
 ```
 
-Inspect the current database snapshot:
+检查当前数据库快照：
 
 ```bash
 node services/pipeline/cli.mjs stats
 node services/pipeline/cli.mjs ingest-runs
 ```
 
-Serve the read API:
+启动 Read API：
 
 ```bash
 ./scripts/serve_read_api.sh
 ```
 
-Serve the analyst review console:
+启动 analyst review console：
 
 ```bash
 npm run review-console:dev
 ```
 
-Open:
+打开：
 
 - `http://127.0.0.1:4310/api/timeline`
 - `http://127.0.0.1:4173/apps/review-console/`
 
-To point the console and API at SQLite-backed data instead of fixture mode:
+如果要让 console 和 API 使用 SQLite 数据而不是 fixture mode：
 
 ```bash
 READ_API_DB_PATH=data/all-seeing-eye.sqlite npm run review-console:dev
 ```
 
-## Validation
+## 验证
 
-Repository smoke checks:
+仓库 smoke check：
 
 ```bash
 ./scripts/validate_sql.sh
@@ -94,7 +94,7 @@ Repository smoke checks:
 ./scripts/smoke_review_console_sqlite.sh
 ```
 
-Focused npm entrypoints:
+按用途划分的 npm 入口：
 
 ```bash
 npm run pipeline:smoke
@@ -104,25 +104,25 @@ npm run review-console:smoke
 npm run review-console:smoke:sqlite
 ```
 
-## Live Curated RSS Path
+## 实时 Curated RSS 路径
 
-Poll an approved allowlist and persist ingest history:
+轮询已批准的 allowlist 并持久化 ingest 历史：
 
 ```bash
 node services/pipeline/cli.mjs poll-curated \
   --allowlist ./path/to/approved-curated-feed-allowlist.json
 ```
 
-The repository includes a shape example at:
+仓库内提供了格式示例：
 
 - `fixtures/curated-feed-allowlist.example.json`
 
-Use the operator runbook before checkpoint or handoff runs:
+在 checkpoint 或 handoff 前应参考的运维文档：
 
 - `docs/operations/curated-rss-runbook.md`
 - `docs/operations/pipeline-observability.md`
 
-## Key Docs
+## 关键文档
 
 - `docs/architecture/first-slice-architecture.md`
 - `services/pipeline/README.md`
@@ -131,9 +131,9 @@ Use the operator runbook before checkpoint or handoff runs:
 - `docs/operations/review-console-validation-bundle.md`
 - `notes/2026-03-17-nit-105-mainline-publication-path-recovery.md`
 
-## Current Limits
+## 当前限制
 
-- live curated polling currently creates one deterministic event candidate and one event-fact claim per fetched item
-- live feeds do not yet produce richer multi-entity or relationship extraction
-- review-console saved views, drafts, and recent activity remain browser-local
-- the first slice is optimized for local reproducibility, not hosted operations
+- 实时 curated polling 目前会为每个抓取到的 item 生成 1 个确定性的 event candidate 和 1 个 event-fact claim
+- 实时 feed 还不会产出更丰富的 multi-entity 或 relationship 抽取
+- review console 的 saved view、draft、recent activity 仍保存在浏览器本地
+- 这一阶段优先保证本地可复现性，而不是面向托管运行

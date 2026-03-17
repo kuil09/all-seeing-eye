@@ -1,0 +1,14 @@
+{
+  "feeds": [
+    {
+      "feedKey": "regional-port-bulletin",
+      "url": "https://example.org/feeds/harbor-north.xml",
+      "category": "logistics"
+    },
+    {
+      "feedKey": "coastal-shipping-association",
+      "url": "https://example.org/feeds/shipping-alerts.xml",
+      "category": "logistics"
+    }
+  ]
+}
