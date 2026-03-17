@@ -106,77 +106,6 @@
                 </select>
               </label>
             </div>
-
-            <div id="active-filter-summary" class="filter-summary" aria-live="polite"></div>
-
-            <section class="saved-view-panel" aria-label="Saved views">
-              <div class="saved-view-header">
-                <div>
-                  <p class="section-kicker">Saved views</p>
-                  <p class="saved-view-copy">
-                    Store recurring triage filters and reopen them in one click.
-                  </p>
-                </div>
-                <p class="meta-copy">Local browser only</p>
-              </div>
-
-              <div id="saved-view-list" class="queue-lane-row" aria-live="polite"></div>
-
-              <div class="saved-view-composer">
-                <label class="field saved-view-field">
-                  <span>View name</span>
-                  <input
-                    id="saved-view-name"
-                    name="saved-view-name"
-                    type="text"
-                    maxlength="40"
-                    placeholder="Ports needing edits"
-                  />
-                </label>
-
-                <div class="saved-view-actions">
-                  <button id="save-current-view" type="button" class="secondary-action">
-                    Save current view
-                  </button>
-                  <button id="delete-active-view" type="button" class="secondary-action" hidden>
-                    Delete active view
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section class="recent-activity-panel" aria-label="Recent review activity">
-              <div class="saved-view-header">
-                <div>
-                  <p class="section-kicker">Recent activity</p>
-                  <p class="saved-view-copy">
-                    Reopen the events you just reviewed without rebuilding the queue state.
-                  </p>
-                </div>
-                <p class="meta-copy">Local browser only</p>
-              </div>
-
-              <div id="recent-review-activity" class="recent-activity-list" aria-live="polite"></div>
-            </section>
-
-            <div class="control-groups">
-              <div>
-                <p class="toggle-label">Data source</p>
-                <div class="toggle-row" id="source-toggle" role="group" aria-label="Data source">
-                  <button type="button" data-source-mode="fixtures">Contract fixtures</button>
-                  <button type="button" data-source-mode="api">Local read API</button>
-                </div>
-              </div>
-
-              <div>
-                <p class="toggle-label">Demo state</p>
-                <div class="toggle-row" id="demo-toggle" role="group" aria-label="Demo state">
-                  <button type="button" data-demo-mode="normal">Normal</button>
-                  <button type="button" data-demo-mode="empty">Empty</button>
-                  <button type="button" data-demo-mode="error">Error</button>
-                </div>
-              </div>
-            </div>
           </section>
 
           <section class="panel timeline-panel">
@@ -217,6 +146,101 @@
                 Choose a timeline row to inspect claims, sources, relationships, and review
                 history.
               </p>
+            </div>
+          </section>
+
+          <section class="panel queue-support-panel" aria-label="Queue support tools">
+            <div class="panel-title-row">
+              <div>
+                <p class="section-kicker">Queue support</p>
+                <h2>Saved recovery and handoff</h2>
+              </div>
+              <p class="meta-copy queue-support-copy">
+                Secondary tools stay below the active queue.
+              </p>
+            </div>
+
+            <div class="queue-support-stack">
+              <div id="active-filter-summary" class="filter-summary" aria-live="polite"></div>
+
+              <div class="control-groups">
+                <div>
+                  <p class="toggle-label">Data source</p>
+                  <div class="toggle-row" id="source-toggle" role="group" aria-label="Data source">
+                    <button type="button" data-source-mode="fixtures">Contract fixtures</button>
+                    <button type="button" data-source-mode="api">Local read API</button>
+                  </div>
+                </div>
+
+                <div>
+                  <p class="toggle-label">Demo state</p>
+                  <div class="toggle-row" id="demo-toggle" role="group" aria-label="Demo state">
+                    <button type="button" data-demo-mode="normal">Normal</button>
+                    <button type="button" data-demo-mode="empty">Empty</button>
+                    <button type="button" data-demo-mode="error">Error</button>
+                  </div>
+                </div>
+              </div>
+
+              <section
+                id="view-handoff-panel"
+                class="view-handoff-panel"
+                aria-live="polite"
+              ></section>
+
+              <section class="saved-view-panel" aria-label="Saved views">
+                <div class="saved-view-header">
+                  <div>
+                    <p class="section-kicker">Saved views</p>
+                    <p class="saved-view-copy">
+                      Save recurring search, filter, sort, and source combinations to reopen the same queue slice in one click.
+                    </p>
+                  </div>
+                  <p class="meta-copy">Local browser only</p>
+                </div>
+
+                <div id="saved-view-list" class="queue-lane-row" aria-live="polite"></div>
+
+                <div class="saved-view-composer">
+                  <label class="field saved-view-field">
+                    <span>View name</span>
+                    <input
+                      id="saved-view-name"
+                      name="saved-view-name"
+                      type="text"
+                      maxlength="40"
+                      placeholder="Ports needing edits"
+                    />
+                  </label>
+
+                  <div class="saved-view-actions">
+                    <button id="save-current-view" type="button" class="secondary-action">
+                      Save current view
+                    </button>
+                    <button id="delete-active-view" type="button" class="secondary-action" hidden>
+                      Delete active view
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="recent-activity-panel" aria-label="Recent review activity">
+                <div class="saved-view-header">
+                  <div>
+                    <p class="section-kicker">Recent activity</p>
+                    <p class="saved-view-copy">
+                      Reopen recent review decisions with their review-safe search/filter/sort/source path and note outcome.
+                    </p>
+                  </div>
+                  <p class="meta-copy">Local browser only</p>
+                </div>
+
+                <div
+                  id="recent-review-activity"
+                  class="recent-activity-list"
+                  aria-live="polite"
+                ></div>
+              </section>
             </div>
           </section>
         </section>

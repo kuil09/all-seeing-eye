@@ -32,6 +32,11 @@ export function buildReviewQueueNavigation(timelineItems, currentEventId) {
     return null;
   }
 
+  const nextPendingEventId = resolveNextPendingEventId(normalizedItems, currentEventId);
+  const nextPendingItem = nextPendingEventId
+    ? normalizedItems.find((item) => item.eventId === nextPendingEventId) ?? null
+    : null;
+
   return {
     previousVisibleEventId:
       normalizedItems.length === 1
@@ -42,7 +47,8 @@ export function buildReviewQueueNavigation(timelineItems, currentEventId) {
       normalizedItems.length === 1
         ? null
         : normalizedItems[(currentIndex + 1) % normalizedItems.length].eventId,
-    nextPendingEventId: resolveNextPendingEventId(normalizedItems, currentEventId)
+    nextPendingEventId,
+    nextPendingHeadline: nextPendingItem?.headline ?? ""
   };
 }
 
@@ -53,5 +59,9 @@ function normalizeTimelineItems(timelineItems) {
 
   return timelineItems.filter(
     (item) => item && typeof item.eventId === "string" && item.eventId
-  );
+  ).map((item) => ({
+    ...item,
+    eventId: String(item.eventId).trim(),
+    headline: String(item.headline ?? "").trim()
+  }));
 }

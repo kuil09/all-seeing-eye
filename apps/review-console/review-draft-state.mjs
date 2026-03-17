@@ -56,17 +56,25 @@ export function pruneReviewDrafts(reviewDrafts, visibleEventIds) {
   return nextDrafts;
 }
 
-export function buildReviewDraftPreview(reviewDraft) {
+export function buildReviewDraftPreview(
+  reviewDraft,
+  { maxLength = PREVIEW_MAX_LENGTH } = {}
+) {
   const normalizedReviewDraft = normalizeReviewDraft(reviewDraft);
   if (!normalizedReviewDraft) {
     return null;
   }
 
-  if (normalizedReviewDraft.length <= PREVIEW_MAX_LENGTH) {
+  const previewMaxLength =
+    Number.isFinite(maxLength) && maxLength > 3
+      ? Math.floor(maxLength)
+      : PREVIEW_MAX_LENGTH;
+
+  if (normalizedReviewDraft.length <= previewMaxLength) {
     return normalizedReviewDraft;
   }
 
-  return `${normalizedReviewDraft.slice(0, PREVIEW_MAX_LENGTH - 3).trimEnd()}...`;
+  return `${normalizedReviewDraft.slice(0, previewMaxLength - 3).trimEnd()}...`;
 }
 
 export function readReviewDrafts(serializedReviewDrafts) {

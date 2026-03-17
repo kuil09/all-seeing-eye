@@ -79,3 +79,75 @@ export function buildFilterSummary({
     demoModeLabel: demoMode === "normal" ? null : DEMO_MODE_LABELS[demoMode] ?? demoMode
   };
 }
+
+export function buildReviewSafeOmissionLabels({
+  reviewStatusFilter = "all",
+  historyFilter = "all",
+  draftFilter = "all"
+}) {
+  const omissions = [];
+
+  if (reviewStatusFilter !== "all") {
+    omissions.push(
+      `Status: ${REVIEW_STATUS_LABELS[reviewStatusFilter] ?? reviewStatusFilter}`
+    );
+  }
+
+  if (historyFilter !== "all") {
+    omissions.push(`History: ${HISTORY_FILTER_LABELS[historyFilter] ?? historyFilter}`);
+  }
+
+  if (draftFilter !== "all") {
+    omissions.push(`Drafts: ${DRAFT_FILTER_LABELS[draftFilter] ?? draftFilter}`);
+  }
+
+  return omissions;
+}
+
+export function buildCondensedFilterSummaryLabels(filterSummary, { maxLabels = 3 } = {}) {
+  const normalizedMaxLabels =
+    Number.isInteger(maxLabels) && maxLabels > 0 ? maxLabels : 3;
+  const labels = [];
+  const activeFilters = Array.isArray(filterSummary?.activeFilters)
+    ? filterSummary.activeFilters.filter((label) => typeof label === "string" && label)
+    : [];
+  const sortLabel =
+    typeof filterSummary?.sortLabel === "string" && filterSummary.sortLabel
+      ? filterSummary.sortLabel
+      : "";
+
+  if (filterSummary?.savedViewLabel) {
+    labels.push(filterSummary.savedViewLabel);
+  }
+
+  labels.push(...activeFilters);
+
+  if (sortLabel) {
+    labels.push(sortLabel);
+  }
+
+  if (labels.length <= normalizedMaxLabels) {
+    return labels;
+  }
+
+  // Reopen affordances rely on the queue order, so keep non-default sort visible even
+  // when the rest of the filter lens must collapse behind a "+N more" marker.
+  if (sortLabel && normalizedMaxLabels >= 3) {
+    const leadingLabels = [];
+
+    if (filterSummary?.savedViewLabel) {
+      leadingLabels.push(filterSummary.savedViewLabel);
+    }
+
+    leadingLabels.push(...activeFilters);
+
+    const visibleLabels = leadingLabels.slice(0, Math.max(0, normalizedMaxLabels - 2));
+    visibleLabels.push(sortLabel);
+    const remainingCount = labels.length - visibleLabels.length;
+    return [...visibleLabels, `+${remainingCount} more`];
+  }
+
+  const visibleLabels = labels.slice(0, Math.max(1, normalizedMaxLabels - 1));
+  const remainingCount = labels.length - visibleLabels.length;
+  return [...visibleLabels, `+${remainingCount} more`];
+}

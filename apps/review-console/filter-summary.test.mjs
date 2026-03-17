@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildFilterSummary } from "./filter-summary.mjs";
+import {
+  buildCondensedFilterSummaryLabels,
+  buildFilterSummary,
+  buildReviewSafeOmissionLabels
+} from "./filter-summary.mjs";
 
 test("buildFilterSummary returns active filter labels for explicit controls", () => {
   assert.deepEqual(
@@ -131,4 +135,76 @@ test("buildFilterSummary can surface a non-default queue sort without counting i
       demoModeLabel: null
     }
   );
+});
+
+test("buildReviewSafeOmissionLabels surfaces review-only filters that reopening omits", () => {
+  assert.deepEqual(
+    buildReviewSafeOmissionLabels({
+      reviewStatusFilter: "pending_review",
+      historyFilter: "unreviewed",
+      draftFilter: "saved"
+    }),
+    [
+      "Status: Pending review",
+      "History: No review history",
+      "Drafts: Saved notes"
+    ]
+  );
+});
+
+test("buildCondensedFilterSummaryLabels keeps saved view, active filters, and sort concise", () => {
+  const filterSummary = buildFilterSummary({
+    savedViewLabel: "Harbor follow-up",
+    searchQuery: "harbor north",
+    reviewStatusFilter: "pending_review",
+    confidenceFilter: "medium",
+    historyFilter: "all",
+    tagFilter: "all",
+    draftFilter: "all",
+    sortOrder: "lowest_confidence",
+    demoMode: "normal"
+  });
+
+  assert.deepEqual(buildCondensedFilterSummaryLabels(filterSummary), [
+    "Saved view: Harbor follow-up",
+    "Sort: Lowest confidence first",
+    "+3 more"
+  ]);
+});
+
+test("buildCondensedFilterSummaryLabels keeps the queue sort visible when filters collapse", () => {
+  const filterSummary = buildFilterSummary({
+    searchQuery: "storm",
+    reviewStatusFilter: "pending_review",
+    confidenceFilter: "medium",
+    historyFilter: "all",
+    tagFilter: "all",
+    draftFilter: "all",
+    sortOrder: "lowest_confidence",
+    demoMode: "normal"
+  });
+
+  assert.deepEqual(buildCondensedFilterSummaryLabels(filterSummary), [
+    "Search: storm",
+    "Sort: Lowest confidence first",
+    "+2 more"
+  ]);
+});
+
+test("buildCondensedFilterSummaryLabels returns every label when the summary is already short", () => {
+  const filterSummary = buildFilterSummary({
+    searchQuery: "storm",
+    reviewStatusFilter: "all",
+    confidenceFilter: "all",
+    historyFilter: "all",
+    tagFilter: "all",
+    draftFilter: "all",
+    sortOrder: "lowest_confidence",
+    demoMode: "normal"
+  });
+
+  assert.deepEqual(buildCondensedFilterSummaryLabels(filterSummary), [
+    "Search: storm",
+    "Sort: Lowest confidence first"
+  ]);
 });

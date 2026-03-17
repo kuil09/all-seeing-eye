@@ -2,10 +2,12 @@ import {
   DEFAULT_TIMELINE_SORT,
   normalizeTimelineSort
 } from "./timeline-sort.mjs";
+import { SOURCE_API, SOURCE_FIXTURES } from "./view-state.mjs";
 
 export const MAX_RECENT_REVIEW_ACTIVITY = 6;
 
 const DEFAULT_REOPEN_FILTERS = {
+  sourceMode: SOURCE_API,
   searchQuery: "",
   reviewStatusFilter: "all",
   confidenceFilter: "all",
@@ -55,6 +57,22 @@ export function serializeRecentReviewActivity(activity) {
   return JSON.stringify(normalizeRecentReviewActivity(activity));
 }
 
+export function matchesRecentReviewActivityFilters(leftFilters, rightFilters) {
+  const normalizedLeft = normalizeReopenFilters(leftFilters);
+  const normalizedRight = normalizeReopenFilters(rightFilters);
+
+  return (
+    normalizedLeft.sourceMode === normalizedRight.sourceMode &&
+    normalizedLeft.searchQuery === normalizedRight.searchQuery &&
+    normalizedLeft.reviewStatusFilter === normalizedRight.reviewStatusFilter &&
+    normalizedLeft.confidenceFilter === normalizedRight.confidenceFilter &&
+    normalizedLeft.historyFilter === normalizedRight.historyFilter &&
+    normalizedLeft.tagFilter === normalizedRight.tagFilter &&
+    normalizedLeft.draftFilter === normalizedRight.draftFilter &&
+    normalizedLeft.sortOrder === normalizedRight.sortOrder
+  );
+}
+
 function normalizeRecentReviewActivity(activity) {
   if (!Array.isArray(activity) || !activity.length) {
     return [];
@@ -90,6 +108,7 @@ function normalizeRecentReviewActivityEntry(entry) {
     reviewStatus,
     createdAt,
     notes: normalizeRecentReviewNotes(entry.notes),
+    omittedFilterLabels: normalizeOmittedFilterLabels(entry.omittedFilterLabels),
     reopenFilters: normalizeReopenFilters(entry.reopenFilters)
   };
 }
@@ -114,6 +133,7 @@ function normalizeReopenFilters(reopenFilters) {
   }
 
   return {
+    sourceMode: normalizeSourceMode(reopenFilters.sourceMode),
     searchQuery: String(reopenFilters.searchQuery ?? DEFAULT_REOPEN_FILTERS.searchQuery).trim(),
     reviewStatusFilter: String(
       reopenFilters.reviewStatusFilter ?? DEFAULT_REOPEN_FILTERS.reviewStatusFilter
@@ -134,10 +154,30 @@ function normalizeReopenFilters(reopenFilters) {
   };
 }
 
+function normalizeSourceMode(sourceMode) {
+  return sourceMode === SOURCE_FIXTURES ? SOURCE_FIXTURES : SOURCE_API;
+}
+
 function normalizeRecentReviewNotes(notes) {
   if (typeof notes !== "string") {
     return "";
   }
 
   return notes.trim();
+}
+
+function normalizeOmittedFilterLabels(omittedFilterLabels) {
+  if (!Array.isArray(omittedFilterLabels) || !omittedFilterLabels.length) {
+    return [];
+  }
+
+  const normalizedLabels = [];
+  for (const label of omittedFilterLabels) {
+    const normalizedLabel = String(label ?? "").trim();
+    if (normalizedLabel && !normalizedLabels.includes(normalizedLabel)) {
+      normalizedLabels.push(normalizedLabel);
+    }
+  }
+
+  return normalizedLabels.slice(0, 3);
 }

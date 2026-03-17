@@ -46,6 +46,7 @@ class PipelineStore {
       .get().count;
 
     if (schemaAlreadyPresent > 0) {
+      ensureSupplementalSchema(this.database);
       if (!this.statements) {
         this.statements = createStatements(this.database);
       }
@@ -55,6 +56,7 @@ class PipelineStore {
     const schemaPath = path.join(this.repoRoot, "schemas/all-seeing-eye-v1.sql");
     const schemaSql = readFileSync(schemaPath, "utf8");
     this.database.exec(schemaSql);
+    ensureSupplementalSchema(this.database);
     this.statements = createStatements(this.database);
   }
 
@@ -112,6 +114,154 @@ class PipelineStore {
     for (const sourceRecord of bundle.sourceRecords) {
       this.statements.markSourceRecordReady.run({ id: sourceRecord.id });
     }
+  }
+
+  recordIngestRunStarted({ ingestRunId, mode, startedAt, datasetPath = null, allowlistPath = null }) {
+    const recordedAt = startedAt ?? new Date().toISOString();
+    this.statements.upsertIngestRun.run({
+      id: ingestRunId,
+      mode,
+      status: "running",
+      started_at: recordedAt,
+      completed_at: null,
+      dataset_path: datasetPath,
+      allowlist_path: allowlistPath,
+      feed_count: 0,
+      succeeded_feed_count: 0,
+      failed_feed_count: 0,
+      item_count: 0,
+      persisted_source_record_count: 0,
+      error_message: null,
+      created_at: recordedAt,
+      updated_at: recordedAt
+    });
+  }
+
+  recordIngestRunCompleted({
+    ingestRunId,
+    status,
+    completedAt,
+    datasetPath = null,
+    allowlistPath = null,
+    feedCount = 0,
+    succeededFeedCount = 0,
+    failedFeedCount = 0,
+    itemCount = 0,
+    persistedSourceRecordCount = 0,
+    errorMessage = null
+  }) {
+    const recordedAt = completedAt ?? new Date().toISOString();
+
+    this.statements.updateIngestRun.run({
+      id: ingestRunId,
+      status,
+      completed_at: recordedAt,
+      dataset_path: datasetPath,
+      allowlist_path: allowlistPath,
+      feed_count: feedCount,
+      succeeded_feed_count: succeededFeedCount,
+      failed_feed_count: failedFeedCount,
+      item_count: itemCount,
+      persisted_source_record_count: persistedSourceRecordCount,
+      error_message: errorMessage,
+      updated_at: recordedAt
+    });
+  }
+
+  replaceIngestRunFeeds({ ingestRunId, feeds, recordedAt }) {
+    this.statements.deleteIngestRunFeeds.run({ ingest_run_id: ingestRunId });
+
+    for (const feed of feeds) {
+      this.statements.upsertIngestRunFeed.run({
+        ingest_run_id: ingestRunId,
+        feed_key: feed.feedKey,
+        feed_url: feed.feedUrl,
+        feed_category: feed.feedCategory,
+        status: feed.status,
+        attempt_count: feed.attemptCount,
+        item_count: feed.itemCount,
+        latest_published_at: feed.latestPublishedAt,
+        error_message: feed.errorMessage,
+        last_http_status: feed.lastHttpStatus,
+        response_content_type: feed.responseContentType,
+        fetched_at: feed.fetchedAt ?? recordedAt ?? null,
+        created_at: recordedAt,
+        updated_at: recordedAt
+      });
+    }
+  }
+
+  getIngestRunHistory(limit = 10) {
+    const parsedLimit = Math.max(1, Number(limit) || 10);
+    const recentRuns = this.database
+      .prepare(
+        `
+          SELECT
+            id,
+            mode,
+            status,
+            started_at,
+            completed_at,
+            dataset_path,
+            allowlist_path,
+            feed_count,
+            succeeded_feed_count,
+            failed_feed_count,
+            item_count,
+            persisted_source_record_count,
+            error_message
+          FROM ingest_runs
+          ORDER BY started_at DESC, id DESC
+          LIMIT :limit
+        `
+      )
+      .all({ limit: parsedLimit })
+      .map((run) => mapIngestRunRow(run));
+
+    const runIds = recentRuns.map((run) => run.ingestRunId);
+    const feedsByRunId = new Map();
+
+    if (runIds.length > 0) {
+      const placeholders = runIds.map((_, index) => `:run_${index}`).join(", ");
+      const params = Object.fromEntries(runIds.map((runId, index) => [`run_${index}`, runId]));
+      const feedRows = this.database
+        .prepare(
+          `
+            SELECT
+              ingest_run_id,
+              feed_key,
+              feed_url,
+              feed_category,
+              status,
+              attempt_count,
+              item_count,
+              latest_published_at,
+              error_message,
+              last_http_status,
+              response_content_type,
+              fetched_at
+            FROM ingest_run_feeds
+            WHERE ingest_run_id IN (${placeholders})
+            ORDER BY ingest_run_id DESC, status ASC, feed_key ASC
+          `
+        )
+        .all(params);
+
+      for (const row of feedRows) {
+        const feeds = feedsByRunId.get(row.ingest_run_id) ?? [];
+        feeds.push(mapIngestRunFeedRow(row));
+        feedsByRunId.set(row.ingest_run_id, feeds);
+      }
+    }
+
+    return {
+      lastSuccessfulRun: this.getLatestIngestRunByStatuses(["succeeded"]),
+      lastFailedRun: this.getLatestIngestRunByStatuses(["failed", "partial_failure"]),
+      recentRuns: recentRuns.map((run) => ({
+        ...run,
+        feeds: feedsByRunId.get(run.ingestRunId) ?? []
+      }))
+    };
   }
 
   getTableCounts() {
@@ -202,10 +352,155 @@ class PipelineStore {
     const row = this.database.prepare(sql).get();
     return Number(Object.values(row)[0]);
   }
+
+  getLatestIngestRunByStatuses(statuses) {
+    if (!Array.isArray(statuses) || statuses.length === 0) {
+      return null;
+    }
+
+    const placeholders = statuses.map((_, index) => `:status_${index}`).join(", ");
+    const params = Object.fromEntries(statuses.map((status, index) => [`status_${index}`, status]));
+    const row = this.database
+      .prepare(
+        `
+          SELECT
+            id,
+            mode,
+            status,
+            started_at,
+            completed_at,
+            dataset_path,
+            allowlist_path,
+            feed_count,
+            succeeded_feed_count,
+            failed_feed_count,
+            item_count,
+            persisted_source_record_count,
+            error_message
+          FROM ingest_runs
+          WHERE status IN (${placeholders})
+          ORDER BY started_at DESC, id DESC
+          LIMIT 1
+        `
+      )
+      .get(params);
+
+    return row ? mapIngestRunRow(row) : null;
+  }
 }
 
 function createStatements(database) {
   return {
+    upsertIngestRun: database.prepare(`
+      INSERT INTO ingest_runs (
+        id,
+        mode,
+        status,
+        started_at,
+        completed_at,
+        dataset_path,
+        allowlist_path,
+        feed_count,
+        succeeded_feed_count,
+        failed_feed_count,
+        item_count,
+        persisted_source_record_count,
+        error_message,
+        created_at,
+        updated_at
+      ) VALUES (
+        :id,
+        :mode,
+        :status,
+        :started_at,
+        :completed_at,
+        :dataset_path,
+        :allowlist_path,
+        :feed_count,
+        :succeeded_feed_count,
+        :failed_feed_count,
+        :item_count,
+        :persisted_source_record_count,
+        :error_message,
+        :created_at,
+        :updated_at
+      )
+      ON CONFLICT(id) DO UPDATE SET
+        mode = excluded.mode,
+        status = excluded.status,
+        started_at = excluded.started_at,
+        completed_at = excluded.completed_at,
+        dataset_path = excluded.dataset_path,
+        allowlist_path = excluded.allowlist_path,
+        feed_count = excluded.feed_count,
+        succeeded_feed_count = excluded.succeeded_feed_count,
+        failed_feed_count = excluded.failed_feed_count,
+        item_count = excluded.item_count,
+        persisted_source_record_count = excluded.persisted_source_record_count,
+        error_message = excluded.error_message,
+        updated_at = excluded.updated_at
+    `),
+    updateIngestRun: database.prepare(`
+      UPDATE ingest_runs
+      SET
+        status = :status,
+        completed_at = :completed_at,
+        dataset_path = COALESCE(:dataset_path, dataset_path),
+        allowlist_path = COALESCE(:allowlist_path, allowlist_path),
+        feed_count = :feed_count,
+        succeeded_feed_count = :succeeded_feed_count,
+        failed_feed_count = :failed_feed_count,
+        item_count = :item_count,
+        persisted_source_record_count = :persisted_source_record_count,
+        error_message = :error_message,
+        updated_at = :updated_at
+      WHERE id = :id
+    `),
+    upsertIngestRunFeed: database.prepare(`
+      INSERT INTO ingest_run_feeds (
+        ingest_run_id,
+        feed_key,
+        feed_url,
+        feed_category,
+        status,
+        attempt_count,
+        item_count,
+        latest_published_at,
+        error_message,
+        last_http_status,
+        response_content_type,
+        fetched_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        :ingest_run_id,
+        :feed_key,
+        :feed_url,
+        :feed_category,
+        :status,
+        :attempt_count,
+        :item_count,
+        :latest_published_at,
+        :error_message,
+        :last_http_status,
+        :response_content_type,
+        :fetched_at,
+        :created_at,
+        :updated_at
+      )
+      ON CONFLICT(ingest_run_id, feed_key) DO UPDATE SET
+        feed_url = excluded.feed_url,
+        feed_category = excluded.feed_category,
+        status = excluded.status,
+        attempt_count = excluded.attempt_count,
+        item_count = excluded.item_count,
+        latest_published_at = excluded.latest_published_at,
+        error_message = excluded.error_message,
+        last_http_status = excluded.last_http_status,
+        response_content_type = excluded.response_content_type,
+        fetched_at = excluded.fetched_at,
+        updated_at = excluded.updated_at
+    `),
     upsertSourceRecord: database.prepare(`
       INSERT INTO source_records (
         id,
@@ -548,6 +843,10 @@ function createStatements(database) {
     deleteEventEntityLinks: database.prepare(`
       DELETE FROM event_entities
       WHERE event_id = :event_id
+    `),
+    deleteIngestRunFeeds: database.prepare(`
+      DELETE FROM ingest_run_feeds
+      WHERE ingest_run_id = :ingest_run_id
     `)
   };
 }
@@ -557,5 +856,89 @@ function createCheck(id, ok, description) {
     id,
     ok,
     description
+  };
+}
+
+function ensureSupplementalSchema(database) {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS ingest_runs (
+      id TEXT PRIMARY KEY,
+      mode TEXT NOT NULL CHECK (mode IN ('fixture_seed', 'live_poll')),
+      status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'partial_failure', 'failed')),
+      started_at TEXT NOT NULL,
+      completed_at TEXT,
+      dataset_path TEXT,
+      allowlist_path TEXT,
+      feed_count INTEGER NOT NULL DEFAULT 0,
+      succeeded_feed_count INTEGER NOT NULL DEFAULT 0,
+      failed_feed_count INTEGER NOT NULL DEFAULT 0,
+      item_count INTEGER NOT NULL DEFAULT 0,
+      persisted_source_record_count INTEGER NOT NULL DEFAULT 0,
+      error_message TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ingest_runs_started_at
+      ON ingest_runs (started_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_ingest_runs_status
+      ON ingest_runs (status, started_at DESC);
+
+    CREATE TABLE IF NOT EXISTS ingest_run_feeds (
+      ingest_run_id TEXT NOT NULL,
+      feed_key TEXT NOT NULL,
+      feed_url TEXT NOT NULL,
+      feed_category TEXT,
+      status TEXT NOT NULL CHECK (status IN ('succeeded', 'failed')),
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      item_count INTEGER NOT NULL DEFAULT 0,
+      latest_published_at TEXT,
+      error_message TEXT,
+      last_http_status INTEGER,
+      response_content_type TEXT,
+      fetched_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (ingest_run_id, feed_key),
+      FOREIGN KEY (ingest_run_id) REFERENCES ingest_runs (id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_ingest_run_feeds_status
+      ON ingest_run_feeds (status);
+  `);
+}
+
+function mapIngestRunRow(row) {
+  return {
+    ingestRunId: row.id,
+    mode: row.mode,
+    status: row.status,
+    startedAt: row.started_at,
+    completedAt: row.completed_at,
+    datasetPath: row.dataset_path,
+    allowlistPath: row.allowlist_path,
+    feedCount: row.feed_count,
+    succeededFeedCount: row.succeeded_feed_count,
+    failedFeedCount: row.failed_feed_count,
+    itemCount: row.item_count,
+    persistedSourceRecordCount: row.persisted_source_record_count,
+    errorMessage: row.error_message
+  };
+}
+
+function mapIngestRunFeedRow(row) {
+  return {
+    feedKey: row.feed_key,
+    feedUrl: row.feed_url,
+    feedCategory: row.feed_category,
+    status: row.status,
+    attemptCount: row.attempt_count,
+    itemCount: row.item_count,
+    latestPublishedAt: row.latest_published_at,
+    errorMessage: row.error_message,
+    lastHttpStatus: row.last_http_status,
+    responseContentType: row.response_content_type,
+    fetchedAt: row.fetched_at
   };
 }

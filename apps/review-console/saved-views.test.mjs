@@ -12,6 +12,7 @@ import {
   upsertSavedView
 } from "./saved-views.mjs";
 import { SORT_LOWEST_CONFIDENCE } from "./timeline-sort.mjs";
+import { SOURCE_API, SOURCE_FIXTURES } from "./view-state.mjs";
 
 test("normalizeSavedViewLabel trims and collapses whitespace", () => {
   assert.equal(normalizeSavedViewLabel("  Ports   needing edits  "), "Ports needing edits");
@@ -26,7 +27,8 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       historyFilter: "reviewed",
       tagFilter: "ports",
       draftFilter: "saved",
-      sortOrder: "most_sources"
+      sortOrder: "most_sources",
+      sourceMode: SOURCE_FIXTURES
     }),
     " pending   HIGH ",
     {
@@ -36,7 +38,8 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
       historyFilter: "unreviewed",
       tagFilter: "infrastructure",
       draftFilter: "all",
-      sortOrder: SORT_LOWEST_CONFIDENCE
+      sortOrder: SORT_LOWEST_CONFIDENCE,
+      sourceMode: SOURCE_API
     }
   );
 
@@ -51,13 +54,14 @@ test("upsertSavedView stores normalized filters and overwrites matching labels",
         historyFilter: "unreviewed",
         tagFilter: "infrastructure",
         draftFilter: "all",
-        sortOrder: SORT_LOWEST_CONFIDENCE
+        sortOrder: SORT_LOWEST_CONFIDENCE,
+        sourceMode: SOURCE_API
       }
     }
   ]);
 });
 
-test("findMatchingSavedView compares the full normalized filter snapshot", () => {
+test("findMatchingSavedView compares the full normalized filter snapshot including source mode", () => {
   const savedViews = [
     {
       id: buildSavedViewId("Saved drafts"),
@@ -69,7 +73,8 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
         historyFilter: "reviewed",
         tagFilter: "all",
         draftFilter: "saved",
-        sortOrder: "pending_first"
+        sortOrder: "pending_first",
+        sourceMode: SOURCE_FIXTURES
       })
     }
   ];
@@ -82,7 +87,8 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       historyFilter: "reviewed",
       tagFilter: "all",
       draftFilter: "saved",
-      sortOrder: "pending_first"
+      sortOrder: "pending_first",
+      sourceMode: SOURCE_FIXTURES
     }),
     savedViews[0]
   );
@@ -94,9 +100,43 @@ test("findMatchingSavedView compares the full normalized filter snapshot", () =>
       historyFilter: "reviewed",
       tagFilter: "all",
       draftFilter: "saved",
-      sortOrder: "pending_first"
+      sortOrder: "pending_first",
+      sourceMode: SOURCE_API
     }),
     null
+  );
+});
+
+test("findMatchingSavedView treats legacy source-less snapshots as compatible with the current source", () => {
+  const savedViews = readSavedViews(
+    JSON.stringify([
+      {
+        label: "Legacy drafts",
+        filters: {
+          searchQuery: "",
+          reviewStatusFilter: "all",
+          confidenceFilter: "all",
+          historyFilter: "reviewed",
+          tagFilter: "all",
+          draftFilter: "saved",
+          sortOrder: "pending_first"
+        }
+      }
+    ])
+  );
+
+  assert.deepEqual(
+    findMatchingSavedView(savedViews, {
+      searchQuery: "",
+      reviewStatusFilter: "all",
+      confidenceFilter: "all",
+      historyFilter: "reviewed",
+      tagFilter: "all",
+      draftFilter: "saved",
+      sortOrder: "pending_first",
+      sourceMode: SOURCE_FIXTURES
+    }),
+    savedViews[0]
   );
 });
 
@@ -125,7 +165,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           historyFilter: "reviewed",
           tagFilter: "ports",
           draftFilter: "all",
-          sortOrder: SORT_LOWEST_CONFIDENCE
+          sortOrder: SORT_LOWEST_CONFIDENCE,
+          sourceMode: SOURCE_FIXTURES
         }
       },
       {
@@ -147,7 +188,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
         historyFilter: "reviewed",
         tagFilter: "ports",
         draftFilter: "all",
-        sortOrder: SORT_LOWEST_CONFIDENCE
+        sortOrder: SORT_LOWEST_CONFIDENCE,
+        sourceMode: SOURCE_FIXTURES
       }
     }
   ]);
@@ -165,7 +207,8 @@ test("readSavedViews and serializeSavedViews keep only valid presets", () => {
           historyFilter: "reviewed",
           tagFilter: "ports",
           draftFilter: "all",
-          sortOrder: SORT_LOWEST_CONFIDENCE
+          sortOrder: SORT_LOWEST_CONFIDENCE,
+          sourceMode: SOURCE_FIXTURES
         }
       }
     ])

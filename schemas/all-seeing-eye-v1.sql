@@ -42,6 +42,56 @@ CREATE INDEX idx_source_records_published_at
 CREATE INDEX idx_source_records_synthesis_status
     ON source_records (synthesis_status);
 
+-- Operator-facing ingest execution history.
+CREATE TABLE ingest_runs (
+    id TEXT PRIMARY KEY,
+    mode TEXT NOT NULL
+        CHECK (mode IN ('fixture_seed', 'live_poll')),
+    status TEXT NOT NULL
+        CHECK (status IN ('running', 'succeeded', 'partial_failure', 'failed')),
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    dataset_path TEXT,
+    allowlist_path TEXT,
+    feed_count INTEGER NOT NULL DEFAULT 0,
+    succeeded_feed_count INTEGER NOT NULL DEFAULT 0,
+    failed_feed_count INTEGER NOT NULL DEFAULT 0,
+    item_count INTEGER NOT NULL DEFAULT 0,
+    persisted_source_record_count INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_ingest_runs_started_at
+    ON ingest_runs (started_at DESC);
+
+CREATE INDEX idx_ingest_runs_status
+    ON ingest_runs (status, started_at DESC);
+
+CREATE TABLE ingest_run_feeds (
+    ingest_run_id TEXT NOT NULL,
+    feed_key TEXT NOT NULL,
+    feed_url TEXT NOT NULL,
+    feed_category TEXT,
+    status TEXT NOT NULL
+        CHECK (status IN ('succeeded', 'failed')),
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    item_count INTEGER NOT NULL DEFAULT 0,
+    latest_published_at TEXT,
+    error_message TEXT,
+    last_http_status INTEGER,
+    response_content_type TEXT,
+    fetched_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (ingest_run_id, feed_key),
+    FOREIGN KEY (ingest_run_id) REFERENCES ingest_runs (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_ingest_run_feeds_status
+    ON ingest_run_feeds (status);
+
 -- Timeline object reviewed by the analyst.
 CREATE TABLE events (
     id TEXT PRIMARY KEY,

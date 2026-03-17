@@ -66,7 +66,8 @@ export function createInitialUiState(search) {
     tagFilter: readString(params.get("tag"), "all"),
     draftFilter: readEnum(params.get("drafts"), DRAFT_FILTERS, DRAFT_FILTER_ALL),
     sortOrder: normalizeTimelineSort(params.get("sort")),
-    selectedEventId: readString(params.get("eventId"), null)
+    selectedEventId: readString(params.get("eventId"), null),
+    activeSearchFocusTarget: readString(params.get("focus"), null)
   };
 }
 
@@ -101,6 +102,10 @@ export function buildUrlSearch(state) {
 
   if (state.selectedEventId) {
     params.set("eventId", state.selectedEventId);
+  }
+
+  if (state.selectedEventId && state.activeSearchFocusTarget) {
+    params.set("focus", state.activeSearchFocusTarget);
   }
 
   if (state.searchQuery) {

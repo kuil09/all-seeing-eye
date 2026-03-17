@@ -77,7 +77,7 @@ test.describe("timeline sort order controls", () => {
 
     const savedViewBtn = page.locator("#saved-view-list [data-saved-view-id]").first();
     await expect(savedViewBtn).toBeVisible();
-    await expect(savedViewBtn.locator("span")).toHaveText("Most sources view");
+    await expect(savedViewBtn.locator(".quick-lane-label")).toHaveText("Most sources view");
 
     // Reset sort to default
     await page.locator("#sort-order").selectOption("pending_first");

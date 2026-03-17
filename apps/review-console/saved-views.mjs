@@ -3,7 +3,9 @@ import {
   DRAFT_FILTER_SAVED,
   HISTORY_FILTER_ALL,
   HISTORY_FILTER_REVIEWED,
-  HISTORY_FILTER_UNREVIEWED
+  HISTORY_FILTER_UNREVIEWED,
+  SOURCE_API,
+  SOURCE_FIXTURES
 } from "./view-state.mjs";
 import {
   DEFAULT_TIMELINE_SORT,
@@ -26,6 +28,7 @@ const HISTORY_FILTERS = new Set([
   HISTORY_FILTER_REVIEWED,
   HISTORY_FILTER_UNREVIEWED
 ]);
+const SOURCE_MODES = new Set([SOURCE_FIXTURES, SOURCE_API]);
 
 function normalizeWhitespace(value) {
   if (typeof value !== "string") {
@@ -47,7 +50,13 @@ export function buildSavedViewId(label) {
   return normalizeSavedViewLabel(label).toLowerCase();
 }
 
+function normalizeSourceMode(sourceMode) {
+  return readEnum(sourceMode, SOURCE_MODES, null);
+}
+
 export function createSavedViewFilters(filters = {}) {
+  const normalizedSourceMode = normalizeSourceMode(filters.sourceMode);
+
   return {
     searchQuery: normalizeWhitespace(filters.searchQuery).toLowerCase(),
     reviewStatusFilter: readEnum(filters.reviewStatusFilter, REVIEW_STATUS_FILTERS, "all"),
@@ -55,7 +64,8 @@ export function createSavedViewFilters(filters = {}) {
     historyFilter: readEnum(filters.historyFilter, HISTORY_FILTERS, HISTORY_FILTER_ALL),
     tagFilter: normalizeWhitespace(filters.tagFilter) || "all",
     draftFilter: readEnum(filters.draftFilter, DRAFT_FILTERS, DRAFT_FILTER_ALL),
-    sortOrder: normalizeTimelineSort(filters.sortOrder ?? DEFAULT_TIMELINE_SORT)
+    sortOrder: normalizeTimelineSort(filters.sortOrder ?? DEFAULT_TIMELINE_SORT),
+    ...(normalizedSourceMode ? { sourceMode: normalizedSourceMode } : {})
   };
 }
 
@@ -137,6 +147,9 @@ function sanitizeSavedView(entry) {
 }
 
 function areSavedViewFiltersEqual(left, right) {
+  const leftSourceMode = left.sourceMode ?? null;
+  const rightSourceMode = right.sourceMode ?? null;
+
   return (
     left.searchQuery === right.searchQuery &&
     left.reviewStatusFilter === right.reviewStatusFilter &&
@@ -144,6 +157,9 @@ function areSavedViewFiltersEqual(left, right) {
     left.historyFilter === right.historyFilter &&
     left.tagFilter === right.tagFilter &&
     left.draftFilter === right.draftFilter &&
-    left.sortOrder === right.sortOrder
+    left.sortOrder === right.sortOrder &&
+    (leftSourceMode === null ||
+      rightSourceMode === null ||
+      leftSourceMode === rightSourceMode)
   );
 }

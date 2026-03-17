@@ -12,12 +12,22 @@ import {
   createEntityLookup,
   formatRelationshipDisplay
 } from "./detail-formatters.mjs";
-import { buildFilterSummary } from "./filter-summary.mjs";
+import {
+  buildReviewSafeOmissionLabels,
+  buildCondensedFilterSummaryLabels,
+  buildFilterSummary
+} from "./filter-summary.mjs";
 import {
   REVIEW_CONSOLE_SHORTCUT_HINTS,
   resolveKeyboardShortcut
 } from "./keyboard-shortcuts.mjs";
 import { buildQueueDistribution } from "./queue-distribution.mjs";
+import {
+  buildReviewRecoveryActionCopy,
+  buildReviewRecoveryButtonLabel,
+  buildReviewRecoveryPreviewCopy,
+  resolveReviewRecoveryMode
+} from "./review-recovery-copy.mjs";
 import {
   buildReviewDraftPreview,
   clearReviewDraft,
@@ -34,6 +44,7 @@ import {
 } from "./review-note-suggestions.mjs";
 import {
   appendRecentReviewActivity,
+  matchesRecentReviewActivityFilters,
   pruneRecentReviewActivity,
   readRecentReviewActivity,
   serializeRecentReviewActivity
@@ -60,17 +71,23 @@ import {
   buildSourceProvenanceSummary,
   formatSourceRelativeTiming
 } from "./source-provenance-summary.mjs";
+import { buildSourceProofSnapshotBundle } from "./source-proof-snapshot.mjs";
 import {
   DEFAULT_TIMELINE_SORT,
   SORT_PENDING_FIRST,
   sortTimelineItems
 } from "./timeline-sort.mjs";
-import { buildTimelineEntitySummary } from "./timeline-entity-summary.mjs";
 import {
   buildTimelineSearchMatches,
   matchesTimelineSearchQuery,
   resolveAdjacentSearchFocusTarget
 } from "./timeline-search.mjs";
+import {
+  buildViewHandoffNote,
+  buildViewHandoffPreviewItems,
+  buildViewHandoffPreviewSummary,
+  buildViewHandoffSummary
+} from "./view-handoff.mjs";
 import {
   buildUrlSearch,
   createInitialUiState,
@@ -78,6 +95,7 @@ import {
   DEMO_ERROR,
   DEMO_NORMAL,
   DRAFT_FILTER_ALL,
+  DRAFT_FILTER_SAVED,
   HISTORY_FILTER_ALL,
   HISTORY_FILTER_REVIEWED,
   reconcileSelectedEventId,
@@ -90,6 +108,9 @@ const SAVED_VIEWS_STORAGE_KEY = "all-seeing-eye.review-console.saved-views.v1";
 const REVIEW_DRAFT_STORAGE_KEY = "all-seeing-eye.review-console.drafts.v1";
 const REVIEW_ACTIVITY_STORAGE_KEY = "all-seeing-eye.review-console.recent-activity.v1";
 const DETAIL_FOCUS_HIGHLIGHT_MS = 1800;
+const HANDOFF_DRAFT_PREVIEW_MAX_LENGTH = 240;
+const FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH = 120;
+const MOBILE_DETAIL_BREAKPOINT_PX = 760;
 
 const state = {
   sourceMode: initialUiState.sourceMode,
@@ -103,19 +124,29 @@ const state = {
   draftFilter: initialUiState.draftFilter,
   data: null,
   selectedEventId: initialUiState.selectedEventId,
-  activeSearchFocusEventId: null,
-  activeSearchFocusTarget: null,
+  activeSearchFocusEventId: initialUiState.activeSearchFocusTarget
+    ? initialUiState.selectedEventId
+    : null,
+  activeSearchFocusTarget: initialUiState.activeSearchFocusTarget,
   reviewDrafts: loadReviewDrafts(),
   recentReviewActivity: loadRecentReviewActivity(),
   savedViews: loadSavedViews(),
   savedViewName: "",
+  shareViewMessage: "",
+  shareViewMessageTone: "",
   loadError: "",
   actionError: "",
   lastActionMessage: "",
-  isSubmittingReviewAction: false
+  isSubmittingReviewAction: false,
+  mobileDetailSheetOpen: Boolean(initialUiState.selectedEventId && isMobileViewport())
 };
 
 let detailFocusTimeoutId = 0;
+let shareViewFeedbackTimeoutId = 0;
+let pendingSearchFocusRestore = Boolean(
+  initialUiState.selectedEventId && initialUiState.activeSearchFocusTarget
+);
+let lastRestoredSearchFocusKey = "";
 
 const elements = {
   activeFilterSummary: document.querySelector("#active-filter-summary"),
@@ -143,7 +174,8 @@ const elements = {
   tagFilter: document.querySelector("#tag-filter"),
   timelineHeading: document.querySelector("#timeline-heading"),
   timelineList: document.querySelector("#timeline-list"),
-  timelineMeta: document.querySelector("#timeline-meta")
+  timelineMeta: document.querySelector("#timeline-meta"),
+  viewHandoffPanel: document.querySelector("#view-handoff-panel")
 };
 
 syncControlsFromState();
@@ -243,9 +275,50 @@ function bindEvents() {
   });
 
   document.addEventListener("click", (event) => {
+    const closeMobileDetailButton = event.target.closest("[data-close-mobile-detail]");
+    if (closeMobileDetailButton) {
+      closeMobileDetailSheet({ restoreTimelineFocus: true });
+      return;
+    }
+
+    const mobileDetailTargetButton = event.target.closest("[data-mobile-detail-target]");
+    if (mobileDetailTargetButton) {
+      const sectionId = mobileDetailTargetButton.getAttribute("data-mobile-detail-target");
+      if (sectionId) {
+        focusDetailSection(sectionId);
+      }
+      return;
+    }
+
     const clearFiltersButton = event.target.closest("[data-clear-filters]");
     if (clearFiltersButton) {
       clearActiveFilters();
+      return;
+    }
+
+    const copyViewLinkButton = event.target.closest("[data-copy-view-link]");
+    if (copyViewLinkButton) {
+      void copyCurrentViewLink();
+      return;
+    }
+
+    const copyPortableViewLinkButton = event.target.closest("[data-copy-portable-view-link]");
+    if (copyPortableViewLinkButton) {
+      void copyCurrentViewLink({ portable: true });
+      return;
+    }
+
+    const copyNextPendingViewLinkButton = event.target.closest(
+      "[data-copy-next-pending-link]"
+    );
+    if (copyNextPendingViewLinkButton) {
+      void copyNextPendingViewLink();
+      return;
+    }
+
+    const copyHandoffNoteButton = event.target.closest("[data-copy-handoff-note]");
+    if (copyHandoffNoteButton) {
+      void copyViewHandoffNote();
       return;
     }
 
@@ -254,7 +327,7 @@ function bindEvents() {
       const savedViewId = savedViewButton.getAttribute("data-saved-view-id");
       const savedView = state.savedViews.find((entry) => entry.id === savedViewId);
       if (savedView) {
-        applySavedView(savedView);
+        void applySavedView(savedView);
       }
       return;
     }
@@ -266,7 +339,7 @@ function bindEvents() {
         (entry) => entry.eventId === eventId
       );
       if (reviewActivityEntry) {
-        applyRecentReviewActivity(reviewActivityEntry);
+        void applyRecentReviewActivity(reviewActivityEntry);
       }
       return;
     }
@@ -276,7 +349,7 @@ function bindEvents() {
       const reviewActivityEntry = getLastActionRecoveryEntry();
       if (reviewActivityEntry) {
         state.lastActionMessage = "";
-        applyRecentReviewActivity(reviewActivityEntry);
+        void applyRecentReviewActivity(reviewActivityEntry);
       }
       return;
     }
@@ -329,6 +402,10 @@ function bindEvents() {
   document.addEventListener("keydown", (event) => {
     handleKeyboardShortcut(event);
   });
+
+  window.addEventListener("resize", () => {
+    syncMobileDetailSheetState();
+  });
 }
 
 async function refreshData(options = {}) {
@@ -355,11 +432,15 @@ async function refreshData(options = {}) {
     );
     persistReviewDrafts();
     persistRecentReviewActivity();
-    state.selectedEventId = resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
+    state.selectedEventId =
+      isMobileViewport() && !state.mobileDetailSheetOpen
+        ? null
+        : resolveSelectedEventId(state.data.timeline, preferredSelectedEventId);
     syncTagFilter(state.data.timeline);
   } catch (error) {
     state.data = null;
     state.selectedEventId = null;
+    state.mobileDetailSheetOpen = false;
     state.loadError = error instanceof Error ? error.message : "Unknown loading error.";
   }
 
@@ -516,6 +597,8 @@ function render() {
   renderRecentReviewActivity();
   renderTimeline();
   renderDetail();
+  syncMobileDetailSheetState();
+  restoreActiveSearchFocusFromUrl();
 }
 
 function renderToggles() {
@@ -574,9 +657,14 @@ function renderTimeline() {
       preferPendingFallback: state.sortOrder === SORT_PENDING_FIRST
     }
   );
-  if (nextSelectedEventId !== state.selectedEventId) {
-    state.selectedEventId = nextSelectedEventId;
+  const resolvedSelectedEventId =
+    isMobileViewport() && !state.mobileDetailSheetOpen ? null : nextSelectedEventId;
+  if (resolvedSelectedEventId !== state.selectedEventId) {
+    state.selectedEventId = resolvedSelectedEventId;
     syncUrl();
+  }
+  if (!resolvedSelectedEventId) {
+    state.mobileDetailSheetOpen = false;
   }
 
   elements.timelineMeta.textContent = buildTimelineMetaLabel(filteredTimeline.length);
@@ -602,11 +690,7 @@ function renderTimeline() {
       detail?.event?.confidence ?? item.confidence,
       detail?.claims ?? []
     );
-    const entitySummary = buildTimelineEntitySummary(detail?.entities ?? [], {
-      primaryLocation: item.primaryLocation
-    });
     const reviewHistorySummary = buildReviewHistorySummary(detail?.reviewActions ?? []);
-    const provenanceSummary = buildSourceProvenanceSummary(detail?.sources ?? [], item.eventTime);
     const searchMatches = buildTimelineSearchMatches(state.searchQuery, item, detail);
     const reviewDraftPreview = buildReviewDraftPreview(
       getReviewDraft(state.reviewDrafts, item.eventId)
@@ -614,9 +698,12 @@ function renderTimeline() {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "timeline-card";
+    card.dataset.eventId = item.eventId;
     if (item.eventId === state.selectedEventId) {
       card.classList.add("is-selected");
     }
+    const summaryLine = buildTimelineCardSummaryLine(item.summary, confidenceSummary);
+    const reviewStatusLabel = buildTimelineReviewStatusLabel(reviewHistorySummary);
 
     card.innerHTML = `
       <div class="timeline-card-header">
@@ -626,30 +713,33 @@ function renderTimeline() {
         )}</span>
       </div>
       <h3>${escapeHtml(item.headline)}</h3>
-      <p>${escapeHtml(item.summary)}</p>
-      <div class="chip-row">
+      <p class="timeline-summary-line">${escapeHtml(summaryLine)}</p>
+      <div class="chip-row timeline-primary-row">
         <span class="chip">${escapeHtml(item.primaryLocation ?? "Location pending")}</span>
         <span class="chip">${escapeHtml(formatConfidence(item.confidence))}</span>
+        ${
+          reviewDraftPreview
+            ? '<span class="chip timeline-card-indicator timeline-draft-summary">Draft saved</span>'
+            : ""
+        }
+        ${
+          reviewStatusLabel
+            ? `<span class="chip timeline-card-indicator timeline-review-indicator">${escapeHtml(
+                reviewStatusLabel
+              )}</span>`
+            : ""
+        }
       </div>
-      <div class="metric-row">
+      <div class="metric-row timeline-metric-row">
         <span class="metric-chip">${item.sourceCount} sources</span>
         <span class="metric-chip">${item.claimCount} claims</span>
         <span class="metric-chip">${item.entityCount} entities</span>
       </div>
-      ${entitySummary ? renderTimelineEntitySummary(entitySummary) : ""}
-      ${confidenceSummary ? renderTimelineConfidenceSummary(confidenceSummary) : ""}
-      ${provenanceSummary ? renderTimelineProvenanceSummary(provenanceSummary) : ""}
       ${searchMatches.length ? renderTimelineSearchSummary(searchMatches) : ""}
-      <div class="tag-row">
-        ${(item.tags ?? [])
-          .map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`)
-          .join("")}
-      </div>
-      ${reviewDraftPreview ? renderTimelineDraftSummary(reviewDraftPreview) : ""}
-      ${reviewHistorySummary ? renderTimelineReviewSummary(reviewHistorySummary) : ""}
     `;
 
     card.addEventListener("click", () => {
+      state.mobileDetailSheetOpen = isMobileViewport();
       state.selectedEventId = item.eventId;
       syncUrl();
       render();
@@ -659,56 +749,39 @@ function renderTimeline() {
   }
 }
 
-function renderTimelineEntitySummary(entitySummary) {
-  return `
-    <div class="timeline-entity-summary">
-      <p class="timeline-entity-title">Key participants</p>
-      <div class="chip-row">
-        ${entitySummary.visibleParticipants
-          .map((participant) => `<span class="chip">${escapeHtml(participant)}</span>`)
-          .join("")}
-        ${
-          entitySummary.remainingCount
-            ? `<span class="metric-chip">+${entitySummary.remainingCount} more participant${
-                entitySummary.remainingCount === 1 ? "" : "s"
-              }</span>`
-            : ""
-        }
-      </div>
-    </div>
-  `;
+function buildTimelineCardSummaryLine(summary, confidenceSummary) {
+  const rationalePreview =
+    typeof confidenceSummary?.rationalePreview === "string"
+      ? confidenceSummary.rationalePreview.trim()
+      : "";
+  const summaryPreview = buildTimelineCardPreview(summary, 150);
+
+  if (rationalePreview && rationalePreview !== "Confidence rationale is not available yet.") {
+    return buildTimelineCardPreview(rationalePreview, 150);
+  }
+
+  return summaryPreview || "Confidence rationale is not available yet.";
 }
 
-function renderTimelineConfidenceSummary(confidenceSummary) {
-  return `
-    <div class="timeline-confidence-summary">
-      <p class="timeline-confidence-title">Confidence drivers</p>
-      <div class="chip-row">
-        ${confidenceSummary.claimSignals
-          .map((signal) => `<span class="chip">${escapeHtml(signal)}</span>`)
-          .join("")}
-      </div>
-      <p class="timeline-confidence-note">${escapeHtml(confidenceSummary.rationalePreview)}</p>
-    </div>
-  `;
+function buildTimelineCardPreview(copy, maxLength) {
+  const normalizedCopy = String(copy ?? "").trim().replace(/\s+/g, " ");
+  if (!normalizedCopy) {
+    return "";
+  }
+
+  if (normalizedCopy.length <= maxLength) {
+    return normalizedCopy;
+  }
+
+  return `${normalizedCopy.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
-function renderTimelineProvenanceSummary(provenanceSummary) {
-  return `
-    <div class="timeline-provenance-summary">
-      <div class="timeline-provenance-header">
-        <p class="timeline-provenance-title">${escapeHtml(provenanceSummary.postureLabel)}</p>
-        ${
-          provenanceSummary.timingLabel
-            ? `<span class="chip">${escapeHtml(provenanceSummary.timingLabel)}</span>`
-            : ""
-        }
-      </div>
-      <div class="chip-row">
-        ${renderFeedChips(provenanceSummary)}
-      </div>
-    </div>
-  `;
+function buildTimelineReviewStatusLabel(reviewHistorySummary) {
+  if (!reviewHistorySummary) {
+    return "";
+  }
+
+  return `Latest ${reviewHistorySummary.actionLabel}`;
 }
 
 function renderTimelineSearchSummary(searchMatches) {
@@ -805,40 +878,12 @@ function renderDetailSearchFocus(searchMatches, activeSearchFocusTarget) {
   `;
 }
 
-function renderTimelineDraftSummary(reviewDraftPreview) {
-  return `
-    <div class="timeline-review-summary timeline-draft-summary">
-      <div class="timeline-review-header">
-        <span class="chip">Draft note saved</span>
-        <span class="meta-copy">Local only</span>
-      </div>
-      <p class="timeline-review-note">${escapeHtml(reviewDraftPreview)}</p>
-    </div>
-  `;
-}
-
-function renderTimelineReviewSummary(reviewHistorySummary) {
-  return `
-    <div class="timeline-review-summary">
-      <div class="timeline-review-header">
-        <span class="chip">${escapeHtml(
-          formatReviewActionCount(reviewHistorySummary.actionCount)
-        )}</span>
-        <span class="meta-copy">${formatDateTime(reviewHistorySummary.createdAt)}</span>
-      </div>
-      <p class="timeline-review-title">Latest ${escapeHtml(
-        reviewHistorySummary.actionLabel
-      )} by ${escapeHtml(reviewHistorySummary.actorLabel)}</p>
-      <p class="timeline-review-note">${escapeHtml(reviewHistorySummary.notePreview)}</p>
-    </div>
-  `;
-}
-
 function renderQueueContext(queueContext, queueNavigation) {
   const pendingProgressLabel =
     queueContext.pendingPosition === null
       ? null
       : `Pending ${queueContext.pendingPosition} of ${queueContext.pendingCount}`;
+  const nextPendingMetaCopy = buildQueueNavigationMetaCopy(queueNavigation);
   const remainingPendingLabel =
     queueContext.pendingPosition === null
       ? queueContext.pendingCount === 0
@@ -877,7 +922,11 @@ function renderQueueContext(queueContext, queueNavigation) {
               ${renderQueueNavigationButton("Next visible", queueNavigation.nextVisibleEventId)}
               ${renderQueueNavigationButton("Next pending", queueNavigation.nextPendingEventId)}
             </div>
-            <p class="meta-copy">Next pending skips reviewed rows inside the current filtered view.</p>
+            ${
+              nextPendingMetaCopy
+                ? `<p class="meta-copy">${escapeHtml(nextPendingMetaCopy)}</p>`
+                : ""
+            }
           `
           : ""
       }
@@ -885,14 +934,28 @@ function renderQueueContext(queueContext, queueNavigation) {
   `;
 }
 
+function buildQueueNavigationMetaCopy(queueNavigation) {
+  if (!queueNavigation?.nextPendingEventId) {
+    return "";
+  }
+
+  if (queueNavigation.nextPendingHeadline) {
+    return `Next pending opens ${queueNavigation.nextPendingHeadline} and skips reviewed rows in this filtered view.`;
+  }
+
+  return "Next pending skips reviewed rows inside the current filtered view.";
+}
+
 function renderFilterSummary(filteredTimeline) {
   if (!state.data) {
     elements.activeFilterSummary.innerHTML = "";
+    elements.viewHandoffPanel.innerHTML = "";
     return;
   }
 
   const totalCount = state.data.timeline.length;
   const filterSummary = getCurrentFilterSummary();
+  const handoffSummary = getViewHandoffSummary(filteredTimeline);
   const laneScopeTimeline = getTimelineSlice({
     includeReviewStatusFilter: false,
     includeConfidenceFilter: false,
@@ -930,19 +993,374 @@ function renderFilterSummary(filteredTimeline) {
     ${renderQueueDistribution(queueDistribution)}
     ${renderAttentionLanes(attentionLanes)}
   `;
+  elements.viewHandoffPanel.innerHTML = renderViewHandoffPanel(handoffSummary);
+}
+
+function getViewHandoffSummary(filteredTimeline = getTimelineSlice()) {
+  if (!state.data) {
+    return null;
+  }
+
+  const activeSavedView = getActiveSavedView();
+  const filterSummary = getCurrentFilterSummary();
+  const queueContext = buildReviewQueueContext(filteredTimeline, state.selectedEventId);
+  const queueNavigation = buildReviewQueueNavigation(filteredTimeline, state.selectedEventId);
+  const nextPendingEventId =
+    queueNavigation?.nextPendingEventId ??
+    resolveNextPendingEventId(filteredTimeline, state.selectedEventId);
+  const selectedTimelineItem = state.selectedEventId
+    ? filteredTimeline.find((item) => item.eventId === state.selectedEventId) ??
+      state.data.timeline.find((item) => item.eventId === state.selectedEventId) ??
+      null
+    : null;
+  const selectedDetail = state.selectedEventId
+    ? state.data.details[state.selectedEventId] ?? null
+    : null;
+  const selectedSearchMatches =
+    selectedTimelineItem && selectedDetail
+      ? buildTimelineSearchMatches(state.searchQuery, selectedTimelineItem, selectedDetail)
+      : [];
+  const activeSearchFocusTarget = getActiveSearchFocusTarget(selectedSearchMatches);
+  const selectedContext = buildSelectedHandoffContext(selectedDetail, {
+    searchQuery: state.searchQuery,
+    activeSearchFocusTarget
+  });
+
+  return buildViewHandoffSummary({
+    selectedHeadline: selectedDetail?.event?.headline ?? "",
+    filteredCount: filteredTimeline.length,
+    totalCount: state.data.timeline.length,
+    sourceLabel: state.sourceMode === SOURCE_API ? "Local read API" : "Contract fixtures",
+    filterSummary,
+    queueContext,
+    nextPendingEventId,
+    nextPendingHeadline:
+      filteredTimeline.find((item) => item.eventId === nextPendingEventId)?.headline ??
+      state.data.details[nextPendingEventId]?.event?.headline ??
+      "",
+    draftFilter: state.draftFilter,
+    demoMode: state.demoMode,
+    hasSelectedDraft: hasReviewDraft(state.reviewDrafts, state.selectedEventId),
+    activeSavedViewLabel: activeSavedView?.label ?? "",
+    selectedContextItems: selectedContext.items,
+    selectedConfidenceContext: selectedContext.confidenceContext,
+    selectedReviewContext: selectedContext.reviewContext,
+    selectedSourceProofItems: selectedContext.sourceProofItems,
+    selectedSourceProofOverflowCopy: selectedContext.sourceProofOverflowCopy,
+    selectedSearchMatches,
+    activeSearchFocusTarget,
+    selectedDraftPreview: buildReviewDraftPreview(
+      getReviewDraft(state.reviewDrafts, state.selectedEventId),
+      { maxLength: HANDOFF_DRAFT_PREVIEW_MAX_LENGTH }
+    )
+  });
+}
+
+function buildSelectedHandoffContext(
+  detail,
+  { searchQuery = "", activeSearchFocusTarget = "" } = {}
+) {
+  if (!detail?.event) {
+    return {
+      items: [],
+      confidenceContext: "",
+      reviewContext: "",
+      sourceProofItems: [],
+      sourceProofOverflowCopy: ""
+    };
+  }
+
+  const confidenceSummary = buildConfidenceSummary(
+    detail.event.confidence,
+    detail.claims ?? []
+  );
+  const provenanceSummary = buildSourceProvenanceSummary(
+    detail.sources ?? [],
+    detail.event.eventTime
+  );
+  const reviewHistorySummary = buildReviewHistorySummary(detail.reviewActions ?? []);
+  const sourceProofSelection = buildSourceProofSnapshotBundle(
+    detail.sources ?? [],
+    detail.event.eventTime,
+    {
+      searchQuery,
+      activeSearchFocusTarget
+    }
+  );
+
+  return {
+    items: [
+      `Status: ${formatReviewStatus(detail.event.reviewStatus)}`,
+      detail.event.confidence
+        ? `Confidence: ${formatConfidence(detail.event.confidence)}`
+        : "",
+      provenanceSummary
+        ? `Provenance: ${provenanceSummary.postureLabel}`
+        : "",
+      reviewHistorySummary
+        ? `Review history: ${formatReviewActionCount(reviewHistorySummary.actionCount)}`
+        : "Review history: No prior review"
+    ].filter(Boolean),
+    confidenceContext: buildSelectedConfidenceContext(confidenceSummary),
+    reviewContext: buildSelectedReviewContext(reviewHistorySummary),
+    sourceProofItems: sourceProofSelection.items,
+    sourceProofOverflowCopy: buildSourceProofOverflowCopy(
+      sourceProofSelection.hiddenCount
+    )
+  };
+}
+
+function buildSelectedConfidenceContext(confidenceSummary) {
+  if (!confidenceSummary) {
+    return "";
+  }
+
+  const signalCopy = Array.isArray(confidenceSummary.claimSignals)
+    ? confidenceSummary.claimSignals
+        .map((signal) => String(signal ?? "").trim())
+        .filter((signal) => signal && signal !== "No claim coverage yet")
+        .join(", ")
+    : "";
+  const rationaleCopy =
+    confidenceSummary.rationalePreview === "Confidence rationale is not available yet."
+      ? ""
+      : String(confidenceSummary.rationalePreview ?? "").trim();
+  const segments = [];
+
+  if (signalCopy) {
+    segments.push(`Signals: ${signalCopy}`);
+  }
+
+  if (rationaleCopy) {
+    segments.push(`Rationale: ${rationaleCopy}`);
+  }
+
+  return segments.join(". ");
+}
+
+function buildSelectedReviewContext(reviewHistorySummary) {
+  if (!reviewHistorySummary) {
+    return "";
+  }
+
+  const actorLabel = reviewHistorySummary.actorLabel
+    ? ` by ${reviewHistorySummary.actorLabel}`
+    : "";
+  const notePreview =
+    reviewHistorySummary.notePreview &&
+    reviewHistorySummary.notePreview !== "No notes recorded."
+      ? ` Note: ${reviewHistorySummary.notePreview}`
+      : "";
+
+  return `Latest review was ${reviewHistorySummary.actionLabel}${actorLabel}.${notePreview}`;
+}
+
+function buildSourceProofOverflowCopy(hiddenCount) {
+  if (!hiddenCount) {
+    return "";
+  }
+
+  return `${hiddenCount} more supporting source${
+    hiddenCount === 1 ? "" : "s"
+  } remain${hiddenCount === 1 ? "s" : ""} in provenance detail.`;
+}
+
+function renderViewHandoffPanel(handoffSummary) {
+  const feedbackToneClass = state.shareViewMessage
+    ? ` is-${escapeAttribute(state.shareViewMessageTone || "success")}`
+    : handoffSummary.isWarning
+      ? " is-warning"
+      : "";
+  const feedbackCopy = state.shareViewMessage || handoffSummary.portabilityNote;
+  const previewItems = buildViewHandoffPreviewItems(handoffSummary);
+  const previewSummary = buildViewHandoffPreviewSummary(handoffSummary);
+  const selectedContextChips = Array.isArray(handoffSummary.selectedContextItems)
+    ? handoffSummary.selectedContextItems
+        .map((item) => `<span class="chip">${escapeHtml(item)}</span>`)
+        .join("")
+    : "";
+  const scopeGroups = [
+    renderViewHandoffScopeGroup("Included in link", handoffSummary.includedState),
+    renderViewHandoffScopeGroup(
+      "Needs local browser state",
+      handoffSummary.localDependentState,
+      "warning"
+    ),
+    renderViewHandoffScopeGroup("Stays local", handoffSummary.localOnlyState, "local")
+  ]
+    .filter(Boolean)
+    .join("");
+
+  return `
+    <section class="view-handoff-card" aria-label="Shareable view">
+      <div class="saved-view-header">
+        <div>
+          <p class="section-kicker">Shareable view</p>
+          <p class="saved-view-copy">${escapeHtml(handoffSummary.helperCopy)}</p>
+        </div>
+        <div class="action-row view-handoff-actions">
+          <button type="button" class="secondary-action" data-copy-view-link>
+            Copy start link
+          </button>
+          ${
+            handoffSummary.showPortableCopyAction
+              ? `
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-copy-portable-view-link
+                >
+                  Copy start link without saved drafts
+                </button>
+              `
+              : ""
+          }
+          ${
+            handoffSummary.showNextPendingCopyAction
+              ? `
+                <button
+                  type="button"
+                  class="secondary-action"
+                  data-copy-next-pending-link
+                >
+                  ${
+                    handoffSummary.showPortableCopyAction
+                      ? "Copy next pending link without saved drafts"
+                      : "Copy next pending link"
+                  }
+                </button>
+              `
+              : ""
+          }
+          <button type="button" class="secondary-action" data-copy-handoff-note>
+            Copy review note
+          </button>
+        </div>
+      </div>
+      <div class="view-handoff-snapshot">
+        <p class="view-handoff-label">${escapeHtml(handoffSummary.selectedLabel)}</p>
+        <strong class="view-handoff-title">${escapeHtml(handoffSummary.selectedValue)}</strong>
+        <p class="meta-copy">${escapeHtml(handoffSummary.contextLabel)}</p>
+        ${
+          selectedContextChips
+            ? `<div class="chip-row view-handoff-context">${selectedContextChips}</div>`
+            : ""
+        }
+        ${
+          handoffSummary.selectedQueueContext
+            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
+                handoffSummary.selectedQueueContext
+              )}</p>`
+            : ""
+        }
+        ${
+          handoffSummary.nextPendingCopy
+            ? `<p class="meta-copy view-handoff-context-copy">${escapeHtml(
+                handoffSummary.nextPendingCopy
+              )}</p>`
+            : ""
+        }
+        ${
+          handoffSummary.recommendedPathCopy
+          && !handoffSummary.showNextPendingCopyAction
+            ? `<p class="meta-copy view-handoff-context-copy"><strong>Recommended path:</strong> ${escapeHtml(
+                handoffSummary.recommendedPathCopy
+              )}</p>`
+            : ""
+        }
+        ${renderViewHandoffPreview(
+          previewItems,
+          previewSummary.label,
+          previewSummary.countLabel
+        )}
+        ${
+          feedbackCopy
+            ? `<p class="view-handoff-note${feedbackToneClass}">${escapeHtml(
+                feedbackCopy
+              )}</p>`
+            : ""
+        }
+        ${scopeGroups ? `<div class="view-handoff-scope">${scopeGroups}</div>` : ""}
+      </div>
+    </section>
+  `;
+}
+
+function renderViewHandoffPreview(
+  previewItems,
+  previewSummaryLabel = "Show handoff details",
+  previewCountLabel = ""
+) {
+  if (!Array.isArray(previewItems) || !previewItems.length) {
+    return "";
+  }
+
+  const handoffDetailCountLabel =
+    previewCountLabel ||
+    `${previewItems.length} handoff detail${previewItems.length === 1 ? "" : "s"}`;
+
+  return `
+    <details class="view-handoff-preview">
+      <summary class="view-handoff-preview-summary">
+        ${escapeHtml(previewSummaryLabel)}
+        <span class="view-handoff-preview-count">${escapeHtml(
+          handoffDetailCountLabel
+        )}</span>
+      </summary>
+      <div class="view-handoff-preview-list">
+        ${previewItems
+        .map(
+          (item) => `
+            <p class="meta-copy view-handoff-context-copy view-handoff-preview-item">
+              <strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.value)}
+            </p>
+          `
+        )
+        .join("")}
+      </div>
+    </details>
+  `;
+}
+
+function renderViewHandoffScopeGroup(label, items, tone = "") {
+  if (!Array.isArray(items) || !items.length) {
+    return "";
+  }
+
+  const toneClass = tone ? ` is-${escapeAttribute(tone)}` : "";
+
+  return `
+    <div class="view-handoff-scope-group">
+      <p class="view-handoff-label">${escapeHtml(label)}</p>
+      <div class="chip-row">
+        ${items
+          .map(
+            (item) =>
+              `<span class="chip view-handoff-chip${toneClass}">${escapeHtml(item)}</span>`
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderSavedViews() {
   const activeSavedView = getActiveSavedView();
   const savedViewOptions = state.savedViews.map((savedView) => ({
     ...savedView,
-    count: getTimelineSlice({}, savedView.filters).length,
+    sourceLabel: getSourceModeLabel(savedView.filters.sourceMode ?? state.sourceMode),
+    sourceMismatch:
+      Boolean(savedView.filters.sourceMode) && savedView.filters.sourceMode !== state.sourceMode,
+    count:
+      Boolean(savedView.filters.sourceMode) && savedView.filters.sourceMode !== state.sourceMode
+        ? null
+        : getTimelineSlice({}, savedView.filters).length,
     isActive: activeSavedView?.id === savedView.id
   }));
 
   if (!savedViewOptions.length) {
     elements.savedViewList.innerHTML =
-      '<p class="saved-view-empty">No saved views yet. Save the current filter combination to reopen it later.</p>';
+      '<p class="saved-view-empty">No saved views yet. Save the current search, filters, sort order, and source to reopen this queue slice later.</p>';
   } else {
     elements.savedViewList.innerHTML = savedViewOptions
       .map((savedView) => renderSavedViewButton(savedView))
@@ -969,17 +1387,20 @@ function renderSavedViews() {
 function renderRecentReviewActivity() {
   if (!state.recentReviewActivity.length) {
     elements.recentReviewActivity.innerHTML =
-      '<p class="saved-view-empty">No local review actions yet. Record one to pin a quick reopen path here.</p>';
+      '<p class="saved-view-empty">No local review actions yet. Record one to save a review-safe reopen path with its search, filters, sort, and source.</p>';
     return;
   }
 
   elements.recentReviewActivity.innerHTML = state.recentReviewActivity
-    .map((entry) =>
-      renderRecentReviewActivityButton({
+    .map((entry) => {
+      const queueState = getRecentReviewActivityQueueState(entry);
+      return renderRecentReviewActivityButton({
         ...entry,
-        isActive: entry.eventId === state.selectedEventId
-      })
-    )
+        isActive: isRecentReviewActivityEntryActive(entry),
+        queueContext: queueState.queueContext,
+        nextPendingHeadline: queueState.nextPendingHeadline
+      });
+    })
     .join("");
 }
 
@@ -1088,6 +1509,7 @@ function renderDetail() {
 
   elements.detailPanel.innerHTML = `
     <div class="detail-shell">
+      ${shouldShowMobileDetailSheet() ? renderMobileDetailSheetHeader() : ""}
       ${renderActionFlashNote()}
       ${
         state.actionError
@@ -1244,6 +1666,7 @@ function renderDetail() {
         return;
       }
 
+      state.mobileDetailSheetOpen = isMobileViewport();
       state.selectedEventId = targetEventId;
       syncUrl();
       render();
@@ -1444,13 +1867,55 @@ function renderKeyboardShortcutHint(shortcut) {
 }
 
 function renderRecentReviewActivityButton(entry) {
-  const notePreview = buildReviewDraftPreview(entry.notes);
+  const storedNotePreview = buildReviewDraftPreview(entry.notes);
+  const currentDraftPreview = buildReviewDraftPreview(
+    getReviewDraft(state.reviewDrafts, entry.eventId)
+  );
+  const recoveryMode = resolveReviewRecoveryMode({
+    storedNotePreview,
+    currentDraftPreview
+  });
+  const recoveryPreviewCopy = buildReviewRecoveryPreviewCopy({
+    recoveryMode,
+    storedNotePreview,
+    currentDraftPreview
+  });
+  const sourceSwitchLabel = getRecentReviewActivitySourceSwitchLabel(entry);
+  const requiresQueueContextRestore = requiresRecentReviewActivityQueueContextRestore(entry);
+  const recoveryActionLabel = entry.isActive
+    ? "Already open in saved queue slice"
+    : buildReviewRecoveryButtonLabel({
+        queueContext: entry.queueContext,
+        recoveryMode,
+        sourceSwitchLabel,
+        requiresQueueContextRestore
+      });
+  const recoveryActionCopy = entry.isActive
+    ? "This reviewed event is already open in its saved queue slice."
+    : buildReviewRecoveryActionCopy({
+        queueContext: entry.queueContext,
+        recoveryMode,
+        nextPendingHeadline: entry.nextPendingHeadline,
+        sourceSwitchLabel,
+        requiresQueueContextRestore
+      });
+  const queueContextChips = renderReviewQueueContextChips(entry.queueContext);
+  const reopenContextCopy = buildReopenContextCopy(entry.reopenFilters);
+  const omittedFilterCopy = buildReviewSafeOmissionCopy(entry.omittedFilterLabels);
+  const nextPendingCopy =
+    entry.queueContext &&
+    entry.queueContext.pendingPosition === null &&
+    entry.queueContext.pendingCount > 0 &&
+    entry.nextPendingHeadline
+      ? `Next pending: ${entry.nextPendingHeadline}`
+      : "";
 
   return `
     <button
       type="button"
       class="recent-activity-card${entry.isActive ? " is-active" : ""}"
       data-review-activity-event-id="${escapeAttribute(entry.eventId)}"
+      title="${escapeAttribute(recoveryActionCopy)}"
     >
       <div class="recent-activity-header">
         <span class="pill" data-status="${escapeAttribute(entry.reviewStatus)}">${escapeHtml(
@@ -1459,23 +1924,205 @@ function renderRecentReviewActivityButton(entry) {
         <span class="meta-copy">${escapeHtml(formatDateTime(entry.createdAt))}</span>
       </div>
       <strong>${escapeHtml(entry.headline)}</strong>
+      ${queueContextChips ? `<div class="chip-row">${queueContextChips}</div>` : ""}
+      <div class="chip-row">
+        <span class="chip recent-activity-action-chip">${escapeHtml(recoveryActionLabel)}</span>
+      </div>
       ${
-        notePreview
-          ? `<p class="recent-activity-note-preview">${escapeHtml(notePreview)}</p>`
+        reopenContextCopy
+          ? `<p class="meta-copy recent-activity-context">${escapeHtml(reopenContextCopy)}</p>`
           : ""
       }
-      <p class="recent-activity-copy">
-        ${
-          notePreview
-            ? "Reopen this event with filters relaxed and the last analyst note restored into the draft editor."
-            : "Reopen this event with status, history, and draft filters relaxed."
-        }
-      </p>
+      ${
+        omittedFilterCopy
+          ? `<p class="meta-copy recent-activity-omission">${escapeHtml(omittedFilterCopy)}</p>`
+          : ""
+      }
+      ${
+        recoveryPreviewCopy
+          ? `<p class="recent-activity-note-preview">${escapeHtml(recoveryPreviewCopy)}</p>`
+          : ""
+      }
+      ${
+        nextPendingCopy
+          ? `<p class="recent-activity-copy">${escapeHtml(nextPendingCopy)}</p>`
+          : ""
+      }
     </button>
   `;
 }
 
+function isRecentReviewActivityEntryActive(entry) {
+  if (!entry?.eventId || entry.eventId !== state.selectedEventId) {
+    return false;
+  }
+
+  return matchesRecentReviewActivityFilters(
+    entry.reopenFilters,
+    buildCurrentRecentReviewFilters()
+  );
+}
+
+function getRecentReviewActivityQueueState(reviewActivityEntry) {
+  if (!state.data || !reviewActivityEntry?.eventId || !reviewActivityEntry.reopenFilters) {
+    return {
+      queueContext: null,
+      nextPendingHeadline: ""
+    };
+  }
+
+  if (isRecentReviewActivitySourceMismatch(reviewActivityEntry)) {
+    return {
+      queueContext: null,
+      nextPendingHeadline: ""
+    };
+  }
+
+  const reopenedTimeline = getTimelineSlice({}, reviewActivityEntry.reopenFilters);
+  const queueNavigation = buildReviewQueueNavigation(reopenedTimeline, reviewActivityEntry.eventId);
+
+  return {
+    queueContext: buildReviewQueueContext(reopenedTimeline, reviewActivityEntry.eventId),
+    nextPendingHeadline: queueNavigation?.nextPendingHeadline ?? ""
+  };
+}
+
+function buildCurrentRecentReviewFilters() {
+  return {
+    sourceMode: state.sourceMode,
+    searchQuery: state.searchQuery,
+    reviewStatusFilter: state.reviewStatusFilter,
+    confidenceFilter: state.confidenceFilter,
+    historyFilter: state.historyFilter,
+    tagFilter: state.tagFilter,
+    draftFilter: state.draftFilter,
+    sortOrder: state.sortOrder
+  };
+}
+
+function renderReviewQueueContextChips(queueContext) {
+  if (!queueContext) {
+    return "";
+  }
+
+  const chips = [
+    `<span class="chip">Visible ${queueContext.visiblePosition} of ${queueContext.visibleCount}</span>`
+  ];
+
+  if (queueContext.pendingPosition !== null) {
+    chips.push(
+      `<span class="chip">Pending ${queueContext.pendingPosition} of ${queueContext.pendingCount}</span>`
+    );
+  } else if (queueContext.pendingCount === 0) {
+    chips.push('<span class="chip">Queue cleared</span>');
+  } else {
+    chips.push(
+      `<span class="chip">${queueContext.pendingCount} pending elsewhere</span>`
+    );
+  }
+
+  return chips.join("");
+}
+
+function buildReopenContextCopy(reopenFilters) {
+  if (!reopenFilters || typeof reopenFilters !== "object") {
+    return "";
+  }
+
+  const matchingSavedView = findMatchingSavedView(state.savedViews, reopenFilters);
+  const filterSummary = buildFilterSummary({
+    savedViewLabel: matchingSavedView?.label ?? "",
+    searchQuery: reopenFilters.searchQuery,
+    reviewStatusFilter: reopenFilters.reviewStatusFilter,
+    confidenceFilter: reopenFilters.confidenceFilter,
+    historyFilter: reopenFilters.historyFilter,
+    tagFilter: reopenFilters.tagFilter,
+    draftFilter: reopenFilters.draftFilter,
+    sortOrder: reopenFilters.sortOrder,
+    demoMode: DEMO_NORMAL
+  });
+  const labels = buildCondensedFilterSummaryLabels(filterSummary);
+  const isSourceMismatch =
+    Boolean(reopenFilters.sourceMode) && reopenFilters.sourceMode !== state.sourceMode;
+
+  if (isSourceMismatch && labels.length === 0) {
+    return "";
+  }
+
+  return labels.join(" · ");
+}
+
+function buildReviewSafeOmissionCopy(omittedFilterLabels) {
+  const labels = Array.isArray(omittedFilterLabels)
+    ? omittedFilterLabels
+        .map((label) => String(label ?? "").trim())
+        .filter(Boolean)
+    : [];
+
+  if (!labels.length) {
+    return "";
+  }
+
+  return `Review-safe reopen omits ${joinCopyList(labels)} so this reviewed event stays visible.`;
+}
+
+function joinCopyList(labels) {
+  if (labels.length === 1) {
+    return labels[0];
+  }
+
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+
+  return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
+}
+
+function buildFlashNoteRecoveryCopy(reviewActivityEntry) {
+  const storedNotePreview = buildReviewDraftPreview(reviewActivityEntry?.notes, {
+    maxLength: FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH
+  });
+  const currentDraftPreview = buildReviewDraftPreview(
+    getReviewDraft(state.reviewDrafts, reviewActivityEntry?.eventId),
+    {
+      maxLength: FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH
+    }
+  );
+  const recoveryMode = resolveReviewRecoveryMode({
+    storedNotePreview,
+    currentDraftPreview
+  });
+
+  return buildReviewRecoveryPreviewCopy({
+    recoveryMode,
+    storedNotePreview,
+    currentDraftPreview
+  });
+}
+
+function resolveFlashNoteRecoveryMode(reviewActivityEntry) {
+  const storedNotePreview = buildReviewDraftPreview(reviewActivityEntry?.notes, {
+    maxLength: FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH
+  });
+  const currentDraftPreview = buildReviewDraftPreview(
+    getReviewDraft(state.reviewDrafts, reviewActivityEntry?.eventId),
+    {
+      maxLength: FLASH_NOTE_RESTORED_NOTE_PREVIEW_MAX_LENGTH
+    }
+  );
+
+  return resolveReviewRecoveryMode({
+    storedNotePreview,
+    currentDraftPreview
+  });
+}
+
 function handleKeyboardShortcut(event) {
+  if (event.key === "Escape" && closeMobileDetailSheet({ restoreTimelineFocus: true })) {
+    event.preventDefault();
+    return;
+  }
+
   const shortcut = resolveKeyboardShortcut(event);
   if (!shortcut) {
     return;
@@ -1533,6 +2180,9 @@ function handleKeyboardShortcut(event) {
   }
 
   event.preventDefault();
+  if (isMobileViewport()) {
+    state.mobileDetailSheetOpen = true;
+  }
   state.selectedEventId = targetEventId;
   syncUrl();
   render();
@@ -1596,6 +2246,9 @@ function applyLocalReviewAction(action) {
   });
 
   if (nextPendingEventId) {
+    if (state.mobileDetailSheetOpen && isMobileViewport()) {
+      state.mobileDetailSheetOpen = true;
+    }
     state.selectedEventId = nextPendingEventId;
   }
 
@@ -1692,12 +2345,62 @@ function renderActionFlashNote() {
   }
 
   const reviewActivityEntry = getLastActionRecoveryEntry();
+  const { queueContext, nextPendingHeadline } = getRecentReviewActivityQueueState(reviewActivityEntry);
+  const queueContextChips = renderReviewQueueContextChips(queueContext);
+  const reopenContextCopy = buildReopenContextCopy(reviewActivityEntry?.reopenFilters);
+  const omittedFilterCopy = buildReviewSafeOmissionCopy(
+    reviewActivityEntry?.omittedFilterLabels
+  );
+  const recoveryMode = resolveFlashNoteRecoveryMode(reviewActivityEntry);
+  const restoredNoteCopy = buildFlashNoteRecoveryCopy(reviewActivityEntry);
+  const sourceSwitchLabel = getRecentReviewActivitySourceSwitchLabel(reviewActivityEntry);
+  const requiresQueueContextRestore =
+    requiresRecentReviewActivityQueueContextRestore(reviewActivityEntry);
+  const flashNoteActionCopy = buildReviewRecoveryActionCopy({
+    queueContext,
+    recoveryMode,
+    nextPendingHeadline,
+    sourceSwitchLabel,
+    requiresQueueContextRestore
+  });
+  const flashNoteActionLabel = buildReviewRecoveryButtonLabel({
+    queueContext,
+    recoveryMode,
+    sourceSwitchLabel,
+    requiresQueueContextRestore
+  });
   return `
     <div class="flash-note${reviewActivityEntry ? " has-action" : ""}">
-      <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
+      <div class="flash-note-body">
+        <p class="flash-note-copy">${escapeHtml(state.lastActionMessage)}</p>
+        ${
+          reopenContextCopy
+            ? `<p class="meta-copy flash-note-context">${escapeHtml(reopenContextCopy)}</p>`
+            : ""
+        }
+        ${
+          omittedFilterCopy
+            ? `<p class="meta-copy flash-note-omission">${escapeHtml(omittedFilterCopy)}</p>`
+            : ""
+        }
+        ${
+          queueContextChips
+            ? `<div class="chip-row flash-note-queue">${queueContextChips}</div>`
+            : ""
+        }
+        ${
+          restoredNoteCopy
+            ? `<p class="meta-copy flash-note-recovery">${escapeHtml(restoredNoteCopy)}</p>`
+            : ""
+        }
+      </div>
       ${
         reviewActivityEntry
-          ? '<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed>Reopen last reviewed event</button>'
+          ? `<button type="button" class="secondary-action flash-note-action" data-reopen-last-reviewed aria-label="${escapeAttribute(
+              flashNoteActionCopy
+            )}" title="${escapeAttribute(flashNoteActionCopy)}">${escapeHtml(
+              flashNoteActionLabel
+            )}</button>`
           : ""
       }
     </div>
@@ -1755,6 +2458,7 @@ function getCurrentFilterSummary() {
 
 function getCurrentFilterState() {
   return {
+    sourceMode: state.sourceMode,
     searchQuery: state.searchQuery,
     reviewStatusFilter: state.reviewStatusFilter,
     confidenceFilter: state.confidenceFilter,
@@ -1763,6 +2467,10 @@ function getCurrentFilterState() {
     draftFilter: state.draftFilter,
     sortOrder: state.sortOrder
   };
+}
+
+function getSourceModeLabel(sourceMode) {
+  return sourceMode === SOURCE_FIXTURES ? "Contract fixtures" : "Local read API";
 }
 
 function buildTimelineMetaLabel(filteredCount) {
@@ -1943,14 +2651,31 @@ function renderAttentionLaneButton(lane) {
 }
 
 function renderSavedViewButton(savedView) {
+  const actionCopy = savedView.sourceMismatch
+    ? `Switch to ${savedView.sourceLabel} and restore this saved queue slice.`
+    : "Restore this saved queue slice.";
+
   return `
     <button
       type="button"
       class="quick-lane${savedView.isActive ? " is-active" : ""}"
       data-saved-view-id="${escapeAttribute(savedView.id)}"
+      title="${escapeAttribute(actionCopy)}"
+      aria-label="${escapeAttribute(actionCopy)}"
     >
-      <span>${escapeHtml(savedView.label)}</span>
-      <strong>${savedView.count}</strong>
+      <span class="quick-lane-copy">
+        <span class="quick-lane-label">${escapeHtml(savedView.label)}</span>
+        ${
+          savedView.sourceMismatch
+            ? `<span class="quick-lane-meta">${escapeHtml(`Switch to ${savedView.sourceLabel}`)}</span>`
+            : ""
+        }
+      </span>
+      ${
+        Number.isInteger(savedView.count)
+          ? `<strong>${savedView.count}</strong>`
+          : ""
+      }
     </button>
   `;
 }
@@ -1967,11 +2692,14 @@ function clearActiveFilters() {
   render();
 }
 
-function applyRecentReviewActivity(reviewActivityEntry) {
+async function applyRecentReviewActivity(reviewActivityEntry) {
   if (!reviewActivityEntry) {
     return;
   }
 
+  const nextSourceMode = reviewActivityEntry.reopenFilters.sourceMode ?? SOURCE_API;
+  const sourceModeChanged = nextSourceMode !== state.sourceMode;
+  state.sourceMode = nextSourceMode;
   state.searchQuery = reviewActivityEntry.reopenFilters.searchQuery;
   state.reviewStatusFilter = reviewActivityEntry.reopenFilters.reviewStatusFilter;
   state.confidenceFilter = reviewActivityEntry.reopenFilters.confidenceFilter;
@@ -1980,6 +2708,7 @@ function applyRecentReviewActivity(reviewActivityEntry) {
   state.draftFilter = reviewActivityEntry.reopenFilters.draftFilter;
   state.sortOrder = reviewActivityEntry.reopenFilters.sortOrder;
   state.demoMode = DEMO_NORMAL;
+  state.mobileDetailSheetOpen = isMobileViewport();
   state.selectedEventId = reviewActivityEntry.eventId;
   if (
     reviewActivityEntry.notes &&
@@ -1994,6 +2723,13 @@ function applyRecentReviewActivity(reviewActivityEntry) {
   }
   syncControlsFromState();
   syncUrl();
+  if (sourceModeChanged) {
+    await refreshData({
+      preferredSelectedEventId: reviewActivityEntry.eventId,
+      preserveActionMessage: true
+    });
+    return;
+  }
   render();
 }
 
@@ -2032,7 +2768,10 @@ function deleteActiveSavedView() {
   render();
 }
 
-function applySavedView(savedView) {
+async function applySavedView(savedView) {
+  const nextSourceMode = savedView.filters.sourceMode ?? state.sourceMode;
+  const sourceModeChanged = nextSourceMode !== state.sourceMode;
+  state.sourceMode = nextSourceMode;
   state.searchQuery = savedView.filters.searchQuery;
   state.reviewStatusFilter = savedView.filters.reviewStatusFilter;
   state.confidenceFilter = savedView.filters.confidenceFilter;
@@ -2040,9 +2779,14 @@ function applySavedView(savedView) {
   state.tagFilter = savedView.filters.tagFilter;
   state.draftFilter = savedView.filters.draftFilter;
   state.sortOrder = savedView.filters.sortOrder;
+  state.demoMode = DEMO_NORMAL;
   state.savedViewName = savedView.label;
   syncControlsFromState();
   syncUrl();
+  if (sourceModeChanged) {
+    await refreshData();
+    return;
+  }
   render();
 }
 
@@ -2057,13 +2801,180 @@ function resetDemoMode() {
 }
 
 function syncUrl() {
+  clearShareViewFeedback();
   const url = new URL(window.location.href);
-  const nextSearch = buildUrlSearch(state);
+  const nextSearch = buildUrlSearch(buildShareableViewState());
   if (url.search === nextSearch) {
     return;
   }
   url.search = nextSearch;
   window.history.replaceState({}, "", url);
+}
+
+async function copyCurrentViewLink({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride,
+  successMessage,
+  errorMessage
+} = {}) {
+  const shareUrl = buildShareViewUrl({
+    portable,
+    eventIdOverride,
+    activeSearchFocusTargetOverride
+  });
+
+  try {
+    await copyTextToClipboard(shareUrl.toString());
+    setShareViewFeedback(
+      successMessage ??
+        (portable ? "Copied start link without saved drafts." : "Copied start link."),
+      "success"
+    );
+  } catch (error) {
+    setShareViewFeedback(
+      errorMessage ?? "Copy failed. Use the browser address bar to share this start link.",
+      "error"
+    );
+  }
+}
+
+async function copyNextPendingViewLink() {
+  const handoffSummary = getViewHandoffSummary();
+  if (!handoffSummary?.showNextPendingCopyAction || !handoffSummary.nextPendingEventId) {
+    return;
+  }
+
+  const portable = handoffSummary.showPortableCopyAction;
+  await copyCurrentViewLink({
+    portable,
+    eventIdOverride: handoffSummary.nextPendingEventId,
+    activeSearchFocusTargetOverride: null,
+    successMessage: portable
+      ? "Copied next pending link without saved drafts."
+      : "Copied next pending link.",
+    errorMessage: portable
+      ? "Copy failed. Use Copy review note to share the portable next pending handoff."
+      : "Copy failed. Use Copy review note to share the next pending handoff."
+  });
+}
+
+async function copyViewHandoffNote() {
+  const handoffSummary = getViewHandoffSummary();
+  if (!handoffSummary) {
+    return;
+  }
+
+  const shareUrl = buildShareViewUrl();
+  const portableShareUrl = handoffSummary.showPortableCopyAction
+    ? buildShareViewUrl({ portable: true })
+    : null;
+  const nextPendingShareUrl = handoffSummary.nextPendingEventId
+    ? buildShareViewUrl({
+        eventIdOverride: handoffSummary.nextPendingEventId,
+        activeSearchFocusTargetOverride: null
+      })
+    : null;
+  const portableNextPendingShareUrl =
+    handoffSummary.showPortableCopyAction && handoffSummary.nextPendingEventId
+      ? buildShareViewUrl({
+          portable: true,
+          eventIdOverride: handoffSummary.nextPendingEventId,
+          activeSearchFocusTargetOverride: null
+        })
+      : null;
+  const handoffNote = buildViewHandoffNote({
+    handoffSummary,
+    shareUrl: shareUrl.toString(),
+    portableShareUrl: portableShareUrl?.toString() ?? "",
+    nextPendingShareUrl: nextPendingShareUrl?.toString() ?? "",
+    portableNextPendingShareUrl: portableNextPendingShareUrl?.toString() ?? ""
+  });
+
+  try {
+    await copyTextToClipboard(handoffNote);
+    setShareViewFeedback(
+      portableShareUrl
+        ? "Copied review note with portable fallback link."
+        : "Copied review note.",
+      "success"
+    );
+  } catch (error) {
+    setShareViewFeedback(
+      "Copy failed. Use the start links and scope summary below to share this handoff.",
+      "error"
+    );
+  }
+}
+
+function buildShareViewUrl({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride
+} = {}) {
+  const shareUrl = new URL(window.location.href);
+  shareUrl.hash = "";
+  shareUrl.search = buildUrlSearch(
+    buildShareableViewState({
+      portable,
+      eventIdOverride,
+      activeSearchFocusTargetOverride
+    })
+  );
+  return shareUrl;
+}
+
+function buildShareableViewState({
+  portable = false,
+  eventIdOverride,
+  activeSearchFocusTargetOverride
+} = {}) {
+  const selectedEventId = eventIdOverride ?? state.selectedEventId;
+
+  return {
+    ...state,
+    selectedEventId,
+    draftFilter:
+      portable && state.draftFilter === DRAFT_FILTER_SAVED
+        ? DRAFT_FILTER_ALL
+        : state.draftFilter,
+    activeSearchFocusTarget:
+      activeSearchFocusTargetOverride ??
+      (selectedEventId === state.selectedEventId
+        ? getActiveSearchFocusTarget(getSelectedSearchMatches())
+        : null)
+  };
+}
+
+function setShareViewFeedback(message, tone) {
+  if (shareViewFeedbackTimeoutId) {
+    window.clearTimeout(shareViewFeedbackTimeoutId);
+  }
+
+  state.shareViewMessage = message;
+  state.shareViewMessageTone = tone;
+  render();
+
+  shareViewFeedbackTimeoutId = window.setTimeout(() => {
+    shareViewFeedbackTimeoutId = 0;
+    state.shareViewMessage = "";
+    state.shareViewMessageTone = "";
+    render();
+  }, 2200);
+}
+
+function clearShareViewFeedback() {
+  if (shareViewFeedbackTimeoutId) {
+    window.clearTimeout(shareViewFeedbackTimeoutId);
+    shareViewFeedbackTimeoutId = 0;
+  }
+
+  if (!state.shareViewMessage && !state.shareViewMessageTone) {
+    return;
+  }
+
+  state.shareViewMessage = "";
+  state.shareViewMessageTone = "";
 }
 
 function validateReviewAction(action) {
@@ -2133,6 +3044,106 @@ function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  fallbackCopyTextToClipboard(text);
+}
+
+function fallbackCopyTextToClipboard(text) {
+  const copyTarget = document.createElement("textarea");
+  copyTarget.value = text;
+  copyTarget.setAttribute("readonly", "readonly");
+  copyTarget.className = "hidden";
+  copyTarget.style.position = "fixed";
+  copyTarget.style.inset = "0";
+  copyTarget.style.opacity = "0";
+  document.body.append(copyTarget);
+  copyTarget.focus();
+  copyTarget.select();
+
+  const copySucceeded =
+    typeof document.execCommand === "function" ? document.execCommand("copy") : false;
+  copyTarget.remove();
+
+  if (!copySucceeded) {
+    throw new Error("Copy failed");
+  }
+}
+
+function isMobileViewport() {
+  return window.innerWidth <= MOBILE_DETAIL_BREAKPOINT_PX;
+}
+
+function shouldShowMobileDetailSheet() {
+  return Boolean(state.selectedEventId) && state.mobileDetailSheetOpen && isMobileViewport();
+}
+
+function syncMobileDetailSheetState() {
+  document.body.classList.toggle(
+    "has-mobile-detail-sheet",
+    shouldShowMobileDetailSheet()
+  );
+}
+
+function closeMobileDetailSheet({ restoreTimelineFocus = false } = {}) {
+  if (!shouldShowMobileDetailSheet() || !state.selectedEventId) {
+    return false;
+  }
+
+  const selectedEventId = state.selectedEventId;
+  state.mobileDetailSheetOpen = false;
+  state.selectedEventId = null;
+  state.activeSearchFocusEventId = null;
+  state.activeSearchFocusTarget = null;
+  pendingSearchFocusRestore = false;
+  syncUrl();
+  render();
+
+  if (restoreTimelineFocus) {
+    const selectedCard = elements.timelineList.querySelector(
+      `[data-event-id="${selectedEventId}"]`
+    );
+    if (selectedCard && typeof selectedCard.focus === "function") {
+      selectedCard.focus({ preventScroll: true });
+    }
+  }
+
+  return true;
+}
+
+function renderMobileDetailSheetHeader() {
+  return `
+    <div class="mobile-detail-sheet-header">
+      <div>
+        <p class="section-kicker">Selected event</p>
+        <p class="mobile-detail-sheet-copy">
+          Review the current event without leaving the mobile queue flow.
+        </p>
+      </div>
+      <div class="mobile-detail-sheet-actions">
+        <button
+          type="button"
+          class="secondary-action"
+          data-mobile-detail-target="detail-review-form"
+        >
+          Review action
+        </button>
+        <button
+          type="button"
+          class="secondary-action mobile-detail-sheet-close"
+          data-close-mobile-detail
+        >
+          Back to queue
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function focusDetailSection(sectionId) {
   const section = document.getElementById(sectionId);
   if (!section) {
@@ -2191,6 +3202,9 @@ function focusSearchMatch(targetSectionId) {
 
   state.activeSearchFocusEventId = state.selectedEventId;
   state.activeSearchFocusTarget = targetSectionId;
+  pendingSearchFocusRestore = false;
+  lastRestoredSearchFocusKey = buildSearchFocusKey(state.selectedEventId, targetSectionId);
+  syncUrl();
   render();
   focusDetailSection(targetSectionId);
   return true;
@@ -2208,6 +3222,39 @@ function cycleSelectedSearchFocus(direction) {
   }
 
   return focusSearchMatch(targetSectionId);
+}
+
+function restoreActiveSearchFocusFromUrl() {
+  const activeSearchFocusTarget = getActiveSearchFocusTarget(getSelectedSearchMatches());
+  const searchFocusKey = buildSearchFocusKey(
+    state.selectedEventId,
+    activeSearchFocusTarget
+  );
+  if (!searchFocusKey) {
+    return;
+  }
+
+  if (!pendingSearchFocusRestore && lastRestoredSearchFocusKey === searchFocusKey) {
+    return;
+  }
+
+  pendingSearchFocusRestore = false;
+  lastRestoredSearchFocusKey = searchFocusKey;
+  window.requestAnimationFrame(() => {
+    const currentSearchFocusKey = buildSearchFocusKey(
+      state.selectedEventId,
+      getActiveSearchFocusTarget(getSelectedSearchMatches())
+    );
+    if (currentSearchFocusKey !== searchFocusKey) {
+      return;
+    }
+
+    focusDetailSection(activeSearchFocusTarget);
+  });
+}
+
+function buildSearchFocusKey(eventId, targetSectionId) {
+  return eventId && targetSectionId ? `${eventId}:${targetSectionId}` : "";
 }
 
 function getActiveSavedView() {
@@ -2232,6 +3279,7 @@ function getLastActionRecoveryEntry() {
 function recordRecentReviewActivity(reviewActivityEntry) {
   state.recentReviewActivity = appendRecentReviewActivity(state.recentReviewActivity, {
     ...reviewActivityEntry,
+    omittedFilterLabels: buildRecentReviewOmittedFilterLabels(),
     reopenFilters: buildRecentReviewFilters()
   });
   persistRecentReviewActivity();
@@ -2240,10 +3288,50 @@ function recordRecentReviewActivity(reviewActivityEntry) {
 function buildRecentReviewFilters() {
   return {
     ...getCurrentFilterState(),
+    sourceMode: state.sourceMode,
     reviewStatusFilter: "all",
     historyFilter: HISTORY_FILTER_ALL,
     draftFilter: DRAFT_FILTER_ALL
   };
+}
+
+function buildRecentReviewOmittedFilterLabels() {
+  return buildReviewSafeOmissionLabels({
+    reviewStatusFilter: state.reviewStatusFilter,
+    historyFilter: state.historyFilter,
+    draftFilter: state.draftFilter
+  });
+}
+
+function isRecentReviewActivitySourceMismatch(reviewActivityEntry) {
+  if (!reviewActivityEntry?.reopenFilters) {
+    return false;
+  }
+
+  return reviewActivityEntry.reopenFilters.sourceMode !== state.sourceMode;
+}
+
+function requiresRecentReviewActivityQueueContextRestore(reviewActivityEntry) {
+  if (!reviewActivityEntry?.reopenFilters) {
+    return false;
+  }
+
+  if (isRecentReviewActivitySourceMismatch(reviewActivityEntry)) {
+    return false;
+  }
+
+  return !matchesRecentReviewActivityFilters(
+    reviewActivityEntry.reopenFilters,
+    buildCurrentRecentReviewFilters()
+  );
+}
+
+function getRecentReviewActivitySourceSwitchLabel(reviewActivityEntry) {
+  if (!isRecentReviewActivitySourceMismatch(reviewActivityEntry)) {
+    return "";
+  }
+
+  return getSourceModeLabel(reviewActivityEntry.reopenFilters.sourceMode);
 }
 
 function loadSavedViews() {

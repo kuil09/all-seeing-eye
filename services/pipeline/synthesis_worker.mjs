@@ -8,6 +8,7 @@ import {
 import { getEventLink } from "./bootstrap-manifest.mjs";
 
 const DEFAULT_EXTRACTOR_VERSION = "bootstrap-deterministic/v1";
+const DEFAULT_LIVE_EXTRACTOR_VERSION = "live-curated-rule/v1";
 
 export function buildSynthesisBundle({
   dataset,
@@ -104,6 +105,67 @@ export function buildSynthesisBundle({
     eventSourceRecords,
     eventEntities,
     confidenceAssessments
+  };
+}
+
+export function buildLivePollSynthesisBundle({
+  captures,
+  normalizedSourceRecords,
+  now = new Date().toISOString(),
+  extractorVersion = DEFAULT_LIVE_EXTRACTOR_VERSION
+}) {
+  const captureBySourceRecordId = new Map(
+    captures.map((capture) => [capture.sourceRecordId, capture])
+  );
+  const events = normalizedSourceRecords.map((sourceRecord) =>
+    buildLiveEventRow({
+      sourceRecord,
+      capture: captureBySourceRecordId.get(sourceRecord.id),
+      now
+    })
+  );
+  const claims = normalizedSourceRecords.map((sourceRecord) =>
+    buildLiveClaimRow({
+      sourceRecord,
+      capture: captureBySourceRecordId.get(sourceRecord.id),
+      extractorVersion,
+      now
+    })
+  );
+
+  return {
+    sourceRecords: normalizedSourceRecords,
+    entities: [],
+    events,
+    relationships: [],
+    claims,
+    eventSourceRecords: normalizedSourceRecords.map((sourceRecord) => ({
+      event_id: buildLiveEventId(sourceRecord.id),
+      source_record_id: sourceRecord.id,
+      role: "trigger"
+    })),
+    eventEntities: [],
+    confidenceAssessments: [
+      ...buildSourceRecordAssessments({
+        normalizedSourceRecords,
+        captureBySourceRecordId,
+        now,
+        extractorVersion,
+        assessmentPathLabel: "live curated poll path"
+      }),
+      ...buildLiveEventAssessments({
+        normalizedSourceRecords,
+        captureBySourceRecordId,
+        now,
+        extractorVersion
+      }),
+      ...buildLiveClaimAssessments({
+        normalizedSourceRecords,
+        captureBySourceRecordId,
+        now,
+        extractorVersion
+      })
+    ]
   };
 }
 
@@ -231,11 +293,74 @@ function buildRelationshipEventIndex(events) {
   return relationshipEventIds;
 }
 
+function buildLiveEventRow({ sourceRecord, capture, now }) {
+  return {
+    id: buildLiveEventId(sourceRecord.id),
+    slug: buildLiveEventSlug(sourceRecord.id, sourceRecord.title),
+    title: firstNonEmptyText(
+      sourceRecord.title,
+      sourceRecord.summary_text,
+      "Live curated event candidate"
+    ),
+    summary_text: firstNonEmptyText(
+      sourceRecord.summary_text,
+      sourceRecord.title,
+      "Live curated item pending deeper synthesis."
+    ),
+    event_type: resolveLiveEventType(capture?.feedCategory),
+    status: "candidate",
+    review_status: "pending",
+    start_at: sourceRecord.published_at ?? sourceRecord.fetched_at ?? now,
+    end_at: null,
+    timezone: "UTC",
+    location_name: null,
+    latitude: null,
+    longitude: null,
+    geography_precision: "none",
+    first_source_record_id: sourceRecord.id,
+    analyst_notes: null,
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function buildLiveClaimRow({ sourceRecord, capture, extractorVersion, now }) {
+  return {
+    id: buildLiveClaimId(sourceRecord.id),
+    source_record_id: sourceRecord.id,
+    event_id: buildLiveEventId(sourceRecord.id),
+    subject_entity_id: null,
+    object_entity_id: null,
+    relationship_id: null,
+    claim_type: "event_fact",
+    predicate: "reported_update",
+    object_value_json: JSON.stringify(
+      {
+        headline: sourceRecord.title,
+        summary: sourceRecord.summary_text,
+        sourceUrl: capture?.sourceUrl ?? sourceRecord.canonical_url,
+        feedKey: capture?.feedKey ?? sourceRecord.source_key
+      },
+      null,
+      2
+    ),
+    claim_text: buildLiveClaimText(sourceRecord),
+    polarity: "supports",
+    extraction_method: "rule",
+    extractor_version: extractorVersion,
+    evidence_span_start: null,
+    evidence_span_end: null,
+    created_at: now,
+    updated_at: now
+  };
+}
+
 function buildSourceRecordAssessments({
   normalizedSourceRecords,
   captureBySourceRecordId,
   now,
-  extractorVersion
+  extractorVersion,
+  assessmentPathLabel = "bootstrap fixture path"
 }) {
   return normalizedSourceRecords.map((sourceRecord) => {
     const capture = captureBySourceRecordId.get(sourceRecord.id);
@@ -261,7 +386,81 @@ function buildSourceRecordAssessments({
       recency_score: recencyScore,
       assessed_by_type: "rule",
       assessed_by_id: extractorVersion,
-      rationale: `Curated ${capture?.feedCategory ?? "rss"} feed item normalized through the bootstrap fixture path.`,
+      rationale: `Curated ${capture?.feedCategory ?? "rss"} feed item normalized through the ${assessmentPathLabel}.`,
+      created_at: now
+    };
+  });
+}
+
+function buildLiveEventAssessments({
+  normalizedSourceRecords,
+  captureBySourceRecordId,
+  now,
+  extractorVersion
+}) {
+  return normalizedSourceRecords.map((sourceRecord) => {
+    const capture = captureBySourceRecordId.get(sourceRecord.id);
+    const sourceReliabilityScore = resolveFeedReliabilityScore(capture?.feedCategory);
+    const extractionQualityScore = 0.68;
+    const corroborationScore = 0.42;
+    const recencyScore = resolveRecencyScore(sourceRecord.published_at ?? sourceRecord.fetched_at, now);
+    const overallScore = averageScores([
+      sourceReliabilityScore,
+      extractionQualityScore,
+      corroborationScore,
+      recencyScore
+    ]);
+
+    return {
+      id: `conf_event_${buildLiveEventId(sourceRecord.id)}`,
+      target_type: "event",
+      target_id: buildLiveEventId(sourceRecord.id),
+      assessment_level: "current",
+      overall_score: overallScore,
+      source_reliability_score: sourceReliabilityScore,
+      extraction_quality_score: extractionQualityScore,
+      corroboration_score: corroborationScore,
+      recency_score: recencyScore,
+      assessed_by_type: "rule",
+      assessed_by_id: extractorVersion,
+      rationale: `Single-source candidate synthesized from curated ${capture?.feedCategory ?? "rss"} polling output.`,
+      created_at: now
+    };
+  });
+}
+
+function buildLiveClaimAssessments({
+  normalizedSourceRecords,
+  captureBySourceRecordId,
+  now,
+  extractorVersion
+}) {
+  return normalizedSourceRecords.map((sourceRecord) => {
+    const capture = captureBySourceRecordId.get(sourceRecord.id);
+    const sourceReliabilityScore = resolveFeedReliabilityScore(capture?.feedCategory);
+    const extractionQualityScore = 0.66;
+    const corroborationScore = 0.4;
+    const recencyScore = resolveRecencyScore(sourceRecord.published_at ?? sourceRecord.fetched_at, now);
+    const overallScore = averageScores([
+      sourceReliabilityScore,
+      extractionQualityScore,
+      corroborationScore,
+      recencyScore
+    ]);
+
+    return {
+      id: `conf_claim_${buildLiveClaimId(sourceRecord.id)}`,
+      target_type: "claim",
+      target_id: buildLiveClaimId(sourceRecord.id),
+      assessment_level: "current",
+      overall_score: overallScore,
+      source_reliability_score: sourceReliabilityScore,
+      extraction_quality_score: extractionQualityScore,
+      corroboration_score: corroborationScore,
+      recency_score: recencyScore,
+      assessed_by_type: "rule",
+      assessed_by_id: extractorVersion,
+      rationale: `Rule-derived event_fact claim synthesized from the curated ${capture?.feedCategory ?? "rss"} poll result.`,
       created_at: now
     };
   });
@@ -359,6 +558,81 @@ function resolveFeedReliabilityScore(feedCategory) {
     default:
       return 0.7;
   }
+}
+
+function buildLiveEventId(sourceRecordId) {
+  return `evt_${sourceRecordId}`;
+}
+
+function buildLiveClaimId(sourceRecordId) {
+  return `claim_${sourceRecordId}`;
+}
+
+function buildLiveEventSlug(sourceRecordId, headline) {
+  const suffix = sourceRecordId.replace(/^live_/, "").slice(-12);
+  const base = firstNonEmptyText(
+    headline
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""),
+    sourceRecordId.replace(/[^a-z0-9]+/gi, "-").toLowerCase(),
+    "live-event"
+  );
+
+  return `${base}-${suffix}`;
+}
+
+function buildLiveClaimText(sourceRecord) {
+  return firstNonEmptyText(
+    sourceRecord.summary_text,
+    sourceRecord.title,
+    sourceRecord.body_text,
+    "Curated RSS item reported a candidate event."
+  );
+}
+
+function resolveLiveEventType(feedCategory) {
+  const normalizedCategory = String(feedCategory ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalizedCategory ? `curated_${normalizedCategory}_signal` : "curated_rss_signal";
+}
+
+function resolveRecencyScore(timestamp, now) {
+  const publishedAt = Date.parse(timestamp ?? "");
+  const referenceTime = Date.parse(now);
+
+  if (Number.isNaN(publishedAt) || Number.isNaN(referenceTime)) {
+    return 0.75;
+  }
+
+  const ageHours = Math.max(0, (referenceTime - publishedAt) / (1000 * 60 * 60));
+
+  if (ageHours <= 6) {
+    return 0.9;
+  }
+
+  if (ageHours <= 24) {
+    return 0.82;
+  }
+
+  if (ageHours <= 72) {
+    return 0.74;
+  }
+
+  return 0.66;
+}
+
+function firstNonEmptyText(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
 }
 
 function buildSlug(eventId, headline) {

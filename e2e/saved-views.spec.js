@@ -19,7 +19,7 @@ test.describe("saved views save / apply / delete flow", () => {
     // View button should appear in the saved view list
     const savedViewBtn = page.locator("#saved-view-list [data-saved-view-id]").first();
     await expect(savedViewBtn).toBeVisible();
-    await expect(savedViewBtn.locator("span")).toHaveText(VIEW_NAME);
+    await expect(savedViewBtn.locator(".quick-lane-label")).toHaveText(VIEW_NAME);
 
     // Screenshot: saved view created
     await page.screenshot({ path: "test-results/saved-view-created.png", fullPage: true });
@@ -34,13 +34,23 @@ test.describe("saved views save / apply / delete flow", () => {
     // Saved view should still exist after reload
     const viewAfterReload = page.locator("#saved-view-list [data-saved-view-id]").first();
     await expect(viewAfterReload).toBeVisible();
-    await expect(viewAfterReload.locator("span")).toHaveText(VIEW_NAME);
+    await expect(viewAfterReload.locator(".quick-lane-label")).toHaveText(VIEW_NAME);
+
+    // Move to another dataset so the saved view has to restore its saved source.
+    await page.locator('#source-toggle [data-source-mode="api"]').click();
+    await expect(page.locator("#data-source-label")).toHaveText("Local read API");
+    await expect(viewAfterReload.locator(".quick-lane-meta")).toHaveText(
+      "Switch to Contract fixtures"
+    );
 
     // Apply the saved view
     await viewAfterReload.click();
 
+    // Source should return to fixtures along with the saved filters.
+    await expect(page.locator("#data-source-label")).toHaveText("Contract fixtures");
     // Status filter should now reflect pending_review
     await expect(page.locator("#status-filter")).toHaveValue("pending_review");
+    await expect(page).toHaveURL(/source=fixtures/);
 
     // Screenshot: saved view applied
     await page.screenshot({ path: "test-results/saved-view-applied.png", fullPage: true });

@@ -90,7 +90,7 @@ test.describe("draft note localStorage persistence", () => {
 
     const recentActivityCard = page.locator("#recent-review-activity .recent-activity-card").first();
     await expect(recentActivityCard).toContainText("Verify cargo count before approving");
-    await expect(recentActivityCard).toContainText("restored into the draft editor");
+    await expect(recentActivityCard).toContainText("Restores note:");
     await recentActivityCard.click();
 
     await expect(page.locator(".detail-shell h2").first()).toHaveText(firstHeadline ?? "");

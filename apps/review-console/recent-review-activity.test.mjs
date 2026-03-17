@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   appendRecentReviewActivity,
   MAX_RECENT_REVIEW_ACTIVITY,
+  matchesRecentReviewActivityFilters,
   pruneRecentReviewActivity,
   readRecentReviewActivity,
   serializeRecentReviewActivity
@@ -19,6 +20,7 @@ function createActivityEntry(overrides = {}) {
     createdAt: "2026-03-15T00:00:00.000Z",
     notes: "",
     reopenFilters: {
+      sourceMode: "api",
       searchQuery: "harbor",
       reviewStatusFilter: "all",
       confidenceFilter: "high",
@@ -27,6 +29,7 @@ function createActivityEntry(overrides = {}) {
       draftFilter: "all",
       sortOrder: "most_sources"
     },
+    omittedFilterLabels: [],
     ...overrides
   };
 }
@@ -100,6 +103,12 @@ test("readRecentReviewActivity tolerates malformed payloads and normalizes filte
       eventId: "evt_2",
       headline: "Second event",
       notes: "  Re-check the trigger source timing before sharing.  ",
+      omittedFilterLabels: [
+        " Status: Pending review ",
+        "",
+        "History: No review history",
+        "Status: Pending review"
+      ],
       reopenFilters: {
         searchQuery: " patrol ",
         historyFilter: "reviewed"
@@ -116,7 +125,12 @@ test("readRecentReviewActivity tolerates malformed payloads and normalizes filte
 
   assert.equal(activity.length, 1);
   assert.equal(activity[0].notes, "Re-check the trigger source timing before sharing.");
+  assert.deepEqual(activity[0].omittedFilterLabels, [
+    "Status: Pending review",
+    "History: No review history"
+  ]);
   assert.deepEqual(activity[0].reopenFilters, {
+    sourceMode: "api",
     searchQuery: "patrol",
     reviewStatusFilter: "all",
     confidenceFilter: "all",
@@ -150,6 +164,7 @@ test("serializeRecentReviewActivity preserves the normalized ordering", () => {
     "most_sources",
     "most_sources"
   ]);
+  assert.deepEqual(activity.map((entry) => entry.omittedFilterLabels), [[], []]);
 });
 
 test("readRecentReviewActivity preserves or normalizes the saved sort order", () => {
@@ -175,4 +190,52 @@ test("readRecentReviewActivity preserves or normalizes the saved sort order", ()
 
   assert.equal(activity[0].reopenFilters.sortOrder, SORT_LOWEST_CONFIDENCE);
   assert.equal(activity[1].reopenFilters.sortOrder, "pending_first");
+});
+
+test("matchesRecentReviewActivityFilters compares normalized reopen filters", () => {
+  assert.equal(
+    matchesRecentReviewActivityFilters(
+      {
+        searchQuery: " harbor ",
+        reviewStatusFilter: "all",
+        confidenceFilter: "all",
+        historyFilter: "reviewed",
+        tagFilter: "shipping",
+        draftFilter: "all",
+        sortOrder: SORT_LOWEST_CONFIDENCE
+      },
+      {
+        sourceMode: "api",
+        searchQuery: "harbor",
+        historyFilter: "reviewed",
+        tagFilter: "shipping",
+        sortOrder: SORT_LOWEST_CONFIDENCE
+      }
+    ),
+    true
+  );
+
+  assert.equal(
+    matchesRecentReviewActivityFilters(
+      createActivityEntry().reopenFilters,
+      {
+        ...createActivityEntry().reopenFilters,
+        sortOrder: SORT_LOWEST_CONFIDENCE
+      }
+    ),
+    false
+  );
+});
+
+test("matchesRecentReviewActivityFilters treats source mode as part of the saved reopen lens", () => {
+  assert.equal(
+    matchesRecentReviewActivityFilters(
+      {
+        ...createActivityEntry().reopenFilters,
+        sourceMode: "fixtures"
+      },
+      createActivityEntry().reopenFilters
+    ),
+    false
+  );
 });

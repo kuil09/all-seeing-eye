@@ -15,11 +15,12 @@ import {
 
 test("createInitialUiState restores non-default URL state", () => {
   const state = createInitialUiState(
-    "?eventId=evt_2&q= harbor &status=approved&confidence=medium&history=reviewed&tag=ports&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
+    "?eventId=evt_2&focus=detail-provenance&q= harbor &status=approved&confidence=medium&history=reviewed&tag=ports&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
   );
 
   assert.deepEqual(state, {
     selectedEventId: "evt_2",
+    activeSearchFocusTarget: "detail-provenance",
     searchQuery: "harbor",
     reviewStatusFilter: "approved",
     confidenceFilter: "medium",
@@ -34,11 +35,12 @@ test("createInitialUiState restores non-default URL state", () => {
 
 test("createInitialUiState falls back for invalid URL values", () => {
   const state = createInitialUiState(
-    "?eventId=%20%20&q=%20%20&status=unknown&confidence=bad&history=missing&source=remote&demo=broken"
+    "?eventId=%20%20&focus=%20%20&q=%20%20&status=unknown&confidence=bad&history=missing&source=remote&demo=broken"
   );
 
   assert.deepEqual(state, {
     selectedEventId: null,
+    activeSearchFocusTarget: null,
     searchQuery: "",
     reviewStatusFilter: "all",
     confidenceFilter: "all",
@@ -54,6 +56,7 @@ test("createInitialUiState falls back for invalid URL values", () => {
 test("buildUrlSearch omits defaults and keeps explicit filters", () => {
   const search = buildUrlSearch({
     selectedEventId: "evt_9",
+    activeSearchFocusTarget: "detail-claims",
     searchQuery: "shipyard",
     reviewStatusFilter: "edited",
     confidenceFilter: "low",
@@ -67,7 +70,7 @@ test("buildUrlSearch omits defaults and keeps explicit filters", () => {
 
   assert.equal(
     search,
-    "?eventId=evt_9&q=shipyard&status=edited&confidence=low&history=reviewed&tag=infrastructure&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
+    "?eventId=evt_9&focus=detail-claims&q=shipyard&status=edited&confidence=low&history=reviewed&tag=infrastructure&drafts=saved&sort=lowest_confidence&source=fixtures&demo=empty"
   );
 });
 

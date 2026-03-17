@@ -7,6 +7,7 @@ tmp_dir="$(mktemp -d)"
 db_file="$tmp_dir/all-seeing-eye.sqlite"
 log_one="$tmp_dir/seed-one.json"
 log_two="$tmp_dir/seed-two.json"
+history_file="$tmp_dir/ingest-runs.json"
 timeline_file="$tmp_dir/timeline.json"
 detail_file="$tmp_dir/detail.json"
 missing_file="$tmp_dir/missing.json"
@@ -27,19 +28,23 @@ trap cleanup EXIT
 
 node "$repo_root/services/pipeline/cli.mjs" seed-demo --db "$db_file" --run-id "smoke_one" >"$log_one"
 node "$repo_root/services/pipeline/cli.mjs" seed-demo --db "$db_file" --run-id "smoke_two" >"$log_two"
+node "$repo_root/services/pipeline/cli.mjs" ingest-runs --db "$db_file" --limit 5 >"$history_file"
 
-python3 - "$log_one" "$log_two" <<'PY'
+python3 - "$log_one" "$log_two" "$history_file" <<'PY'
 import json
 import sys
 
 first = json.load(open(sys.argv[1], "r", encoding="utf-8"))
 second = json.load(open(sys.argv[2], "r", encoding="utf-8"))
+history = json.load(open(sys.argv[3], "r", encoding="utf-8"))
 
 assert first["counts"]["sourceRecords"] == 4
 assert first["counts"]["events"] == 2
 assert first["counts"]["claims"] == 4
 assert second["counts"] == first["counts"]
 assert all(check["ok"] for check in second["qualityChecks"])
+assert history["ingestRuns"]["lastSuccessfulRun"]["ingestRunId"] == "smoke_two"
+assert history["ingestRuns"]["recentRuns"][0]["feeds"][0]["feedKey"]
 PY
 
 READ_API_DB_PATH="$db_file" PORT="$port" HOST="127.0.0.1" \
